@@ -380,6 +380,22 @@
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{}">
+/* =====================================================================
+   ЗОНА ЛОГІКИ — редагувати у Claude Code (не у Claude Design).
+   Тут живуть розрахунки, імпорт .xlsm, IndexedDB та мапінг колонок.
+
+   У Claude Design безпечно правити:
+     • верстку вище (від <x-dc> до </x-dc>): макет, відступи, скруглення,
+       тексти, підписи й розташування кнопок, які поля показувати;
+     • палітру та розміри шрифту у методі buildThemeVars();
+     • рядки-підписи у renderVals() (заголовки, бейджі, формат).
+
+   НЕ чіпати у Design (інакше зламається імпорт реальної бази):
+     • UNITS / toGcal / qIdeal / r2 / r3 / num — формули;
+     • _parseWorkbook / _xlDate / _normAddr / _headerRow / _colMap / _find — імпорт;
+     • _openDb / _idbGet / _idbSet / _persist — збереження (IndexedDB);
+     • onImportFile / _lastReading / _prevEnergy / saveReading — дані.
+   ===================================================================== */
 class Component extends DCLogic {
   state = {
     tab: 'overview', theme: 'light', fontScale: 1,
