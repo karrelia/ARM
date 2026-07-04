@@ -1382,12 +1382,13 @@ class Component extends DCLogic {
         const vVod = this.r3(this.num(s.tblVod2Cur) - this.num(s.tblVod2Prev));
         const dev = this.r3(vLich - vVod);
         const pct = vVod ? this.r2(dev / vVod * 100) : null;
-        const over = dev > 0;
+        // норма — відхилення в межах ±3% (в будь-який бік); понад 3% — проблема
+        const within = pct == null ? true : Math.abs(pct) <= 3;
         return {
           vodDevVal: (dev > 0 ? '+' : '') + this.fmt(dev, 3),
-          vodDevPct: this.pctTxt(pct),
-          vodDevFg: dev === 0 ? 'var(--muted2)' : (over ? COVER : CECON),
-          vodDevBg: dev === 0 ? 'var(--chipBg)' : (over ? tintOver : tintEcon)
+          vodDevPct: pct == null ? '' : (this.pctTxt(pct) + (within ? ' ✓' : ' ⚠')),
+          vodDevFg: within ? CECON : COVER,
+          vodDevBg: within ? tintEcon : tintOver
         };
       })(),      entryArchive: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
