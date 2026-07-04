@@ -323,8 +323,7 @@
                   <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t100)">▾</span>
                 </div>
               </label>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Частка ТН</span><input value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
             </div>
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">водомір</div>
@@ -340,10 +339,17 @@
             </div>
           </div>
 
-          <label style="display:block;margin-bottom:12px">
-            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Теплове навантаження, Гкал/год (при −23 °C)</span>
-            <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
-          </label>
+          <div style="display:flex;gap:10px;margin-bottom:6px">
+            <label style="flex:1.5;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Теплове навантаження будинку, Гкал/год</span>
+              <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="flex:1;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Частка абонента</span>
+              <input inputmode="decimal" value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted);margin-bottom:12px">Розрахункове ТН абонента (навантаження × частка): <b class="tnum" style="color:var(--ink)">{{ mHeatLoadCalc }}</b> Гкал/год</div>
 
           <div style="display:flex;gap:16px;margin-bottom:12px">
             <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mKomOblik }}" onChange="{{ onMKomOblik }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Ком. облік</span></label>
@@ -509,13 +515,9 @@
             <span class="tnum" style="font-size:var(--t125);font-weight:800;color:{{ vodDevFg }}">{{ vodDevVal }}<sc-if value="{{ vodDevPct }}" hint-placeholder-val="{{ false }}"> м³ · {{ vodDevPct }}</sc-if></span>
           </div>
 
-          <label style="display:block;margin-bottom:12px">
-            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Тривалість споживання, год</span>
-            <input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135)">
-          </label>
-
           <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Оцінка споживання</div>
           <div style="background:var(--chipBg);border:1px dashed var(--line2);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">Тривалість, год</span><input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:110px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t середньодоб., °C</span><input inputmode="decimal" value="{{ eTavg }}" onInput="{{ onETavg }}" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t приміщення, °C</span><input inputmode="decimal" value="{{ mTPrim }}" onInput="{{ onMTPrim }}" placeholder="18" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125);border-top:1px solid var(--line);margin-top:4px;padding-top:7px"><span style="color:var(--muted)">Спожито ТЕ (Q факт.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.gcal }}</b></div>
@@ -638,7 +640,7 @@ class Component extends DCLogic {
     booting: true, hasData: false, rev: 0,
     importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '',
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
-    searchQ: '', sortKey: 'addrAsc', boilerSel: '',
+    searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     detailId: null, anBoiler: null, housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
     mObcZavod: '', mObcPovirka: '', mObcTip: '', mObcChastka: '', mObcUnit: '', mHeatLoad: '',
@@ -1057,6 +1059,7 @@ class Component extends DCLogic {
 
   // ---------- houses list (filter/sort) ----------
   _addrNum(addr){ const m = String(addr || '').match(/(\d+)\D*$/); return m ? parseInt(m[1], 10) : 0; }
+  _streetName(addr){ return String(addr || '').replace(/,?\s*\d+\D*$/, '').replace(/^\s*(вул\.?|пров\.?|пл\.?|просп\.?|бул\.?)\s*/i, '').trim(); }
   _matchesSearch(h, q){
     if (!q) return true;
     return (h.code + ' ' + h.address + ' ' + h.boiler + ' ' + h.owner + ' ' + h.account + ' ' + h.meterNo).toLowerCase().includes(q);
@@ -1073,6 +1076,7 @@ class Component extends DCLogic {
         case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.code.localeCompare(b.code, 'uk');
         case 'gcalDesc': return (lb ? lb.gcal : -1) - (la ? la.gcal : -1);
         case 'pctDesc': return (lb ? lb.diff : -1e9) - (la ? la.diff : -1e9);
+        case 'streetAsc': return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address));
         default: return 0;
       }
     });
@@ -1103,12 +1107,13 @@ class Component extends DCLogic {
       switch (s.sortKey) {
         case 'gcalDesc': return b.agg.gcal - a.agg.gcal;
         case 'pctDesc': return (b.agg.hasAny ? b.agg.diff : -1e9) - (a.agg.hasAny ? a.agg.diff : -1e9);
-        default: return (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
+        case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
+        default: return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address));
       }
     });
     return list;
   }
-  cycleSort(){ const order = ['addrAsc','gcalDesc','pctDesc']; this.setState(s => ({ sortKey: order[(order.indexOf(s.sortKey)+1)%order.length] })); }
+  cycleSort(){ const order = ['streetAsc','addrAsc','gcalDesc','pctDesc']; this.setState(s => ({ sortKey: order[(order.indexOf(s.sortKey)+1)%order.length] })); }
   cycleBoiler(){
     const opts = ['', ...this.db.boilers];
     this.setState(s => ({ boilerSel: opts[(opts.indexOf(s.boilerSel)+1)%opts.length] }));
@@ -1188,7 +1193,8 @@ class Component extends DCLogic {
     const delta = this.r3(cur - prev);
     const gcal = this.toGcal(delta, h.unit);
     const load = s.mHeatLoad !== '' ? this.num(s.mHeatLoad) : h.heatLoad;
-    const q = this.qIdeal(load, this.num(s.eDur), h.share, this.num(s.eTavg), s.mTPrim);
+    const share = s.mObcChastka !== '' ? this.num(s.mObcChastka) : (h.share != null ? h.share : 1);
+    const q = this.qIdeal(load, this.num(s.eDur), share, this.num(s.eTavg), s.mTPrim);
     const diff = this.r3(gcal - q);
     const pct = q ? this.r2(diff/q*100) : null;
     return { prev, cur, delta, gcal, q, diff, pct, valid: cur >= prev };
@@ -1440,6 +1446,11 @@ class Component extends DCLogic {
     out.onETime = (e) => { const v = e.target.value; this.setState({ eTime: v, ...this._durPatch({ eTime: v }) }); };
     out.monthOpts = this._monthsUk();
     out.unitOpts = Object.keys(Component.UNITS);
+    {
+      const ld = s.mHeatLoad !== '' ? this.num(s.mHeatLoad) : (eh ? eh.heatLoad : 0);
+      const sh = s.mObcChastka !== '' ? this.num(s.mObcChastka) : (eh && eh.share != null ? eh.share : 1);
+      out.mHeatLoadCalc = this.fmt(this.r3(ld * sh), 3);
+    }
     out.mObcUnit = s.mObcUnit || (eh ? eh.unit : 'Гкал');
     out.onMObcUnit = (e) => this.setState({ mObcUnit: e.target.value });
     out.ePeriod = s.ePeriod || this._monthsUk()[new Date().getMonth()];
@@ -1511,7 +1522,7 @@ class Component extends DCLogic {
       out.boilerSel = s.boilerSel;
       out.boilerOpts = this.db.boilers;
       out.onBoilerSel = (e) => this.onBoilerSel(e);
-      out.sortLabel = ({ addrAsc:'За номером буд.', gcalDesc:'За обсягом', pctDesc:'За відхиленням' })[s.sortKey];
+      out.sortLabel = ({ streetAsc:'За вулицею', addrAsc:'За номером буд.', gcalDesc:'За обсягом', pctDesc:'За відхиленням' })[s.sortKey];
       out.cycleSort = () => this.cycleSort();
       out.onSearch = (e) => this.onSearch(e);
       out.exportHouses = () => this.exportHouses();
