@@ -699,7 +699,18 @@ class Component extends DCLogic {
     return '+380 ' + rest.slice(0,2) + ' ' + rest.slice(2,5) + ' ' + rest.slice(5,7) + ' ' + rest.slice(7,9);
   }
   _monthsUk(){ return ['Січень','Лютий','Березень','Квітень','Травень','Червень','Липень','Серпень','Вересень','Жовтень','Листопад','Грудень']; }
-  saveDovidnyk(){ this.setState({ savedDovidnyk: true }); }
+  saveDovidnyk(){
+    const h = this._entryHouse(); if (!h) return;
+    const s = this.state;
+    h.meterNo = s.mObcZavod || ''; h.unit = s.mObcUnit || h.unit || 'Гкал'; h.obcPovirka = s.mObcPovirka || '';
+    h.meterType = s.mObcTip || ''; h.share = this.num(s.mObcChastka) || h.share || 1;
+    h.vodZavod = s.mVodZavod || ''; h.vodPovirka = s.mVodPovirka || ''; h.vodTip = s.mVodTip || ''; h.dn = s.mVodDN || '';
+    h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
+    h.komOblik = !!s.mKomOblik; h.fop = !!s.mFop;
+    h.contact = s.mContact || ''; h.phone = s.mPhone || '';
+    this._persist();
+    this.setState({ savedDovidnyk: true, rev: this.state.rev + 1 });
+  }
   recalcStub(){ this._bump(); }
   exitEntry(){ this.setTab('overview'); }
 
@@ -1044,7 +1055,7 @@ class Component extends DCLogic {
       mVodZavod: h.vodZavod || '', mVodPovirka: h.vodPovirka || '', mVodTip: h.vodTip || '', mVodDN: h.dn || '',
       mTspZavod: h.tspZavod || '', mTspPovirka: h.tspPovirka || '',
       mKomOblik: !!h.komOblik, mFop: !!h.fop, mContact: this._stripPhone(h.contact),
-      mPhone: this._formatPhoneUa(this._extractPhone(h.contact)),
+      mPhone: h.phone ? this._formatPhoneUa(h.phone) : this._formatPhoneUa(this._extractPhone(h.contact)),
       tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
       tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
       tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
@@ -1150,11 +1161,13 @@ class Component extends DCLogic {
   onETavg(e){ this.setState({ eTavg: e.target.value }); }
   onECur(e){ this.setState({ eCur: e.target.value }); }
   _entryHouse(){ return this.db ? this.db.houses.find(h => String(h.id) === String(this.state.eHouse)) : null; }
+  _curEnergyStr(){ const s = this.state; return (s.eCur !== '' && s.eCur != null) ? s.eCur : s.tblKilkCur; }
   _entryPreview(){
     const h = this._entryHouse(); const s = this.state;
-    if (!h || s.eCur === '') return null;
+    const curStr = this._curEnergyStr();
+    if (!h || curStr === '' || curStr == null) return null;
     const prev = this._prevEnergy(h.id);
-    const cur = this.num(s.eCur);
+    const cur = this.num(curStr);
     const delta = this.r3(cur - prev);
     const gcal = this.toGcal(delta, h.unit);
     const q = this.qIdeal(h.heatLoad, this.num(s.eDur), h.share, this.num(s.eTavg));
@@ -1166,16 +1179,30 @@ class Component extends DCLogic {
     const h = this._entryHouse(); const pv = this._entryPreview();
     if (!h || !pv || !pv.valid) return;
     const s = this.state;
+    const has = (v) => v !== '' && v != null;
     const id = (this.db.readings.reduce((m,r) => Math.max(m, r.id), 0) || 0) + 1;
     this.db.readings.push({
       id, houseId: h.id, date: s.eControl ? '' : (s.eDate || this._todayISO()),
-      time: s.eTime || '', isControl: s.eControl, duration: this.num(s.eDur), tAvg: this.num(s.eTavg),
+      time: s.eTime || '', isControl: s.eControl, period: s.ePeriod || '',
+      duration: this.num(s.eDur), tAvg: this.num(s.eTavg),
       unit: h.unit, cur: pv.cur, prev: pv.prev, delta: pv.delta, gcal: pv.gcal, q: pv.q,
-      diff: pv.diff, pct: pv.pct
+      diff: pv.diff, pct: pv.pct,
+      // додаткові показники приладів
+      voda: this.num(s.tblVodCur), robota: this.num(s.tblNarCur), prostiy: this.num(s.tblProstCur),
+      vodomir: this.num(s.tblVod2Cur), vytraty: this.num(s.sVytraty), potuzhnist: this.num(s.sPotuzhnist),
+      tVhid: this.num(s.sTempVhid), tVyhid: this.num(s.sTempVyhid)
     });
+    // оновлюємо «останні збережені» показники в довіднику → стануть «попередніми» наступного разу
+    if (!s.eControl) {
+      h.prevObc = pv.cur;
+      if (has(s.tblVodCur)) h.prevVoda = this.num(s.tblVodCur);
+      if (has(s.tblNarCur)) h.prevRobota = this.num(s.tblNarCur);
+      if (has(s.tblProstCur)) h.prevProstiy = this.num(s.tblProstCur);
+      if (has(s.tblVod2Cur)) h.prevVodomir = this.num(s.tblVod2Cur);
+    }
     this._persist();
-    this.setState({ eCur: '', eDur: '', eTavg: '', eDate: this._todayISO(), eTime: this._nowHM(), ePrevSel: '', eControl: false, importOpen: true,
-      importName: h.code, importMeta: 'показання збережено', rev: this.state.rev + 1 });
+    this.setState({ ...this._entryPatchFor(h), eDur: '', eTavg: '', eDate: this._todayISO(), eTime: this._nowHM(),
+      eControl: false, importOpen: true, importName: h.code, importMeta: 'показання збережено', rev: this.state.rev + 1 });
   }
 
   // ---------- analytics ----------
