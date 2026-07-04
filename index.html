@@ -1058,7 +1058,7 @@ class Component extends DCLogic {
   }
 
   // ---------- houses list (filter/sort) ----------
-  _addrNum(addr){ const m = String(addr || '').match(/(\d+)\D*$/); return m ? parseInt(m[1], 10) : 0; }
+  _addrNum(addr){ const s = String(addr || '').replace(/[,\s]+$/, ''); const seg = s.includes(',') ? s.slice(s.lastIndexOf(',') + 1) : s; const m = seg.match(/\d+/); return m ? parseInt(m[0], 10) : 0; }
   _streetName(addr){ return String(addr || '').replace(/,?\s*\d+\D*$/, '').replace(/^\s*(вул\.?|пров\.?|пл\.?|просп\.?|бул\.?)\s*/i, '').trim(); }
   _matchesSearch(h, q){
     if (!q) return true;
@@ -1076,7 +1076,7 @@ class Component extends DCLogic {
         case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.code.localeCompare(b.code, 'uk');
         case 'gcalDesc': return (lb ? lb.gcal : -1) - (la ? la.gcal : -1);
         case 'pctDesc': return (lb ? lb.diff : -1e9) - (la ? la.diff : -1e9);
-        case 'streetAsc': return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address));
+        case 'streetAsc': return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
         default: return 0;
       }
     });
@@ -1108,7 +1108,7 @@ class Component extends DCLogic {
         case 'gcalDesc': return b.agg.gcal - a.agg.gcal;
         case 'pctDesc': return (b.agg.hasAny ? b.agg.diff : -1e9) - (a.agg.hasAny ? a.agg.diff : -1e9);
         case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
-        default: return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address));
+        default: return this._streetName(a.address).localeCompare(this._streetName(b.address), 'uk') || (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
       }
     });
     return list;
