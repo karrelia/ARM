@@ -852,6 +852,23 @@ class Component extends DCLogic {
       const cTown = this._find(map, 'населений');
       const cBoiler = this._find(map, 'котельня');
       const cShare = this._find(map, 'частка');
+      // паспортні поля приладів обліку
+      const cObcPov = this._find(map, 'повірки обчислювача');
+      const cVodNo = this._find(map, '№ витратоміра');
+      const cVodTip = this._find(map, 'тип витратоміра');
+      const cDn = this._find(map, 'dn');
+      const cVodPov = this._find(map, 'повірки витратоміра');
+      const cTspNo = this._find(map, '№ тсп');
+      const cTspPov = this._find(map, 'повірки тсп');
+      const cKom = this._find(map, 'комерційний');
+      const cFop = this._find(map, 'фоп');
+      const cContact = this._find(map, 'контактна');
+      // останні збережені показники (стають «попередніми» при вводі)
+      const cPrevObc = this._find(map, 'поточн. показник');
+      const cVoda = this._find(map, 'вода по обчислювачу');
+      const cRobota = this._find(map, 'робота по обчислювачу');
+      const cProstiy = this._find(map, 'простій по обчислювачу');
+      const cVodomir = this._find(map, 'вода по водоміру');
       let id = 1;
       for (let i = hIdx + 1; i < refRows.length; i++) {
         const row = refRows[i];
@@ -867,7 +884,22 @@ class Component extends DCLogic {
           meterType: cMeterT >= 0 ? String(row[cMeterT] || '').trim() : '',
           unit: (cUnit >= 0 && row[cUnit]) ? String(row[cUnit]).trim() : 'Гкал',
           heatLoad: loadByAddr[this._normAddr(addr)] != null ? loadByAddr[this._normAddr(addr)] : 0,
-          share: cShare >= 0 ? (this.num(row[cShare]) || 1) : 1
+          share: cShare >= 0 ? (this.num(row[cShare]) || 1) : 1,
+          obcPovirka: cObcPov >= 0 ? this._xlDate(row[cObcPov]) : '',
+          vodZavod: cVodNo >= 0 ? String(row[cVodNo] || '').trim() : '',
+          vodTip: cVodTip >= 0 ? String(row[cVodTip] || '').trim() : '',
+          dn: cDn >= 0 ? String(row[cDn] || '').trim() : '',
+          vodPovirka: cVodPov >= 0 ? this._xlDate(row[cVodPov]) : '',
+          tspZavod: cTspNo >= 0 ? String(row[cTspNo] || '').trim() : '',
+          tspPovirka: cTspPov >= 0 ? this._xlDate(row[cTspPov]) : '',
+          komOblik: cKom >= 0 ? !!row[cKom] : false,
+          fop: cFop >= 0 ? !!row[cFop] : false,
+          contact: cContact >= 0 ? String(row[cContact] || '').trim() : '',
+          prevObc: cPrevObc >= 0 ? this.num(row[cPrevObc]) : 0,
+          prevVoda: cVoda >= 0 ? this.num(row[cVoda]) : 0,
+          prevRobota: cRobota >= 0 ? this.num(row[cRobota]) : 0,
+          prevProstiy: cProstiy >= 0 ? this.num(row[cProstiy]) : 0,
+          prevVodomir: cVodomir >= 0 ? this.num(row[cVodomir]) : 0
         });
       }
     }
@@ -992,7 +1024,31 @@ class Component extends DCLogic {
   }
   _prevEnergy(houseId){
     const r = this._prevReading(houseId);
-    return r ? r.cur : 0;
+    if (r) return r.cur;
+    // немає архіву — беремо останній збережений показник із довідника (TabAbon)
+    const h = this.db.houses.find(x => x.id === houseId);
+    return h && h.prevObc ? h.prevObc : 0;
+  }
+  _extractPhone(text){
+    const m = String(text || '').match(/\d[\d\s().-]{7,}\d/);
+    return m ? m[0] : '';
+  }
+  // паспорт + попередні показники обраного абонента → патч стану форми «Ввід»
+  _entryPatchFor(h){
+    if (!h) return {};
+    const sv = (v) => (v === 0 || v == null || v === '') ? '' : String(v);
+    return {
+      mObcZavod: h.meterNo || '', mObcUnit: h.unit || 'Гкал', mObcPovirka: h.obcPovirka || '',
+      mObcTip: h.meterType || '', mObcChastka: (h.share != null ? String(h.share) : ''),
+      mVodZavod: h.vodZavod || '', mVodPovirka: h.vodPovirka || '', mVodTip: h.vodTip || '', mVodDN: h.dn || '',
+      mTspZavod: h.tspZavod || '', mTspPovirka: h.tspPovirka || '',
+      mKomOblik: !!h.komOblik, mFop: !!h.fop, mContact: h.contact || '',
+      mPhone: this._formatPhoneUa(this._extractPhone(h.contact)),
+      tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
+      tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
+      tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
+      eCur: '', savedDovidnyk: false, ePrevSel: ''
+    };
   }
 
   // ---------- houses list (filter/sort) ----------
@@ -1057,7 +1113,7 @@ class Component extends DCLogic {
   onBoilerSel(e){ this.setState({ boilerSel: e.target.value }); }
   openBuilding(key){ this.setState({ housesBuilding: key }); }
   closeBuilding(){ this.setState({ housesBuilding: null }); }
-  tapMeter(h){ this.setState({ tab: 'entry', eHouse: String(h.id), housesBuilding: null, ePrevSel: '' }); }
+  tapMeter(h){ this.setState({ tab: 'entry', eHouse: String(h.id), housesBuilding: null, ...this._entryPatchFor(h) }); }
 
   // ---------- entry: навігація по приладах в межах будинку ----------
   entryBack(){
@@ -1071,7 +1127,7 @@ class Component extends DCLogic {
     const idx = meters.findIndex(x => x.id === h.id);
     const ni = idx + dir;
     if (idx === -1 || ni < 0 || ni >= meters.length) return;
-    this.setState({ eHouse: String(meters[ni].id), ePrevSel: '' });
+    this.setState({ eHouse: String(meters[ni].id), ...this._entryPatchFor(meters[ni]) });
   }
 
   // ---------- detail ----------
@@ -1086,7 +1142,7 @@ class Component extends DCLogic {
   }
 
   // ---------- entry ----------
-  onEHouse(e){ this.setState({ eHouse: e.target.value, ePrevSel: '' }); }
+  onEHouse(e){ const id = e.target.value; const h = this.db.houses.find(x => String(x.id) === String(id)); this.setState({ eHouse: id, ...this._entryPatchFor(h) }); }
   onEControl(e){ this.setState({ eControl: e.target.checked }); }
   onEDate(e){ this.setState({ eDate: e.target.value }); }
   onEDur(e){ this.setState({ eDur: e.target.value }); }
@@ -1346,7 +1402,7 @@ class Component extends DCLogic {
         code: hName(h), addr: hSub(h) || '—', owner: h.owner || '', meter: h.meterNo || '—',
         heatLoad: this.fmt(h.heatLoad, h.heatLoad < 10 ? 3 : 0), unit: h.unit, boiler: h.boiler || '—',
         histCnt: hist.length,
-        addReading: () => this.setState({ tab: 'entry', detailId: null, eHouse: String(h.id) }),
+        addReading: () => this.setState({ tab: 'entry', detailId: null, eHouse: String(h.id), ...this._entryPatchFor(h) }),
         prev: () => this.detailStep(-1), next: () => this.detailStep(1)
       };
       out.closeDetail = () => this.closeDetail();
