@@ -509,42 +509,29 @@
           </div>
 
           <label style="display:block;margin-bottom:12px">
-            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Спожито теплової енергії, Гкал</span>
-            <div class="tnum" style="width:100%;height:46px;display:flex;align-items:center;padding:0 11px;border:1px solid var(--line2);border-radius:12px;background:var(--chipBg);color:var(--ink);font-size:var(--t135);font-weight:700">{{ eConsumedGcal }}</div>
+            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Тривалість споживання, год</span>
+            <input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135)">
           </label>
-
-          <div style="display:flex;gap:11px;margin-bottom:12px">
-            <label style="flex:1">
-              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Тривалість, год</span>
-              <input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135)">
-            </label>
-            <label style="flex:1">
-              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">t середньодоб., °C</span>
-              <input inputmode="decimal" value="{{ eTavg }}" onChange="{{ onETavg }}" onInput="{{ onETavg }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135)">
-            </label>
-          </div>
 
           <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Оцінка споживання</div>
           <div style="background:var(--chipBg);border:1px dashed var(--line2);border-radius:14px;padding:13px 15px;margin-bottom:14px">
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">t с/д, °C</span><b class="tnum" style="color:var(--ink)">{{ eTavg }}</b></div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t прим., °C</span><input value="{{ mTPrim }}" onInput="{{ onMTPrim }}" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Q факт., Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.gcal }}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Q розр., Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.q }}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125);border-top:1px solid var(--line);margin-top:4px;padding-top:7px"><span style="color:var(--muted)">Різниця, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.diff }}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Відх., %</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.pct }}</b></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t середньодоб., °C</span><input inputmode="decimal" value="{{ eTavg }}" onInput="{{ onETavg }}" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t приміщення, °C</span><input inputmode="decimal" value="{{ mTPrim }}" onInput="{{ onMTPrim }}" placeholder="18" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125);border-top:1px solid var(--line);margin-top:4px;padding-top:7px"><span style="color:var(--muted)">Спожито ТЕ (Q факт.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.gcal }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Норматив (Q розр.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.q }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Різниця, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.diff }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Відхилення, %</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.pct }}</b></div>
           </div>
 
           <sc-if value="{{ eWarn }}" hint-placeholder-val="{{ false }}">
             <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:12px;padding:10px 12px;margin-bottom:13px;font-size:var(--t120);font-weight:600;color:var(--debt)">{{ eWarn }}</div>
           </sc-if>
 
-          <div style="display:flex;gap:9px;margin-bottom:12px">
-            <button onClick="{{ recalcStub }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Обрахувати</button>
-            <button onClick="{{ resetStubFields }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Оновити</button>
-            <button onClick="{{ exitEntry }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Вихід</button>
+          <button onClick="{{ saveReading }}" disabled="{{ eSaveDisabled }}" style="width:100%;height:52px;border-radius:15px;border:none;background:{{ eSaveBg }};color:#fff;font-size:var(--t145);font-weight:800;cursor:pointer;margin-bottom:9px">Зберегти у архів</button>
+          <div style="display:flex;gap:9px">
+            <button onClick="{{ resetStubFields }}" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Очистити форму</button>
+            <button onClick="{{ exitEntry }}" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Вихід</button>
           </div>
-
-          <button onClick="{{ saveReading }}" disabled="{{ eSaveDisabled }}" style="width:100%;height:52px;border-radius:15px;border:none;background:{{ eSaveBg }};color:#fff;font-size:var(--t145);font-weight:800;cursor:pointer">Зберегти у архів</button>
         </div>
 
         <!-- ============ Архів (для обраного будинку) ============ -->
