@@ -509,8 +509,8 @@
           </div>
 
           <label style="display:block;margin-bottom:12px">
-            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Поточний показник обчислювача ({{ eUnit }})</span>
-            <input inputmode="decimal" value="{{ eCur }}" onChange="{{ onECur }}" onInput="{{ onECur }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135)">
+            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Спожито теплової енергії, Гкал</span>
+            <div class="tnum" style="width:100%;height:46px;display:flex;align-items:center;padding:0 11px;border:1px solid var(--line2);border-radius:12px;background:var(--chipBg);color:var(--ink);font-size:var(--t135);font-weight:700">{{ eConsumedGcal }}</div>
           </label>
 
           <div style="display:flex;gap:11px;margin-bottom:12px">
@@ -673,9 +673,9 @@ class Component extends DCLogic {
     };
   }
   resetStubFields(){
-    const keys = ['tblKilkPrev','tblKilkCur','tblVodPrev','tblVodCur','tblNarPrev','tblNarCur',
-      'tblProstPrev','tblProstCur','sVytraty','sPotuzhnist','sTempVhid','sTempVyhid',
-      'tblVod2Prev','tblVod2Cur','mTPrim'];
+    // t приміщення (mTPrim) і t середньодобова (eTavg) НЕ скидаємо — вводяться один раз
+    const keys = ['tblKilkCur','tblVodCur','tblNarCur','tblProstCur','tblVod2Cur',
+      'sVytraty','sPotuzhnist','sTempVhid','sTempVyhid'];
     const upd = {}; keys.forEach(k => upd[k] = '');
     upd.eDate = this._todayISO(); upd.eTime = this._nowHM();
     this.setState(upd);
@@ -756,7 +756,7 @@ class Component extends DCLogic {
   // ---------- calculation (порт з calculations.py) ----------
   static get UNITS(){ return { 'Гкал':1, 'МВт':0.86, 'ГДж':0.2388, 'кВт':0.00086 }; }
   toGcal(delta, unit){ const f = Component.UNITS[unit] != null ? Component.UNITS[unit] : 1; return this.r3(delta * f); }
-  qIdeal(load, dur, share, tAvg){ if (!dur) return 0; return this.r3((load/1000) * dur * (share||1) * ((18 - tAvg)/41)); }
+  qIdeal(load, dur, share, tAvg, tIndoor){ if (!dur) return 0; const ti = (tIndoor == null || tIndoor === '' || isNaN(tIndoor)) ? 18 : Number(tIndoor); return this.r3((load/1000) * dur * (share||1) * ((ti - tAvg)/41)); }
   r3(n){ return Math.round((Number(n)||0)*1000)/1000; }
   r2(n){ return Math.round((Number(n)||0)*100)/100; }
   num(v){ if (v === '' || v == null) return 0; return Number(String(v).replace(',', '.').replace(/\s/g,'')) || 0; }
@@ -1059,7 +1059,9 @@ class Component extends DCLogic {
       tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
       tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
       tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
-      eCur: '', savedDovidnyk: false, ePrevSel: ''
+      eCur: '', savedDovidnyk: false, ePrevSel: '',
+      // тривалість рахується автоматично від попереднього до поточного вимірювання
+      eDur: this._autoDur(this.state.eDate, this.state.eTime || this._nowHM(), h)
     };
   }
 
@@ -1156,21 +1158,46 @@ class Component extends DCLogic {
   // ---------- entry ----------
   onEHouse(e){ const id = e.target.value; const h = this.db.houses.find(x => String(x.id) === String(id)); this.setState({ eHouse: id, ...this._entryPatchFor(h) }); }
   onEControl(e){ this.setState({ eControl: e.target.checked }); }
-  onEDate(e){ this.setState({ eDate: e.target.value }); }
+  onEDate(e){ const v = e.target.value; this.setState({ eDate: v, ...this._durPatch({ eDate: v }) }); }
   onEDur(e){ this.setState({ eDur: e.target.value }); }
   onETavg(e){ this.setState({ eTavg: e.target.value }); }
   onECur(e){ this.setState({ eCur: e.target.value }); }
   _entryHouse(){ return this.db ? this.db.houses.find(h => String(h.id) === String(this.state.eHouse)) : null; }
-  _curEnergyStr(){ const s = this.state; return (s.eCur !== '' && s.eCur != null) ? s.eCur : s.tblKilkCur; }
+
+  // ---- дата/час + автоматична тривалість споживання (год) ----
+  _toDate(dateStr, timeStr){
+    if (!dateStr) return null;
+    const t = (timeStr && /^\d{1,2}:\d{2}/.test(timeStr)) ? timeStr : '00:00';
+    const d = new Date(dateStr + 'T' + t + ':00');
+    return isNaN(d.getTime()) ? null : d;
+  }
+  _prevDateTime(h){
+    const r = h ? this._prevReading(h.id) : null;
+    return r && r.date ? this._toDate(r.date, r.time) : null;
+  }
+  _autoDur(dateStr, timeStr, h){
+    const prev = this._prevDateTime(h), cur = this._toDate(dateStr, timeStr);
+    if (!prev || !cur) return '';
+    const hrs = (cur.getTime() - prev.getTime()) / 3600000;
+    return hrs > 0 ? String(this.r2(hrs)) : '';
+  }
+  _durPatch(over){
+    over = over || {};
+    const s = this.state, h = this._entryHouse();
+    const d = this._autoDur(over.eDate != null ? over.eDate : s.eDate,
+                            over.eTime != null ? over.eTime : (s.eTime || this._nowHM()), h);
+    return d !== '' ? { eDur: d } : {};
+  }
+
   _entryPreview(){
     const h = this._entryHouse(); const s = this.state;
-    const curStr = this._curEnergyStr();
-    if (!h || curStr === '' || curStr == null) return null;
-    const prev = this._prevEnergy(h.id);
-    const cur = this.num(curStr);
+    // поточне показання беремо з таблиці «Кількість ТЕ»; доки воно порожнє — розрахунку немає
+    if (!h || s.tblKilkCur === '' || s.tblKilkCur == null) return null;
+    const prev = this.num(s.tblKilkPrev);
+    const cur = this.num(s.tblKilkCur);
     const delta = this.r3(cur - prev);
     const gcal = this.toGcal(delta, h.unit);
-    const q = this.qIdeal(h.heatLoad, this.num(s.eDur), h.share, this.num(s.eTavg));
+    const q = this.qIdeal(h.heatLoad, this.num(s.eDur), h.share, this.num(s.eTavg), s.mTPrim);
     const diff = this.r3(gcal - q);
     const pct = q ? this.r2(diff/q*100) : null;
     return { prev, cur, delta, gcal, q, diff, pct, valid: cur >= prev };
@@ -1201,7 +1228,8 @@ class Component extends DCLogic {
       if (has(s.tblVod2Cur)) h.prevVodomir = this.num(s.tblVod2Cur);
     }
     this._persist();
-    this.setState({ ...this._entryPatchFor(h), eDur: '', eTavg: '', eDate: this._todayISO(), eTime: this._nowHM(),
+    // t середньодобова і t приміщення НЕ скидаємо (вводяться один раз, за потреби коригуються)
+    this.setState({ ...this._entryPatchFor(h), eDate: this._todayISO(), eTime: this._nowHM(),
       eControl: false, importOpen: true, importName: h.code, importMeta: 'показання збережено', rev: this.state.rev + 1 });
   }
 
@@ -1317,8 +1345,12 @@ class Component extends DCLogic {
     const houseOpts = this.db.houses.map(h => ({ id: h.id, label: hName(h) + (h.code && h.address ? ' · ' + h.code : '') }));
     const eh = this._entryHouse();
     const pv = this._entryPreview();
+    // різниця — лише коли заповнено поточне значення
+    const dcalc = (prev, cur) => (cur === '' || cur == null) ? '—' : this.fmt(this.r3(this.num(cur) - this.num(prev)), 3);
     Object.assign(out, {
       eHouse: s.eHouse, eDate: s.eDate, eControl: s.eControl, eDur: s.eDur, eTavg: s.eTavg, eCur: s.eCur,
+      // поле «Поточний показник обчислювача» показує спожиту ТЕ в Гкал (незалежно від розмірності лічильника)
+      eConsumedGcal: pv ? this.fmt(pv.gcal, 3) : '—',
       houseOpts, eUnit: eh ? eh.unit : 'Гкал', eShowDate: !s.eControl,
       eMeta: eh ? ('ТН ' + eh.heatLoad + ' · попередній показник ' + this.fmt(this._prevEnergy(eh.id), 3) + ' · ' + eh.unit) : '',
       onEHouse: (e) => this.onEHouse(e), onEControl: (e) => this.onEControl(e), onEDate: (e) => this.onEDate(e),
@@ -1336,7 +1368,7 @@ class Component extends DCLogic {
       entryPrevDate: eh ? ((this._prevReading(eh.id) || {}).date || 'немає даних') : '—',
       entryPrevTime: eh ? ((this._prevReading(eh.id) || {}).time || '—') : '—',
       ePrevSel: s.ePrevSel || '',
-      onEPrevSel: (e) => this.setState({ ePrevSel: e.target.value }),
+      onEPrevSel: (e) => this.setState({ ePrevSel: e.target.value }, () => this.setState(this._durPatch())),
       prevReadingOpts: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl && r.date)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
         .map(r => ({ id: r.id, label: r.date + (r.time ? ' ' + r.time : '') + ' · ' + this.fmt(r.cur, 3) })) : [],
@@ -1348,11 +1380,11 @@ class Component extends DCLogic {
       recalcStub: () => this.recalcStub(),
       resetStubFields: () => this.resetStubFields(),
       exitEntry: () => this.exitEntry(),
-      diffKilkTe: this.fmt(this.r3(this.num(s.tblKilkCur) - this.num(s.tblKilkPrev)), 3),
-      diffVod: this.fmt(this.r3(this.num(s.tblVodCur) - this.num(s.tblVodPrev)), 3),
-      diffNar: this.fmt(this.r3(this.num(s.tblNarCur) - this.num(s.tblNarPrev)), 3),
-      diffProst: this.fmt(this.r3(this.num(s.tblProstCur) - this.num(s.tblProstPrev)), 3),
-      diffVod2: this.fmt(this.r3(this.num(s.tblVod2Cur) - this.num(s.tblVod2Prev)), 3),
+      diffKilkTe: dcalc(s.tblKilkPrev, s.tblKilkCur),
+      diffVod: dcalc(s.tblVodPrev, s.tblVodCur),
+      diffNar: dcalc(s.tblNarPrev, s.tblNarCur),
+      diffProst: dcalc(s.tblProstPrev, s.tblProstCur),
+      diffVod2: dcalc(s.tblVod2Prev, s.tblVod2Cur),
       ...(() => {
         const haveLich = s.tblVodPrev !== '' && s.tblVodCur !== '';
         const haveVod = s.tblVod2Prev !== '' && s.tblVod2Cur !== '';
@@ -1413,7 +1445,7 @@ class Component extends DCLogic {
       out.mPhoneCallPtr = hasNum ? 'auto' : 'none';
     }
     out.eTime = s.eTime || this._nowHM();
-    out.onETime = (e) => this.setState({ eTime: e.target.value });
+    out.onETime = (e) => { const v = e.target.value; this.setState({ eTime: v, ...this._durPatch({ eTime: v }) }); };
     out.monthOpts = this._monthsUk();
     out.unitOpts = Object.keys(Component.UNITS);
     out.mObcUnit = s.mObcUnit || (eh ? eh.unit : 'Гкал');
