@@ -290,29 +290,54 @@
         </sc-if>
 
         <!-- ============ БЛОК 1: Будинок + прилади обліку ============ -->
+        
+
+        <!-- ============ БЛОК 2: Показання і розрахунок ============ -->
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Будинок і прилади обліку</div>
 
-          <label style="display:block;margin-bottom:10px">
+          <div style="margin-bottom:10px">
             <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Будинок / абонент</span>
-            <select value="{{ eHouse }}" onChange="{{ onEHouse }}" style="width:100%;height:46px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t135);font-weight:600">
-              <option value="">— оберіть —</option>
-              <sc-for list="{{ houseOpts }}" as="o" hint-placeholder-count="3">
-                <option value="{{ o.id }}">{{ o.label }}</option>
-              </sc-for>
-            </select>
-          </label>
+            <sc-if value="{{ entryBoilerFilter }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+                <span style="font-size:var(--t110);font-weight:700;color:var(--primary);background:var(--primTint);border:1px solid var(--primBd);border-radius:20px;padding:4px 10px">Котельня: {{ entryBoilerFilter }}</span>
+                <button onClick="{{ clearEntryBoilerFilter }}" style="background:none;border:none;color:var(--muted2);font-size:var(--t115);font-weight:700;cursor:pointer;padding:2px 4px">✕</button>
+              </div>
+            </sc-if>
+            <div style="position:relative">
+              <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
+                <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
+                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Будинок, адреса, № приладу обліку" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+              </div>
+              <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ closeEntrySearch }}" style="position:fixed;inset:0;z-index:14"></div>
+                <div class="scrl" style="position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:15;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 30px -16px rgba(0,0,0,.4);max-height:280px;overflow-y:auto">
+                  <sc-for list="{{ entrySearchResults }}" as="r" hint-placeholder-count="4">
+                    <button onClick="{{ r.tap }}" style="display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid var(--line);padding:10px 13px;cursor:pointer">
+                      <div style="font-size:var(--t130);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</div>
+                      <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</div>
+                    </button>
+                  </sc-for>
+                  <sc-if value="{{ entrySearchEmpty }}" hint-placeholder-val="{{ false }}">
+                    <div style="padding:14px;text-align:center;color:var(--muted);font-size:var(--t120);font-weight:600">Нічого не знайдено</div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+          </div>
 
           <sc-if value="{{ entryOwner }}" hint-placeholder-val="{{ false }}">
             <div style="font-size:var(--t115);font-weight:600;color:var(--muted);margin-bottom:12px">Адреса: <b style="color:var(--ink)">{{ entryAddr }}</b> · Власник: <b style="color:var(--ink)">{{ entryOwner }}</b></div>
           </sc-if>
 
           <div style="display:flex;gap:10px;margin-bottom:12px">
+            
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">обчислювач</div>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mObcPovirka }}" onInput="{{ onMObcPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block;margin-bottom:7px">
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block">
                 <span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Розмірність</span>
                 <div style="position:relative">
                   <select value="{{ mObcUnit }}" onChange="{{ onMObcUnit }}" style="width:100%;height:36px;padding:0 22px 0 8px;border-radius:9px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t115);appearance:none;-webkit-appearance:none">
@@ -323,9 +348,7 @@
                   <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t100)">▾</span>
                 </div>
               </label>
-              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-            </div>
-            <div style="flex:1;min-width:0">
+            </div><div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">водомір</div>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
@@ -376,10 +399,7 @@
               <span style="font-size:var(--t115);font-weight:700;color:var(--over)">✓ Збережено</span>
             </sc-if>
           </div>
-        </div>
-
-        <!-- ============ БЛОК 2: Показання і розрахунок ============ -->
-        <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
+        </div><div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Показання і розрахунок</div>
 
           <div style="display:flex;gap:11px;margin-bottom:12px">
@@ -399,7 +419,7 @@
 
           <label style="display:flex;align-items:center;gap:9px;margin-bottom:14px;cursor:pointer">
             <input type="checkbox" checked="{{ eControl }}" onChange="{{ onEControl }}" style="width:18px;height:18px">
-            <span style="font-size:var(--t125);font-weight:600;color:var(--ink)">Контрольне вимірювання)</span>
+            <span style="font-size:var(--t125);font-weight:600;color:var(--ink)">Контрольне вимірювання</span>
           </label>
 
           <div style="border:1px solid var(--line2);border-radius:14px;padding:13px;margin-bottom:12px">
@@ -517,7 +537,7 @@
 
           <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Оцінка споживання</div>
           <div style="background:var(--chipBg);border:1px dashed var(--line2);border-radius:14px;padding:13px 15px;margin-bottom:14px">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">Тривалість, год</span><input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:110px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">Тривалість, год</span><input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width: 90px; height: 35px; padding: 0 8px; border: 1px solid var(--inputBd); border-radius: 8px; background: var(--surface); color: var(--ink); font-size: var(--t120); text-align: right"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t середньодоб., °C</span><input inputmode="decimal" value="{{ eTavg }}" onInput="{{ onETavg }}" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t приміщення, °C</span><input inputmode="decimal" value="{{ mTPrim }}" onInput="{{ onMTPrim }}" placeholder="18" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125);border-top:1px solid var(--line);margin-top:4px;padding-top:7px"><span style="color:var(--muted)">Спожито ТЕ (Q факт.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.gcal }}</b></div>
@@ -641,6 +661,7 @@ class Component extends DCLogic {
     importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '',
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
+    entrySearchOpen: false, entrySearchQ: '',
     detailId: null, anBoiler: null, housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
     mObcZavod: '', mObcPovirka: '', mObcTip: '', mObcChastka: '', mObcUnit: '', mHeatLoad: '',
@@ -1152,6 +1173,11 @@ class Component extends DCLogic {
 
   // ---------- entry ----------
   onEHouse(e){ const id = e.target.value; const h = this.db.houses.find(x => String(x.id) === String(id)); this.setState({ eHouse: id, ...this._entryPatchFor(h) }); }
+  onEntrySearchFocus(){ this.setState({ entrySearchOpen: true, entrySearchQ: '' }); }
+  onEntrySearch(e){ this.setState({ entrySearchOpen: true, entrySearchQ: e.target.value }); }
+  closeEntrySearch(){ this.setState({ entrySearchOpen: false }); }
+  clearEntryBoilerFilter(){ this.setState({ boilerSel: '' }); }
+  selectEntryHouse(h){ this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '' }); }
   onEControl(e){ this.setState({ eControl: e.target.checked }); }
   onEDate(e){ const v = e.target.value; this.setState({ eDate: v, ...this._durPatch({ eDate: v }) }); }
   onEDur(e){ this.setState({ eDur: e.target.value }); }
@@ -1273,13 +1299,13 @@ class Component extends DCLogic {
     const dark = this.state.theme === 'dark';
     const pal = dark ? {
       '--pageBg':'radial-gradient(circle at 50% 0%,#1b2336,#0a0d16)',
-      '--bg':'#0F1422','--surface':'#161C2B','--line':'#232B3D','--line2':'#2C3447',
+      '--bg':'#0F1422','--surface':'#161C2B','--line':'#3A4560','--line2':'#4A5678',
       '--ink':'#EAEDF5','--muted':'#8E97AE','--muted2':'#6B748C','--faint':'#A6AEC2',
       '--primary':'#7c8bf5','--primTint':'rgba(124,139,245,.14)','--primBd':'#3a3f74',
       '--debt':'#FB7185','--debtTint':'rgba(251,113,133,.14)',
       '--over':'#34D399','--overTint':'rgba(52,211,153,.13)',
       '--headerBg':'#0F1422','--headerBd':'#232B3D','--chipBg':'#161C2B',
-      '--inputBg':'#161C2B','--inputBd':'#232B3D','--barTrack':'#222A3D'
+      '--inputBg':'#1B2333','--inputBd':'#4A5678','--barTrack':'#222A3D'
     } : {
       '--pageBg':'radial-gradient(circle at 30% 0%,#eef0f6,#d4d8e4)',
       '--bg':'#F4F5F8','--surface':'#ffffff','--line':'#EDEFF4','--line2':'#E7E9F0',
@@ -1341,6 +1367,22 @@ class Component extends DCLogic {
     const hSub = (h) => [h.code, h.boiler, h.settlement].filter(Boolean).join(' · ');
     const houseOpts = this.db.houses.map(h => ({ id: h.id, label: hName(h) + (h.code && h.address ? ' · ' + h.code : '') }));
     const eh = this._entryHouse();
+    {
+      const boilerFilter = s.boilerSel;
+      const q = (s.entrySearchQ || '').trim().toLowerCase();
+      const list = this.db.houses.filter(h => (!boilerFilter || h.boiler === boilerFilter) && this._matchesSearch(h, q));
+      Object.assign(out, {
+        entryBoilerFilter: boilerFilter || '',
+        clearEntryBoilerFilter: () => this.clearEntryBoilerFilter(),
+        onEntrySearchFocus: () => this.onEntrySearchFocus(),
+        onEntrySearch: (e) => this.onEntrySearch(e),
+        closeEntrySearch: () => this.closeEntrySearch(),
+        entrySearchOpen: !!s.entrySearchOpen,
+        entrySearchDisplay: s.entrySearchOpen ? s.entrySearchQ : (eh ? (hName(eh) + (eh.code && eh.address ? ' · ' + eh.code : '')) : ''),
+        entrySearchEmpty: list.length === 0,
+        entrySearchResults: list.slice(0, 30).map(h => ({ id: h.id, label: hName(h), sub: hSub(h), tap: () => this.selectEntryHouse(h) }))
+      });
+    }
     const pv = this._entryPreview();
     // різниця — лише коли заповнено поточне значення
     const dcalc = (prev, cur) => (cur === '' || cur == null) ? '—' : this.fmt(this.r3(this.num(cur) - this.num(prev)), 3);
