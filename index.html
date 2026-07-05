@@ -330,7 +330,7 @@
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
               <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mVodTip }}" onInput="{{ onMVodTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input value="{{ mVodDN }}" onInput="{{ onMVodDN }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input inputmode="decimal" value="{{ mVodDN }}" onInput="{{ onMVodDN }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
             </div>
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">ТСП</div>
@@ -451,48 +451,48 @@
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
-            <input value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input value="{{ tblKilkCur }}" onInput="{{ onTblKilkCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblKilkCur }}" onInput="{{ onTblKilkCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Наробіток, дні/год</span>
-            <input value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffNar }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Простій, год</span>
-            <input value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffProst }}</div>
           </div>
 
           <div style="display:flex;gap:11px;margin-bottom:12px">
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Витрати теплоносія</span>
-              <input value="{{ sVytraty }}" onInput="{{ onSVytraty }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ sVytraty }}" onInput="{{ onSVytraty }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Миттєва потужність</span>
-              <input value="{{ sPotuzhnist }}" onInput="{{ onSPotuzhnist }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ sPotuzhnist }}" onInput="{{ onSPotuzhnist }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
           </div>
 
           <div style="display:flex;gap:11px;margin-bottom:14px">
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вхід, °C</span>
-              <input value="{{ sTempVhid }}" onInput="{{ onSTempVhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ sTempVhid }}" onInput="{{ onSTempVhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вихід, °C</span>
-              <input value="{{ sTempVyhid }}" onInput="{{ onSTempVyhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ sTempVyhid }}" onInput="{{ onSTempVyhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
           </div>
 
@@ -505,8 +505,8 @@
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod2 }}</div>
           </div>
 
