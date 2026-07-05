@@ -297,7 +297,10 @@
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Будинок і прилади обліку</div>
 
           <div style="margin-bottom:10px">
-            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Будинок / абонент</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px">
+              <span style="font-size:var(--t115);font-weight:700;color:var(--muted)">Будинок / абонент</span>
+              <button onClick="{{ addNewHouse }}" style="display:flex;align-items:center;gap:5px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t115);font-weight:700;cursor:pointer">＋ Новий абонент</button>
+            </div>
             <sc-if value="{{ entryBoilerFilter }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
                 <span style="font-size:var(--t110);font-weight:700;color:var(--primary);background:var(--primTint);border:1px solid var(--primBd);border-radius:20px;padding:4px 10px">Котельня: {{ entryBoilerFilter }}</span>
@@ -326,8 +329,31 @@
             </div>
           </div>
 
-          <sc-if value="{{ entryOwner }}" hint-placeholder-val="{{ false }}">
-            <div style="font-size:var(--t115);font-weight:600;color:var(--muted);margin-bottom:12px">Адреса: <b style="color:var(--ink)">{{ entryAddr }}</b> · Власник: <b style="color:var(--ink)">{{ entryOwner }}</b></div>
+          <sc-if value="{{ eHouse }}" hint-placeholder-val="{{ false }}">
+          <div>
+            <label style="display:block;margin-bottom:10px">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Адреса</span>
+              <input value="{{ mAddress }}" onInput="{{ onMAddress }}" placeholder="вул. …, буд. №" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="display:block;margin-bottom:10px">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Відповідальний власник</span>
+              <input value="{{ mOwner }}" onInput="{{ onMOwner }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <div style="display:flex;gap:10px;margin-bottom:10px">
+              <label style="flex:1;min-width:0">
+                <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Особовий рахунок</span>
+                <input value="{{ mAccount }}" onInput="{{ onMAccount }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              </label>
+              <label style="flex:1;min-width:0">
+                <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Населений пункт</span>
+                <input value="{{ mSettlement }}" onInput="{{ onMSettlement }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              </label>
+            </div>
+            <label style="display:block;margin-bottom:12px">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Котельня</span>
+              <input value="{{ mBoiler }}" onInput="{{ onMBoiler }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
           </sc-if>
 
           <div style="display:flex;gap:10px;margin-bottom:12px">
@@ -417,9 +443,14 @@
             </label>
           </div>
 
-          <label style="display:flex;align-items:center;gap:9px;margin-bottom:14px;cursor:pointer">
+          <label style="display:flex;align-items:center;gap:9px;margin-bottom:10px;cursor:pointer">
             <input type="checkbox" checked="{{ eControl }}" onChange="{{ onEControl }}" style="width:18px;height:18px">
             <span style="font-size:var(--t125);font-weight:600;color:var(--ink)">Контрольне вимірювання</span>
+          </label>
+
+          <label style="display:flex;align-items:center;gap:9px;margin-bottom:14px;cursor:pointer">
+            <input type="checkbox" checked="{{ eNoConsumption }}" onChange="{{ onENoConsumption }}" style="width:18px;height:18px">
+            <span style="font-size:var(--t125);font-weight:600;color:var(--ink)">Немає споживання (поточні = попередні)</span>
           </label>
 
           <div style="border:1px solid var(--line2);border-radius:14px;padding:13px;margin-bottom:12px">
@@ -662,6 +693,8 @@ class Component extends DCLogic {
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '',
+    eNoConsumption: false,
+    mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
     mObcZavod: '', mObcPovirka: '', mObcTip: '', mObcChastka: '', mObcUnit: '', mHeatLoad: '',
@@ -720,6 +753,14 @@ class Component extends DCLogic {
     h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
     h.komOblik = !!s.mKomOblik; h.fop = !!s.mFop;
     h.contact = s.mContact || ''; h.phone = s.mPhone || '';
+    // ідентифікаційні поля (потрібні для нового абонента / редагування)
+    h.address = (s.mAddress || '').trim();
+    h.owner = (s.mOwner || '').trim();
+    h.account = (s.mAccount || '').trim();
+    h.settlement = (s.mSettlement || '').trim();
+    h.boiler = (s.mBoiler || '').trim();
+    h.code = h.account || h.address;
+    if (h.boiler && this.db.boilers.indexOf(h.boiler) === -1) this.db.boilers.push(h.boiler);
     this._persist();
     this.setState({ savedDovidnyk: true, rev: this.state.rev + 1 });
   }
@@ -1064,6 +1105,8 @@ class Component extends DCLogic {
     return {
       mObcZavod: h.meterNo || '', mObcUnit: h.unit || 'Гкал', mObcPovirka: h.obcPovirka || '',
       mObcTip: h.meterType || '', mObcChastka: (h.share != null ? String(h.share) : ''),
+      mAddress: h.address || '', mOwner: h.owner || '', mAccount: h.account || '',
+      mSettlement: h.settlement || '', mBoiler: h.boiler || '', eNoConsumption: false,
       mHeatLoad: (h.heatLoad != null && h.heatLoad !== '') ? String(h.heatLoad) : '',
       mVodZavod: h.vodZavod || '', mVodPovirka: h.vodPovirka || '', mVodTip: h.vodTip || '', mVodDN: h.dn || '',
       mTspZavod: h.tspZavod || '', mTspPovirka: h.tspPovirka || '',
@@ -1178,7 +1221,24 @@ class Component extends DCLogic {
   closeEntrySearch(){ this.setState({ entrySearchOpen: false }); }
   clearEntryBoilerFilter(){ this.setState({ boilerSel: '' }); }
   selectEntryHouse(h){ this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '' }); }
+  addNewHouse(){
+    const id = (this.db.houses.reduce((m, h) => Math.max(m, h.id), 0) || 0) + 1;
+    const h = { id, code: '', account: '', owner: '', address: '', settlement: '', boiler: '', unit: 'Гкал',
+      heatLoad: 0, share: 1, meterNo: '', meterType: '', obcPovirka: '', vodZavod: '', vodTip: '', dn: '',
+      vodPovirka: '', tspZavod: '', tspPovirka: '', komOblik: false, fop: false, contact: '', phone: '',
+      prevObc: 0, prevVoda: 0, prevRobota: 0, prevProstiy: 0, prevVodomir: 0 };
+    this.db.houses.push(h);
+    this._persist();
+    this.setState({ tab: 'entry', eHouse: String(id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '',
+      importOpen: true, importName: 'новий абонент', importMeta: 'заповніть довідник і збережіть' });
+  }
   onEControl(e){ this.setState({ eControl: e.target.checked }); }
+  onENoConsumption(e){
+    const on = e.target.checked; const s = this.state;
+    if (on) this.setState({ eNoConsumption: true, tblKilkCur: s.tblKilkPrev, tblVodCur: s.tblVodPrev,
+      tblNarCur: s.tblNarPrev, tblProstCur: s.tblProstPrev, tblVod2Cur: s.tblVod2Prev });
+    else this.setState({ eNoConsumption: false, tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '' });
+  }
   onEDate(e){ const v = e.target.value; this.setState({ eDate: v, ...this._durPatch({ eDate: v }) }); }
   onEDur(e){ this.setState({ eDur: e.target.value }); }
   onETavg(e){ this.setState({ eTavg: e.target.value }); }
@@ -1393,6 +1453,8 @@ class Component extends DCLogic {
       houseOpts, eUnit: eh ? eh.unit : 'Гкал', eShowDate: !s.eControl,
       eMeta: eh ? ('ТН ' + eh.heatLoad + ' · попередній показник ' + this.fmt(this._prevEnergy(eh.id), 3) + ' · ' + eh.unit) : '',
       onEHouse: (e) => this.onEHouse(e), onEControl: (e) => this.onEControl(e), onEDate: (e) => this.onEDate(e),
+      eNoConsumption: !!s.eNoConsumption, onENoConsumption: (e) => this.onENoConsumption(e),
+      addNewHouse: () => this.addNewHouse(),
       onEDur: (e) => this.onEDur(e), onETavg: (e) => this.onETavg(e), onECur: (e) => this.onECur(e),
       saveReading: () => this.saveReading(),
       ePreview: !!pv,
@@ -1467,6 +1529,7 @@ class Component extends DCLogic {
     }
     ['mObcZavod','mObcPovirka','mObcTip','mObcChastka','mHeatLoad','mVodZavod','mVodPovirka','mVodTip','mVodDN',
      'mTspZavod','mTspPovirka','mContact','mTPrim',
+     'mAddress','mOwner','mAccount','mSettlement','mBoiler',
      'sVytraty','sPotuzhnist','sTempVhid','sTempVyhid',
      'tblKilkPrev','tblKilkCur','tblVodPrev','tblVodCur','tblNarPrev','tblNarCur',
      'tblProstPrev','tblProstCur','tblVod2Prev','tblVod2Cur'].forEach(k => {
