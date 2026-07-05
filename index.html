@@ -327,33 +327,86 @@
           </div>
 
           <sc-if value="{{ eHouse }}" hint-placeholder-val="{{ false }}">
-          <div style="background:var(--chipBg);border:1px solid var(--line);border-radius:14px;padding:13px 14px">
+          <div style="background:var(--chipBg);border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:12px">
             <div style="font-size:var(--t130);font-weight:800;color:var(--ink)">{{ einfo.addr }}</div>
-            <div style="font-size:var(--t115);font-weight:600;color:var(--muted);margin-bottom:10px">{{ einfo.owner }}</div>
-            <div class="tnum" style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:var(--t115);color:var(--muted);margin-bottom:12px">
-              <span>Особовий: <b style="color:var(--ink)">{{ einfo.account }}</b></span>
+            <div style="font-size:var(--t115);font-weight:600;color:var(--muted);margin-bottom:8px">{{ einfo.owner }}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:var(--t115);color:var(--muted)">
+              <span>Особовий: <b class="tnum" style="color:var(--ink)">{{ einfo.account }}</b></span>
               <span>Нас. пункт: <b style="color:var(--ink)">{{ einfo.settlement }}</b></span>
               <span>Котельня: <b style="color:var(--ink)">{{ einfo.boiler }}</b></span>
             </div>
-            <div style="display:flex;gap:10px;margin-bottom:12px">
-              <div style="flex:1;min-width:0">
-                <div style="font-size:var(--t100);font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">обчислювач</div>
-                <div class="tnum" style="font-size:var(--t105);color:var(--muted);line-height:1.65">№ <b style="color:var(--ink)">{{ einfo.obcNo }}</b><br>{{ einfo.obcUnit }} · повірка {{ einfo.obcPovirka }}<br>{{ einfo.obcTip }}</div>
-              </div>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:var(--t100);font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">водомір</div>
-                <div class="tnum" style="font-size:var(--t105);color:var(--muted);line-height:1.65">№ <b style="color:var(--ink)">{{ einfo.vodNo }}</b><br>DN {{ einfo.dn }} · повірка {{ einfo.vodPovirka }}<br>{{ einfo.vodTip }}</div>
-              </div>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:var(--t100);font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">ТСП</div>
-                <div class="tnum" style="font-size:var(--t105);color:var(--muted);line-height:1.65">№ <b style="color:var(--ink)">{{ einfo.tspNo }}</b><br>повірка {{ einfo.tspPovirka }}</div>
-              </div>
-            </div>
-            <div class="tnum" style="font-size:var(--t115);color:var(--muted);margin-bottom:5px">ТН будинку <b style="color:var(--ink)">{{ einfo.heatLoad }}</b> · частка <b style="color:var(--ink)">{{ einfo.share }}</b> · розрах. ТН <b style="color:var(--ink)">{{ einfo.heatLoadCalc }}</b> Гкал/год</div>
-            <div style="font-size:var(--t115);color:var(--muted);margin-bottom:5px">{{ einfo.flags }}</div>
-            <div style="font-size:var(--t115);color:var(--muted)">Контакт: <b style="color:var(--ink)">{{ einfo.contact }}</b> · тел. <b class="tnum" style="color:var(--ink)">{{ einfo.phone }}</b></div>
           </div>
           </sc-if>
+
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">обчислювач</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mObcPovirka }}" onInput="{{ onMObcPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block">
+                <span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Розмірність</span>
+                <div style="position:relative">
+                  <select value="{{ mObcUnit }}" onChange="{{ onMObcUnit }}" style="width:100%;height:36px;padding:0 22px 0 8px;border-radius:9px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t115);appearance:none;-webkit-appearance:none">
+                    <sc-for list="{{ unitOpts }}" as="u" hint-placeholder-count="4">
+                      <option value="{{ u }}">{{ u }}</option>
+                    </sc-for>
+                  </select>
+                  <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t100)">▾</span>
+                </div>
+              </label>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">водомір</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mVodTip }}" onInput="{{ onMVodTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input inputmode="decimal" value="{{ mVodDN }}" onInput="{{ onMVodDN }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">ТСП</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mTspZavod }}" onInput="{{ onMTspZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mTspPovirka }}" onInput="{{ onMTspPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:6px">
+            <label style="flex:1.5;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Теплове навантаження будинку, Гкал/год</span>
+              <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="flex:1;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Частка абонента</span>
+              <input inputmode="decimal" value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted);margin-bottom:12px">Розрахункове ТН абонента (навантаження × частка): <b class="tnum" style="color:var(--ink)">{{ mHeatLoadCalc }}</b> Гкал/год</div>
+
+          <div style="display:flex;gap:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mKomOblik }}" onChange="{{ onMKomOblik }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Ком. облік</span></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mFop }}" onChange="{{ onMFop }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">ФОП</span></label>
+          </div>
+
+          <label style="display:block;margin-bottom:10px">
+            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Контактна інфо.</span>
+            <input value="{{ mContact }}" onInput="{{ onMContact }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+          </label>
+          <label style="display:block;margin-bottom:12px">
+            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Телефон</span>
+            <div style="display:flex;gap:7px">
+                <input type="tel" inputmode="tel" value="{{ mPhone }}" onInput="{{ onMPhone }}" onBlur="{{ onMPhoneBlur }}" placeholder="+380 XX XXX XX XX" style="flex:1;min-width:0;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+                <a href="{{ mPhoneTel }}" title="Подзвонити" style="flex-shrink:0;width:42px;height:42px;border-radius:11px;border:1px solid var(--primBd);background:var(--primTint);color:{{ mPhoneCallColor }};display:flex;align-items:center;justify-content:center;text-decoration:none;pointer-events:{{ mPhoneCallPtr }};opacity:{{ mPhoneCallOpacity }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                </a>
+              </div>
+            </label>
+
+          <div style="display:flex;align-items:center;gap:10px">
+            <button onClick="{{ saveDovidnyk }}" style="height:42px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Зберегти довідник</button>
+            <sc-if value="{{ savedDovidnyk }}" hint-placeholder-val="{{ false }}">
+              <span style="font-size:var(--t115);font-weight:700;color:var(--over)">✓ Збережено</span>
+            </sc-if>
+          </div>
         </div><div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Показання і розрахунок</div>
 
@@ -682,14 +735,6 @@ class Component extends DCLogic {
     h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
     h.komOblik = !!s.mKomOblik; h.fop = !!s.mFop;
     h.contact = s.mContact || ''; h.phone = s.mPhone || '';
-    // ідентифікаційні поля (потрібні для нового абонента / редагування)
-    h.address = (s.mAddress || '').trim();
-    h.owner = (s.mOwner || '').trim();
-    h.account = (s.mAccount || '').trim();
-    h.settlement = (s.mSettlement || '').trim();
-    h.boiler = (s.mBoiler || '').trim();
-    h.code = h.account || h.address;
-    if (h.boiler && this.db.boilers.indexOf(h.boiler) === -1) this.db.boilers.push(h.boiler);
     this._persist();
     this.setState({ savedDovidnyk: true, rev: this.state.rev + 1 });
   }
