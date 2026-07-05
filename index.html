@@ -103,8 +103,8 @@
 
       <!-- ============ OVERVIEW ============ -->
       <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
-      <div style="padding:18px 16px 28px">
-        <div style="display:flex;gap:9px;margin-bottom:16px">
+      <div style="padding:16px 16px 28px">
+        <div style="display:flex;gap:9px;margin-bottom:14px">
           <button onClick="{{ importBase }}" title="Завантажити іншу базу" style="flex:1;display:flex;align-items:center;justify-content:space-between;gap:8px;height:44px;padding:0 14px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);cursor:pointer">
             <div style="text-align:left">
               <div style="font-size:var(--t100);font-weight:700;color:var(--muted2);letter-spacing:.3px;text-transform:uppercase">Активна база</div>
@@ -115,64 +115,92 @@
           <button onClick="{{ goEntry }}" style="display:flex;align-items:center;gap:7px;height:44px;padding:0 14px;border-radius:13px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t130);font-weight:700;cursor:pointer">＋ Показання</button>
         </div>
 
+        <!-- month chips -->
+        <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
+        <div class="scrl" style="display:flex;gap:7px;overflow-x:auto;margin-bottom:14px">
+          <sc-for list="{{ ovMonths }}" as="m" hint-placeholder-count="6">
+            <button onClick="{{ m.tap }}" style="flex-shrink:0;height:34px;padding:0 14px;border-radius:20px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-size:var(--t120);font-weight:700;cursor:pointer;white-space:nowrap">{{ m.label }}</button>
+          </sc-for>
+        </div>
+        </sc-if>
+
         <!-- hero -->
-        <div style="border-radius:20px;padding:20px;background:linear-gradient(150deg,#3b4baa,#2c3884);box-shadow:0 14px 30px -16px rgba(46,58,140,.7);position:relative;overflow:hidden;margin-bottom:14px">
-          <div style="font-size:var(--t120);font-weight:700;color:#aeb8ef;letter-spacing:.3px;text-transform:uppercase">Спожито ТЕ за період</div>
+        <div style="border-radius:20px;padding:20px;background:linear-gradient(150deg,#3b4baa,#2c3884);box-shadow:0 14px 30px -16px rgba(46,58,140,.7);margin-bottom:14px">
+          <div style="font-size:var(--t120);font-weight:700;color:#aeb8ef;letter-spacing:.3px;text-transform:uppercase">Спожито ТЕ · {{ ov.monthLabel }}</div>
           <div class="tnum" style="font-size:var(--t300);font-weight:800;color:#fff;letter-spacing:-1px;margin-top:4px">{{ ov.totalGcal }}</div>
-          <div style="font-size:var(--t125);font-weight:600;color:#d9defa;margin-top:2px">Гкал · {{ ov.houseCnt }} будинків · {{ ov.readCnt }} показань</div>
-          <div style="display:flex;gap:18px;margin-top:16px">
+          <div style="font-size:var(--t125);font-weight:600;color:#d9defa;margin-top:2px">{{ ov.subNote }}</div>
+          <div style="display:flex;gap:22px;margin-top:16px">
+            <sc-if value="{{ ov.soShow }}" hint-placeholder-val="{{ false }}">
             <div>
-              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">Норматив</div>
-              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#fff">{{ ov.totalNorm }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">{{ ov.soLabel }}</div>
+              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:{{ ov.soColor }}">{{ ov.soPct }}</div>
             </div>
+            </sc-if>
             <div>
-              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">Відхилення</div>
-              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#fff">{{ ov.totalPct }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">Сер. t</div>
+              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#fff">{{ ov.avgT }}</div>
             </div>
           </div>
         </div>
 
-        <!-- stat cards -->
-        <div style="display:flex;gap:11px;margin-bottom:14px">
-          <div style="flex:1;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px">
-            <div style="font-size:var(--t110);font-weight:700;color:var(--muted2);text-transform:uppercase">Сер. відхилення</div>
-            <div class="tnum" style="font-size:var(--t230);font-weight:800;color:var(--ink);letter-spacing:-.5px">{{ ov.avgPct }}</div>
-          </div>
-          <div style="flex:1;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px">
-            <div style="font-size:var(--t110);font-weight:700;color:var(--muted2);text-transform:uppercase">Перевитрата</div>
-            <div class="tnum" style="font-size:var(--t230);font-weight:800;color:var(--debt);letter-spacing:-.5px">{{ ov.overCnt }}</div>
-          </div>
-        </div>
-
-        <!-- distribution -->
+        <!-- month closure -->
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
-          <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Розподіл за відхиленням</div>
-          <div style="display:flex;flex-direction:column;gap:9px">
-            <sc-for list="{{ ov.dist }}" as="r" hint-placeholder-count="5">
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="width:78px;flex-shrink:0;text-align:left;font-size:var(--t120);font-weight:700;color:var(--ink)" class="tnum">{{ r.label }}</span>
-                <div style="flex:1;height:9px;border-radius:6px;background:var(--barTrack);overflow:hidden"><div style="height:100%;width:{{ r.barW }};background:{{ r.color }};border-radius:6px"></div></div>
-                <span class="tnum" style="width:34px;flex-shrink:0;text-align:right;font-size:var(--t120);font-weight:700;color:var(--faint)">{{ r.count }}</span>
-              </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:var(--t140);font-weight:800;color:var(--ink)">Закриття місяця</div>
+            <div class="tnum" style="font-size:var(--t140);font-weight:800;color:var(--ink)">{{ ov.submitted }} / {{ ov.total }}</div>
+          </div>
+          <div style="height:10px;border-radius:6px;background:var(--barTrack);overflow:hidden;margin-bottom:10px"><div style="height:100%;width:{{ ov.subW }};background:var(--over);border-radius:6px"></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div class="tnum" style="font-size:var(--t120);font-weight:600;color:var(--muted)">Не подано: <b style="color:var(--debt)">{{ ov.notSub }}</b> · контрольних: <b style="color:var(--ink)">{{ ov.controlCnt }}</b></div>
+            <sc-if value="{{ ov.hasUnsub }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ ov.toggleUnsub }}" style="font-size:var(--t120);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Список →</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{ ov.showUnsub }}" hint-placeholder-val="{{ false }}">
+          <div class="scrl" style="max-height:230px;overflow-y:auto;margin-top:11px;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ ov.unsubList }}" as="u" hint-placeholder-count="3">
+              <button onClick="{{ u.tap }}" style="display:block;width:100%;text-align:left;background:var(--chipBg);border:1px solid var(--line);border-radius:10px;padding:8px 11px;cursor:pointer">
+                <div style="font-size:var(--t120);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</div>
+                <div class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.sub }}</div>
+              </button>
+            </sc-for>
+            <div style="font-size:var(--t110);color:var(--muted);text-align:center">{{ ov.unsubMore }}</div>
+          </div>
+          </sc-if>
+        </div>
+
+        <!-- dynamics -->
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 14px 12px;margin-bottom:14px">
+          <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:14px;padding:0 2px">Динаміка споживання, Гкал</div>
+          <div style="display:flex;align-items:flex-end;gap:5px">
+            <sc-for list="{{ ov.dyn }}" as="d" hint-placeholder-count="6">
+              <button onClick="{{ d.tap }}" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;padding:0">
+                <span class="tnum" style="font-size:var(--t100);font-weight:700;color:var(--faint)">{{ d.gcal }}</span>
+                <div style="width:100%;height:88px;display:flex;align-items:flex-end;justify-content:center">
+                  <div style="width:72%;max-width:30px;height:{{ d.barH }};background:{{ d.barBg }};border-radius:5px 5px 0 0"></div>
+                </div>
+                <span style="font-size:var(--t100);font-weight:700;color:{{ d.lblColor }};white-space:nowrap">{{ d.label }}</span>
+                <span class="tnum" style="font-size:var(--t100);font-weight:600;color:var(--muted2)">{{ d.t }}</span>
+              </button>
             </sc-for>
           </div>
         </div>
 
-        <!-- top over-consumers -->
+        <!-- top consumers -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Найбільша перевитрата</div>
+          <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Найбільше споживання</div>
           <button onClick="{{ goHouses }}" style="font-size:var(--t125);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Усі →</button>
         </div>
         <div style="display:flex;flex-direction:column;gap:9px">
           <sc-for list="{{ ov.top }}" as="d" hint-placeholder-count="3">
             <button onClick="{{ d.tap }}" style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;text-align:left;width:100%">
-              <span class="tnum" style="width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--debtTint);color:var(--debt);font-size:var(--t130);font-weight:800;display:flex;align-items:center;justify-content:center">{{ d.rank }}</span>
+              <span class="tnum" style="width:30px;height:30px;flex-shrink:0;border-radius:9px;background:var(--primTint);color:var(--primary);font-size:var(--t130);font-weight:800;display:flex;align-items:center;justify-content:center">{{ d.rank }}</span>
               <div style="flex:1;min-width:0">
                 <div style="font-size:var(--t135);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.code }}</div>
                 <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.addr }}</div>
               </div>
               <div style="text-align:right;flex-shrink:0">
-                <div class="tnum" style="font-size:var(--t145);font-weight:800;color:var(--debt)">{{ d.diff }}</div>
+                <div class="tnum" style="font-size:var(--t145);font-weight:800;color:var(--ink)">{{ d.diff }}</div>
                 <div class="tnum" style="font-size:var(--t110);font-weight:700;color:var(--muted2)">{{ d.pct }}</div>
               </div>
             </button>
@@ -671,6 +699,7 @@ class Component extends DCLogic {
   state = {
     tab: 'overview', theme: 'light', fontScale: 1,
     booting: true, hasData: false, rev: 0,
+    ovMonth: null, ovShowUnsub: false,
     importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '',
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
@@ -805,6 +834,8 @@ class Component extends DCLogic {
   setTab(t){ this.setState({ tab: t, detailId: null, anBoiler: null }); }
   goEntry(){ this.setState({ tab: 'entry' }); }
   goHouses(){ this.setState({ tab: 'houses' }); }
+  setOvMonth(k){ this.setState({ ovMonth: k, ovShowUnsub: false }); }
+  toggleUnsub(){ this.setState(s => ({ ovShowUnsub: !s.ovShowUnsub })); }
   importBase(){ const el = document.getElementById('dbImportInput'); if (el) { el.value=''; el.click(); } }
   dismissImport(){ this.setState({ importOpen: false, importError: '' }); }
 
@@ -971,18 +1002,20 @@ class Component extends DCLogic {
         const unit = (cUnit >= 0 && row[cUnit]) ? String(row[cUnit]).trim() : h.unit;
         const duration = cDur >= 0 ? this.num(row[cDur]) : 0;
         const tAvg = cTavg >= 0 ? this.num(row[cTavg]) : 0;
-        // довіряємо збереженим у книзі значенням; лише факт (Гкал) до-обчислюємо з приросту, якщо порожньо
-        let gcal = cGcal >= 0 ? this.num(row[cGcal]) : 0;
-        if (!gcal && delta) gcal = this.toGcal(delta, unit);
-        const q = cQ >= 0 ? this.num(row[cQ]) : 0;
-        let diff = cDiff >= 0 ? this.num(row[cDiff]) : 0;
-        let pct = cPct >= 0 ? this.num(row[cPct]) : null;
+        const cell = (c) => (c >= 0 && row[c] !== '' && row[c] != null) ? this.num(row[c]) : null;
+        // «Обсяг ТЕ, Гкал» з книги — реальний місячний обсяг; fallback лише для відображення рядка
+        let gcal = cell(cGcal);
+        const gcalReal = gcal != null && gcal > 0;
+        if (gcal == null) gcal = delta ? this.toGcal(delta, unit) : 0;
+        const q = cell(cQ) || 0;
+        let diff = cell(cDiff) || 0;
+        let pct = cell(cPct); // null, якщо клітинка порожня
         if (!diff && gcal && q) { diff = this.r3(gcal - q); pct = this.r2(diff / q * 100); }
         readings.push({
           id: id++, houseId: h.id,
           date: (!isControl && cDate >= 0) ? this._xlDate(row[cDate]) : '',
           isControl, duration, tAvg, unit,
-          cur, prev: this.r3(cur - delta), delta, gcal, q, diff, pct
+          cur, prev: this.r3(cur - delta), delta, gcal, gcalReal, q, diff, pct
         });
       }
     }
@@ -1041,6 +1074,57 @@ class Component extends DCLogic {
   }
 
   // ---------- data helpers ----------
+  // ---------- місяці (звітні періоди) ----------
+  _monthKey(dateStr){ const m = String(dateStr || '').match(/^(\d{4})-(\d{2})/); return m ? (m[1] + '-' + m[2]) : ''; }
+  _monthLabel(key){ if (!key) return '—'; const [y, m] = key.split('-'); return this._monthsUk()[parseInt(m, 10) - 1] + ' ' + y; }
+  _monthShort(key){ if (!key) return '—'; const [y, m] = key.split('-'); return this._monthsUk()[parseInt(m, 10) - 1].slice(0, 3) + '. ' + y.slice(2); }
+  _monthsList(){
+    const set = {};
+    this.db.readings.forEach(r => { if (!r.isControl && r.date) { const k = this._monthKey(r.date); if (k) set[k] = (set[k] || 0) + 1; } });
+    return Object.keys(set).sort().map(k => ({ key: k, count: set[k] }));
+  }
+  _curMonth(){
+    const list = this._monthsList();
+    if (!list.length) return '';
+    if (this.state.ovMonth && list.some(m => m.key === this.state.ovMonth)) return this.state.ovMonth;
+    // за замовчуванням — останній місяць, де є зафіксований приріст споживання
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (this.db.houses.some(h => this._monthConsumption(h.id, list[i].key))) return list[i].key;
+    }
+    return list[list.length - 1].key; // жодного приросту — просто останній наявний
+  }
+  // місячне споживання будинку = сума приростів усіх приладів обліку за місяць.
+  // Кожен рядок Архіву — окремий лічильник; його приріст = cur−prev у власній
+  // одиниці. (Колонка «Обсяг ТЕ, Гкал» у книзі ненадійна, тож рахуємо з показань.)
+  _monthConsumption(houseId, key){
+    if (!key) return null;
+    const rows = this.db.readings.filter(r => String(r.houseId) === String(houseId)
+      && !r.isControl && r.date && this._monthKey(r.date) === key);
+    if (!rows.length) return null;
+    let gcal = 0, any = false;
+    rows.forEach(r => {
+      if (r.prev == null || r.cur == null) return;
+      const d = this.r3(r.cur - r.prev);
+      if (!(d > 0)) return;                                             // опорне показання / заміна лічильника
+      const g = this.toGcal(d, r.unit);
+      if (g > 0 && g < 5000) { gcal += g; any = true; }                // відкидаємо явні аномалії показань
+    });
+    if (!any) return null;                                             // приріст за місяць не зафіксовано
+    gcal = this.r3(gcal);
+    // представницьке показання місяця (останнє за датою) — для t сер. і навігації
+    const rep = rows.slice().sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))[0];
+    return { gcal, reading: rep };
+  }
+  _readingForMonth(houseId, key){
+    if (!key) return null;
+    const rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && this._monthKey(r.date) === key);
+    if (!rs.length) return null;
+    // пріоритет — рядок із реальним місячним обсягом (з книги / введений оператором)
+    const real = rs.filter(r => r.gcalReal);
+    const pick = real.length ? real : rs;
+    pick.sort((a, b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)));
+    return pick[0];
+  }
   _lastReading(houseId){
     // пріоритет — останній рядок із розрахованим нормативом, далі — з обсягом
     let rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && r.date && r.q > 0);
@@ -1269,7 +1353,7 @@ class Component extends DCLogic {
       id, houseId: h.id, date: s.eControl ? '' : (s.eDate || this._todayISO()),
       time: s.eTime || '', isControl: s.eControl, period: s.ePeriod || '',
       duration: this.num(s.eDur), tAvg: this.num(s.eTavg),
-      unit: h.unit, cur: pv.cur, prev: pv.prev, delta: pv.delta, gcal: pv.gcal, q: pv.q,
+      unit: h.unit, cur: pv.cur, prev: pv.prev, delta: pv.delta, gcal: pv.gcal, gcalReal: pv.gcal > 0, q: pv.q,
       diff: pv.diff, pct: pv.pct,
       // додаткові показники приладів
       voda: this.num(s.tblVodCur), robota: this.num(s.tblNarCur), prostiy: this.num(s.tblProstCur),
@@ -1580,36 +1664,73 @@ class Component extends DCLogic {
     if (s.tab === 'overview') {
       out.isOverview = true;
       const houses = this.db.houses;
-      let totalGcal = 0, totalNorm = 0, factWithNorm = 0, overCnt = 0, pctSum = 0, pctN = 0;
-      const dist = [0,0,0,0,0]; // <-10, -10..0, 0..10, 10..25, 25+
-      const tops = [];
-      houses.forEach(h => {
-        const l = this._lastReading(h.id);
-        if (!l) return;
-        totalGcal += l.gcal;
-        if (l.q > 0) { totalNorm += l.q; factWithNorm += l.gcal; }
-        if (l.q > 0 && l.diff > 0) overCnt++;
-        if (l.pct != null) { pctSum += l.pct; pctN++;
-          const p = l.pct;
-          if (p < -10) dist[0]++; else if (p < 0) dist[1]++; else if (p < 10) dist[2]++; else if (p < 25) dist[3]++; else dist[4]++;
-        }
-        tops.push({ h, l });
-      });
-      tops.sort((a,b) => b.l.diff - a.l.diff);
-      const maxD = Math.max(1, ...dist);
-      const distLabels = ['< −10%','−10…0%','0…10%','10…25%','25%+'];
-      const distColors = [CECON, CECON, '#E0B23A', COVER, COVER];
+      const curKey = this._curMonth();
+      const months = this._monthsList();
+      out.hasMonths = months.length > 0;
+      out.ovMonths = months.map(m => ({ label: this._monthShort(m.key),
+        fg: m.key === curKey ? '#fff' : 'var(--ink)', bg: m.key === curKey ? 'var(--primary)' : 'var(--surface)',
+        bd: m.key === curKey ? 'var(--primary)' : 'var(--line2)', tap: () => this.setOvMonth(m.key) }));
+
+      // помісячний агрегат споживання (різниця показань → Гкал)
+      const monthAgg = (key) => { let g = 0, n = 0, tsum = 0, tn = 0;
+        houses.forEach(h => { const c = this._monthConsumption(h.id, key); if (!c) return;
+          g += c.gcal; n++;
+          if (c.reading.tAvg != null && !isNaN(c.reading.tAvg) && c.reading.tAvg !== 0) { tsum += c.reading.tAvg; tn++; } });
+        return { gcal: g, n, tAvg: tn ? tsum / tn : null }; };
+
+      const curAgg = monthAgg(curKey);
+      // закриття місяця рахуємо лише по будинках з приладами обліку
+      // (будинок «з лічильником» = має хоч одне некотрольне показання в базі)
+      const meteredIds = {};
+      this.db.readings.forEach(r => { if (!r.isControl && r.date) meteredIds[String(r.houseId)] = true; });
+      const metered = houses.filter(h => meteredIds[String(h.id)]);
+      let submitted = 0; const unsub = [];
+      metered.forEach(h => { if (this._readingForMonth(h.id, curKey)) submitted++; else unsub.push(h); });
+      const total = metered.length, notSub = total - submitted;
+      const controlCnt = this.db.readings.filter(r => r.isControl && this._monthKey(r.date) === curKey).length;
+      // найбільше споживання
+      const consList = [];
+      houses.forEach(h => { const c = this._monthConsumption(h.id, curKey); if (c && c.gcal > 0) consList.push({ h, gcal: c.gcal }); });
+      consList.sort((a, b) => b.gcal - a.gcal);
+      // динаміка по місяцях — лише періоди, де книга містить приріст споживання
+      const dyn = months.map(m => { const a = monthAgg(m.key); return { key: m.key, gcal: a.gcal, tAvg: a.tAvg }; })
+        .filter(d => d.gcal > 0);
+      const maxG = Math.max(1, ...dyn.map(d => d.gcal));
+      // сезон-до-сезону: ті самі будинки в обидва місяці
+      const mm = curKey.split('-'); const prevKey = mm[0] ? (parseInt(mm[0],10) - 1) + '-' + mm[1] : '';
+      let curPaired = 0, prevPaired = 0, pairedN = 0;
+      if (prevKey && months.some(m => m.key === prevKey)) houses.forEach(h => {
+        const cc = this._monthConsumption(h.id, curKey), cp = this._monthConsumption(h.id, prevKey);
+        if (cc && cp) { curPaired += cc.gcal; prevPaired += cp.gcal; pairedN++; } });
+      const soPct = (pairedN >= 5 && prevPaired > 0) ? this.r2((curPaired - prevPaired) / prevPaired * 100) : null;
+
       out.ov = {
-        totalGcal: this.fmt(totalGcal, 1), totalNorm: this.fmt(totalNorm, 1),
-        totalPct: this.pctTxt(totalNorm ? this.r2((factWithNorm - totalNorm)/totalNorm*100) : null),
-        houseCnt: houses.length, readCnt: this.db.readings.length,
-        avgPct: this.pctTxt(pctN ? this.r2(pctSum/pctN) : null), overCnt: String(overCnt),
-        dist: dist.map((c,i) => ({ label: distLabels[i], count: String(c), barW: Math.round(c/maxD*100) + '%', color: distColors[i] })),
-        top: tops.filter(t => t.l.diff > 0).slice(0,3).map((t,i) => ({
-          rank: String(i+1), code: hName(t.h), addr: hSub(t.h),
-          diff: '+' + this.fmt(t.l.diff, 2), pct: this.pctTxt(t.l.pct),
-          tap: () => this.openDetail(t.h.id)
-        }))
+        monthLabel: this._monthLabel(curKey),
+        totalGcal: this.fmt(curAgg.gcal, 1), consCnt: String(curAgg.n),
+        subNote: curAgg.n > 0
+          ? ('Гкал · за різницею показань · ' + curAgg.n + ' будинків')
+          : 'приріст показань за цей період у базі не зафіксовано',
+        avgT: curAgg.tAvg != null ? (this.fmt(curAgg.tAvg, 1) + ' °C') : '—',
+        houseCnt: total, readCnt: submitted,
+        soShow: soPct != null, soLabel: soPct != null ? ('vs ' + this._monthShort(prevKey) + ' · ' + pairedN + ' буд.') : '',
+        soPct: soPct != null ? this.pctTxt(soPct) : '—',
+        soColor: soPct != null ? (soPct > 0 ? '#ffc4b8' : '#a8f0c8') : '#d9defa',
+        submitted: String(submitted), total: String(total), notSub: String(notSub), controlCnt: String(controlCnt),
+        subW: Math.round(submitted / Math.max(1, total) * 100) + '%',
+        showUnsub: !!s.ovShowUnsub, toggleUnsub: () => this.toggleUnsub(),
+        hasUnsub: notSub > 0,
+        unsubList: unsub.slice(0, 80).map(h => ({ name: hName(h), sub: hSub(h), tap: () => this.openDetail(h.id) })),
+        unsubMore: unsub.length > 80 ? ('…та ще ' + (unsub.length - 80) + ' — уточніть період') : '',
+        dyn: dyn.map(d => ({ label: this._monthShort(d.key), gcal: this.fmt(d.gcal, 0),
+          barH: Math.max(3, Math.round(d.gcal / maxG * 100)) + '%',
+          barBg: d.key === curKey ? 'var(--primary)' : 'var(--primBd)',
+          t: d.tAvg != null ? (this.fmt(d.tAvg, 1) + '°') : '',
+          lblColor: d.key === curKey ? 'var(--primary)' : 'var(--muted2)', tap: () => this.setOvMonth(d.key) })),
+        hasTop: consList.length > 0,
+        top: consList.slice(0, 5).map((c, i) => ({
+          rank: String(i + 1), code: hName(c.h), addr: hSub(c.h),
+          diff: this.fmt(c.gcal, 1), pct: 'Гкал',
+          tap: () => this.openDetail(c.h.id) }))
       };
       return out;
     }
