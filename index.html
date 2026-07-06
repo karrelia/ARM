@@ -54,6 +54,10 @@
           <button onClick="{{ cycleFont }}" title="Розмір шрифту" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:baseline;justify-content:center;gap:1px;cursor:pointer;padding:0;color:var(--ink)">
             <span style="font-size:15px;font-weight:800">А</span><span style="font-size:10px;font-weight:800">а</span>
           </button>
+          <button onClick="{{ openSettings }}" title="Виконавець" style="height:38px;padding:0 11px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink)">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
+            <span style="font-size:var(--t110);font-weight:700;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ meShort }}</span>
+          </button>
         </div>
       </div>
       <sc-if value="{{ importBusy }}" hint-placeholder-val="{{ false }}">
@@ -272,16 +276,37 @@
 
         <!-- ---- рівень 1: список будинків ---- -->
         <sc-if value="{{ isBuildingList }}" hint-placeholder-val="{{ true }}">
+          <!-- зведення збору показань -->
+          <sc-if value="{{ collect.has }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:11px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:var(--t125);font-weight:800;color:var(--ink)">Зібрано показань</div>
+              <div class="tnum" style="font-size:var(--t125);font-weight:800;color:var(--ink)">{{ collect.done }} / {{ collect.total }}</div>
+            </div>
+            <div style="height:9px;border-radius:6px;background:var(--barTrack);overflow:hidden;margin-bottom:8px"><div style="height:100%;width:{{ collect.pct }};background:var(--over);border-radius:6px"></div></div>
+            <div class="tnum" style="display:flex;gap:14px;font-size:var(--t110);font-weight:600;color:var(--muted)">
+              <span><b style="color:var(--over)">●</b> знято {{ collect.done }}</span>
+              <span><b style="color:#D4A017">●</b> частково {{ collect.part }}</span>
+              <span><b style="color:var(--muted2)">●</b> чекає {{ collect.none }}</span>
+            </div>
+          </div>
+          </sc-if>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
             <div class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--muted)">{{ houseCount }} будинків</div>
-            <button onClick="{{ exportHouses }}" style="display:flex;align-items:center;gap:6px;font-size:var(--t120);font-weight:700;color:var(--over);background:var(--overTint);border:none;border-radius:10px;padding:7px 11px;cursor:pointer">↓ CSV</button>
+            <div style="display:flex;gap:7px">
+              <sc-if value="{{ showMyFilter }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ toggleMyOnly }}" style="font-size:var(--t120);font-weight:700;color:{{ myOnlyFg }};background:{{ myOnlyBg }};border:1px solid var(--line2);border-radius:10px;padding:7px 11px;cursor:pointer">Тільки мої</button>
+              </sc-if>
+              <button onClick="{{ exportHouses }}" style="display:flex;align-items:center;gap:6px;font-size:var(--t120);font-weight:700;color:var(--over);background:var(--overTint);border:none;border-radius:10px;padding:7px 11px;cursor:pointer">↓ CSV</button>
+            </div>
           </div>
           <div style="display:flex;flex-direction:column;gap:9px">
             <sc-for list="{{ buildingList }}" as="b" hint-placeholder-count="6">
-              <button onClick="{{ b.tap }}" style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;text-align:left;width:100%">
+              <button onClick="{{ b.tap }}" style="display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;text-align:left;width:100%">
+                <span style="flex-shrink:0;width:11px;height:11px;border-radius:50%;background:{{ b.stColor }}"></span>
                 <div style="flex:1;min-width:0">
                   <div style="font-size:var(--t135);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</div>
-                  <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.sub }} · {{ b.meterCount }}</div>
+                  <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.sub }} · {{ b.meterCount }} · {{ b.stText }}</div>
                 </div>
                 <div style="text-align:right;flex-shrink:0">
                   <div class="tnum" style="font-size:var(--t135);font-weight:800;color:var(--ink)">{{ b.gcal }}</div>
@@ -303,8 +328,9 @@
           <div style="display:flex;flex-direction:column;gap:9px">
             <sc-for list="{{ buildingMeters }}" as="m" hint-placeholder-count="4">
               <button onClick="{{ m.tap }}" style="display:block;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;text-align:left;width:100%">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px">
-                  <span style="font-size:var(--t130);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.owner }}</span>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+                  <span style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:{{ m.stColor }}"></span>
+                  <span style="flex:1;min-width:0;font-size:var(--t130);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.owner }}</span>
                   <span class="tnum" style="flex-shrink:0;font-size:var(--t105);font-weight:800;color:{{ m.badgeFg }};background:{{ m.badgeBg }};padding:2px 8px;border-radius:20px">{{ m.badge }}</span>
                 </div>
                 <div class="tnum" style="font-size:var(--t115);font-weight:600;color:var(--muted2);margin-bottom:3px">№ {{ m.code }} · обчисл. {{ m.meterNo }}<sc-if value="{{ m.meterType }}" hint-placeholder-val="{{ false }}"> ({{ m.meterType }})</sc-if></div>
@@ -773,6 +799,27 @@
     </div>
     </sc-if>
 
+    <!-- ============ SETTINGS: роль виконавця (overlay) ============ -->
+    <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:42;display:flex;align-items:flex-end;justify-content:center">
+      <div onClick="{{ closeSettings }}" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
+      <div style="position:relative;width:100%;max-width:520px;background:var(--bg);border-radius:20px 20px 0 0;padding:20px 18px 28px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Виконавець</div>
+          <button onClick="{{ closeSettings }}" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t140);font-weight:800;cursor:pointer">✕</button>
+        </div>
+        <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:8px">Роль на цьому пристрої</div>
+        <div style="display:flex;gap:9px;margin-bottom:16px">
+          <button onClick="{{ setRoleLead }}" style="flex:1;height:46px;border-radius:13px;border:1px solid var(--line2);background:{{ roleLeadBg }};color:{{ roleLeadFg }};font-size:var(--t130);font-weight:800;cursor:pointer">Старший</button>
+          <button onClick="{{ setRoleWorker }}" style="flex:1;height:46px;border-radius:13px;border:1px solid var(--line2);background:{{ roleWorkerBg }};color:{{ roleWorkerFg }};font-size:var(--t130);font-weight:800;cursor:pointer">Робітник</button>
+        </div>
+        <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:8px">Ім'я (для підпису показань)</div>
+        <input value="{{ meName }}" onInput="{{ onMeName }}" placeholder="напр. Іван Коваль" style="width:100%;height:48px;padding:0 14px;border:1px solid var(--inputBd);border-radius:13px;background:var(--inputBg);color:var(--ink);font-size:var(--t135);font-weight:600">
+        <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:10px">Кожне зняте показання підписується цим ім'ям і часом — так старший бачить, хто що зібрав.</div>
+      </div>
+    </div>
+    </sc-if>
+
     <!-- ============ PHOTO LIGHTBOX (overlay) ============ -->
     <sc-if value="{{ hasPhotoView }}" hint-placeholder-val="{{ false }}">
     <div onClick="{{ closePhoto }}" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:40;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px">
@@ -808,6 +855,7 @@ class Component extends DCLogic {
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false, entryPhotos: [], photoView: null,
+    role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -876,6 +924,11 @@ class Component extends DCLogic {
   // ---------- lifecycle ----------
   componentDidMount(){
     this.db = null;
+    // налаштування пристрою (роль/ім'я/розподіл) зберігаються окремим ключем,
+    // щоб імпорт нової бази їх не стирав
+    this._idbGetKey('settings').then(cfg => {
+      if (cfg) this.setState({ role: cfg.role || '', me: cfg.me || '', assignments: cfg.assignments || {} });
+    }).catch(() => {});
     this._idbGet().then(saved => {
       if (saved && saved.houses && saved.houses.length) {
         this.db = saved;
@@ -884,6 +937,34 @@ class Component extends DCLogic {
         this.setState({ booting: false, hasData: false });
       }
     }).catch(() => this.setState({ booting: false, hasData: false }));
+  }
+  _saveSettings(patch){
+    const s = this.state;
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, ...(patch || {}) };
+    this.setState(patch || {});
+    this._idbSetKey('settings', cfg).catch(() => {});
+  }
+  openSettings(){ this.setState({ settingsOpen: true }); }
+  closeSettings(){ this.setState({ settingsOpen: false }); }
+  setRole(r){ this._saveSettings({ role: r }); }
+  onMeName(e){ this._saveSettings({ me: e.target.value }); }
+  toggleMyOnly(){ this.setState(s => ({ myOnly: !s.myOnly })); }
+  // до кого прикріплений будинок (за котельнею; винятки — за особовим)
+  _assignedWorker(h){
+    const a = this.state.assignments || {};
+    if (h && a['#' + h.account] ) return a['#' + h.account];   // виняток по особовому
+    return (h && a[h.boiler]) || '';
+  }
+  // статус збору по будинку: скільки приладів (що мають показання в базі) вже
+  // мають ПОЛЬОВЕ показання цієї кампанії. rmap: houseId -> {base, field}
+  _collectStatus(building, rmap){
+    let total = 0, done = 0;
+    building.meters.forEach(h => {
+      const m = rmap[h.id]; if (!m || !m.base) return;   // прилад без показань у базі не рахуємо
+      total++; if (m.field) done++;
+    });
+    const state = total === 0 ? 'na' : (done === 0 ? 'none' : (done >= total ? 'done' : 'partial'));
+    return { total, done, state };
   }
 
   // ---------- IndexedDB (single key-value record) ----------
@@ -902,9 +983,17 @@ class Component extends DCLogic {
       tx.onerror = () => rej(tx.error);
     }));
   }
-  _idbSet(val){
+  _idbSet(val){ return this._idbSetKey('state', val); }
+  _idbGetKey(key){
     return this._openDb().then(db => new Promise((res, rej) => {
-      const tx = db.transaction('kv', 'readwrite').objectStore('kv').put(val, 'state');
+      const tx = db.transaction('kv', 'readonly').objectStore('kv').get(key);
+      tx.onsuccess = () => res(tx.result || null);
+      tx.onerror = () => rej(tx.error);
+    }));
+  }
+  _idbSetKey(key, val){
+    return this._openDb().then(db => new Promise((res, rej) => {
+      const tx = db.transaction('kv', 'readwrite').objectStore('kv').put(val, key);
       tx.onsuccess = () => res();
       tx.onerror = () => rej(tx.error);
     }));
@@ -1537,7 +1626,8 @@ class Component extends DCLogic {
       voda: this.num(s.tblVodCur), robota: this.num(s.tblNarCur), prostiy: this.num(s.tblProstCur),
       vodomir: this.num(s.tblVod2Cur), vytraty: this.num(s.sVytraty), potuzhnist: this.num(s.sPotuzhnist),
       tVhid: this.num(s.sTempVhid), tVyhid: this.num(s.sTempVyhid),
-      photos: (s.entryPhotos || []).map(p => p.url)
+      photos: (s.entryPhotos || []).map(p => p.url),
+      src: 'field', by: s.me || '', at: Date.now()          // підпис польового зняття
     });
     // оновлюємо «останні збережені» показники в довіднику → стануть «попередніми» наступного разу
     if (!s.eControl) {
@@ -1719,6 +1809,16 @@ class Component extends DCLogic {
       goHouses: () => this.goHouses(),
       isOverview: false, isHouses: false, isAnalytics: false, isEntry: false, isDetail: false,
       photoView: s.photoView || '', hasPhotoView: !!s.photoView, closePhoto: () => this.closePhoto(),
+      // роль / ім'я виконавця (Фаза 1 бригадного збору)
+      roleSet: !!s.role, roleIsLead: s.role === 'lead', roleIsWorker: s.role === 'worker',
+      roleLabel: s.role === 'lead' ? 'Старший' : (s.role === 'worker' ? 'Робітник' : 'Хто ви?'),
+      meName: s.me || '', meShort: s.me ? (s.me.trim().split(/\s+/)[0].slice(0, 10)) : 'Хто ви?',
+      settingsOpen: !!s.settingsOpen, openSettings: () => this.openSettings(), closeSettings: () => this.closeSettings(),
+      stop: (e) => { if (e && e.stopPropagation) e.stopPropagation(); },
+      setRoleLead: () => this.setRole('lead'), setRoleWorker: () => this.setRole('worker'),
+      onMeName: (e) => this.onMeName(e),
+      roleLeadBg: s.role === 'lead' ? 'var(--primary)' : 'var(--surface)', roleLeadFg: s.role === 'lead' ? '#fff' : 'var(--ink)',
+      roleWorkerBg: s.role === 'worker' ? 'var(--primary)' : 'var(--surface)', roleWorkerFg: s.role === 'worker' ? '#fff' : 'var(--ink)',
       showNav: !s.booting && s.hasData && !s.detailId,
       tabs: [['overview','📊','Огляд'],['houses','🏢','Будинки'],['analytics','📈','Аналітика'],['entry','✎','Ввід']]
         .map(t => ({ icon: t[1], label: t[2], tap: () => this.setTab(t[0]),
@@ -2020,7 +2120,30 @@ class Component extends DCLogic {
       out.onSearch = (e) => this.onSearch(e);
       out.exportHouses = () => this.exportHouses();
 
-      const buildings = this._filteredBuildings();
+      let buildings = this._filteredBuildings();
+      // карта показань: houseId -> {base, field}
+      const rmap = {};
+      this.db.readings.forEach(r => { if (r.isControl) return; const m = rmap[r.houseId] || (rmap[r.houseId] = { base: false, field: false });
+        if (r.date) m.base = true; if (r.src === 'field') m.field = true; });
+      const AMBER = '#D4A017';
+      const stColor = { done: 'var(--over)', partial: AMBER, none: 'var(--muted2)', na: 'var(--line2)' };
+      // «Тільки мої» — за розподілом (котельня → робітник); активний, якщо є розподіл
+      const hasAssign = Object.keys(s.assignments || {}).length > 0;
+      out.showMyFilter = hasAssign && !!s.me;
+      out.myOnly = !!s.myOnly;
+      out.myOnlyFg = s.myOnly ? '#fff' : 'var(--ink)';
+      out.myOnlyBg = s.myOnly ? 'var(--primary)' : 'var(--surface)';
+      out.toggleMyOnly = () => this.toggleMyOnly();
+      if (s.myOnly && s.me) buildings = buildings.filter(b => b.meters.some(h => this._assignedWorker(h) === s.me));
+
+      // зведення збору
+      let cDone = 0, cPart = 0, cNone = 0, cColl = 0;
+      buildings.forEach(b => { const st = this._collectStatus(b, rmap);
+        if (st.state === 'na') return; cColl++;
+        if (st.state === 'done') cDone++; else if (st.state === 'partial') cPart++; else cNone++; });
+      out.collect = { total: cColl, done: cDone, part: cPart, none: cNone,
+        pct: Math.round(cDone / Math.max(1, cColl) * 100) + '%', has: cColl > 0 };
+
       out.houseCount = buildings.length;
       out.housesEmpty = buildings.length === 0;
       out.isBuildingDetail = !!s.housesBuilding;
@@ -2028,10 +2151,13 @@ class Component extends DCLogic {
 
       out.buildingList = buildings.map(b => {
         const over = b.agg.hasAny && b.agg.diff > 0;
+        const st = this._collectStatus(b, rmap);
         return {
           address: b.address || '—',
           sub: [b.settlement, b.boiler].filter(Boolean).join(' · '),
           meterCount: b.meters.length + (b.meters.length === 1 ? ' прилад' : ' прил.'),
+          stColor: stColor[st.state],
+          stText: st.state === 'na' ? '' : (st.done + '/' + st.total + ' знято'),
           gcal: b.agg.hasAny ? this.fmt(b.agg.gcal, 2) : '—',
           badge: b.agg.hasAny ? this.pctTxt(b.agg.pct) : 'нема даних',
           badgeFg: b.agg.hasAny ? (over ? COVER : CECON) : cMuted,
@@ -2050,10 +2176,13 @@ class Component extends DCLogic {
         out.buildingMeters = meters.map(h => {
           const l = this._lastReading(h.id);
           const over = l && l.diff > 0;
+          const m = rmap[h.id];
+          const collected = !!(m && m.field);
           return {
             owner: h.owner || h.code, code: h.account || h.code,
             meterNo: h.meterNo || '—', meterType: h.meterType || '',
             heatLoad: this.fmt(h.heatLoad, h.heatLoad < 10 ? 3 : 0), unit: h.unit,
+            stColor: (m && m.base) ? (collected ? 'var(--over)' : 'var(--muted2)') : 'var(--line2)',
             gcal: l ? this.fmt(l.gcal, 2) : '—',
             badge: l ? this.pctTxt(l.pct) : 'нема даних',
             badgeFg: l ? (over ? COVER : CECON) : cMuted,
