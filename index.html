@@ -1223,23 +1223,25 @@ class Component extends DCLogic {
     }
     return list[list.length - 1].key; // жодного приросту — просто останній наявний
   }
+  // споживання ОДНОГО показання (Гкал) за приростом cur−prev у власній одиниці.
+  // Повертає: число ≥ 0 (0 = опорне/без споживання), або null для аномалії/
+  // контрольного. Колонка «Обсяг ТЕ, Гкал» у книзі ненадійна, тож рахуємо звідси.
+  _rowGcal(r){
+    if (!r || r.isControl || r.prev == null || r.cur == null) return null;
+    if (r.prev < 0 || r.cur < 0) return null;                          // кумулятивне показання не буває від'ємним
+    const d = this.r3(r.cur - r.prev);
+    if (!(d > 0)) return 0;                                            // опорне показання / без споживання
+    const g = this.toGcal(d, r.unit);
+    return (g > 0 && g < 1000) ? this.r3(g) : null;                    // >1000 Гкал/міс — явна аномалія показань
+  }
   // місячне споживання будинку = сума приростів усіх приладів обліку за місяць.
-  // Кожен рядок Архіву — окремий лічильник; його приріст = cur−prev у власній
-  // одиниці. (Колонка «Обсяг ТЕ, Гкал» у книзі ненадійна, тож рахуємо з показань.)
   _monthConsumption(houseId, key){
     if (!key) return null;
     const rows = this.db.readings.filter(r => String(r.houseId) === String(houseId)
       && !r.isControl && r.date && this._monthKey(r.date) === key);
     if (!rows.length) return null;
     let gcal = 0, any = false;
-    rows.forEach(r => {
-      if (r.prev == null || r.cur == null) return;
-      if (r.prev < 0 || r.cur < 0) return;                             // кумулятивне показання не буває від'ємним
-      const d = this.r3(r.cur - r.prev);
-      if (!(d > 0)) return;                                             // опорне показання / заміна лічильника
-      const g = this.toGcal(d, r.unit);
-      if (g > 0 && g < 1000) { gcal += g; any = true; }                // відкидаємо явні аномалії показань
-    });
+    rows.forEach(r => { const g = this._rowGcal(r); if (g > 0) { gcal += g; any = true; } });
     if (!any) return null;                                             // приріст за місяць не зафіксовано
     gcal = this.r3(gcal);
     // представницьке показання місяця — для t сер., нормативу й навігації.
@@ -1815,9 +1817,10 @@ class Component extends DCLogic {
         };
       })(),      entryArchive: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
-        .slice(0, 6).map(r => ({ date: r.date || '—', gcal: this.fmt(r.gcal, 2),
+        .slice(0, 6).map(r => { const g = this._rowGcal(r); return { date: r.date || '—',
+          gcal: g == null ? '—' : this.fmt(g, 2),
           hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
-          photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) })) })) : [],
+          photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) })) }; }) : [],
       entryArchiveEmpty: !eh || !this.db.readings.some(r => r.houseId === eh.id && !r.isControl)
     });
     {
