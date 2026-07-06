@@ -22,7 +22,8 @@ if ('serviceWorker' in navigator) {
 </script>
 <script src="./vendor/react.production.min.js"></script>
 <script src="./vendor/react-dom.production.min.js"></script>
-<script src="./vendor/xlsx.full.min.js"></script>
+<!-- xlsx.full.min.js (881 КБ) вантажиться ліниво лише під час імпорту книги ЗБЛ —
+     див. _ensureXlsx(). Так холодний старт у полі не тягне зайвого. -->
 <script src="./support.js"></script>
 </head>
 <body>
@@ -1676,6 +1677,20 @@ class Component extends DCLogic {
   toggleUnsub(){ this.setState(s => ({ ovShowUnsub: !s.ovShowUnsub })); }
   togglePov(){ this.setState(s => ({ ovShowPov: !s.ovShowPov })); }
   importBase(){ const el = document.getElementById('dbImportInput'); if (el) { el.value=''; el.click(); } }
+  // Ліниве підвантаження SheetJS — лише коли справді імпортуємо книгу (.xlsx/.xlsm).
+  // Файл кешується service worker'ом, тож повторно й офлайн вантажиться миттєво.
+  _ensureXlsx(){
+    if (window.XLSX) return Promise.resolve(window.XLSX);
+    if (this._xlsxPromise) return this._xlsxPromise;
+    this._xlsxPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = './vendor/xlsx.full.min.js'; s.async = true;
+      s.onload = () => window.XLSX ? resolve(window.XLSX) : reject(new Error('xlsx не ініціалізувався'));
+      s.onerror = () => { this._xlsxPromise = null; reject(new Error('не вдалося завантажити xlsx-бібліотеку')); };
+      document.head.appendChild(s);
+    });
+    return this._xlsxPromise;
+  }
   dismissImport(){ this.setState({ importOpen: false, importError: '' }); }
 
   // ---------- import: база (.xlsx/.xlsm) або файл синхронізації (.json) ----------
@@ -1685,13 +1700,13 @@ class Component extends DCLogic {
     this.setState({ importBusy: true, importError: '', importOpen: false, importName: f.name });
     const reader = new FileReader();
     reader.onerror = () => this.setState({ importBusy: false, importError: 'Не вдалося прочитати файл' });
-    reader.onload = () => {
+    reader.onload = async () => {
       const buf = new Uint8Array(reader.result);
       // визначаємо тип за вмістом: xlsx/xlsm — це ZIP («PK»); інакше — JSON синхронізації
       const isZip = buf.length > 1 && buf[0] === 0x50 && buf[1] === 0x4B;
       if (isZip) {
         try {
-          if (!window.XLSX) throw new Error('xlsx-бібліотека не завантажилась');
+          await this._ensureXlsx();   // підвантажуємо SheetJS на вимогу
           const wb = window.XLSX.read(buf, { type: 'array' });
           const db = this._parseWorkbook(wb);
           if (!db.houses.length) throw new Error('Не знайдено будинків (аркуш «Довідники», таблиця TabAbon)');
