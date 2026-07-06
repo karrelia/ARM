@@ -1631,7 +1631,19 @@ class Component extends DCLogic {
       tx.onerror = () => rej(tx.error);
     }));
   }
-  _persist(){ if (this.db) { this.db.savedAt = Date.now(); this._idbSet(this.db).catch(()=>{}); } }
+  _persist(){ if (this.db) { this.db.savedAt = Date.now(); this._readingsVer = (this._readingsVer || 0) + 1; this._idbSet(this.db).catch(()=>{}); } }
+  // Індекс показань за приладом (houseId → показання[]), будується один раз і
+  // кешується до наступної зміни бази. Без нього кожен _lastReading/_monthConsumption
+  // робив повний прохід по всіх показаннях — O(будинки × показання) щорендеру.
+  _readingsByHouse(){
+    const readings = (this.db && this.db.readings) || [];
+    if (this._rbhCache && this._rbhVer === (this._readingsVer || 0) && this._rbhRef === readings) return this._rbhCache;
+    const map = new Map();
+    for (let i = 0; i < readings.length; i++){ const r = readings[i]; const k = String(r.houseId); let a = map.get(k); if (!a){ a = []; map.set(k, a); } a.push(r); }
+    this._rbhCache = map; this._rbhVer = (this._readingsVer || 0); this._rbhRef = readings;
+    return this._rbhCache;
+  }
+  _houseReadings(houseId){ return this._readingsByHouse().get(String(houseId)) || []; }
   _bump(extra){ this.setState(s => ({ rev: s.rev + 1, ...(extra||{}) })); }
 
   // ---------- calculation (порт з calculations.py) ----------
@@ -2051,8 +2063,7 @@ class Component extends DCLogic {
   // місячне споживання будинку = сума приростів усіх приладів обліку за місяць.
   _monthConsumption(houseId, key){
     if (!key) return null;
-    const rows = this.db.readings.filter(r => String(r.houseId) === String(houseId)
-      && !r.isControl && r.date && this._monthKey(r.date) === key);
+    const rows = this._houseReadings(houseId).filter(r => !r.isControl && r.date && this._monthKey(r.date) === key);
     if (!rows.length) return null;
     let gcal = 0, any = false;
     rows.forEach(r => { const g = this._rowGcal(r); if (g > 0) { gcal += g; any = true; } });
@@ -2066,7 +2077,7 @@ class Component extends DCLogic {
   }
   _readingForMonth(houseId, key){
     if (!key) return null;
-    const rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && this._monthKey(r.date) === key);
+    const rs = this._houseReadings(houseId).filter(r => !r.isControl && this._monthKey(r.date) === key);
     if (!rs.length) return null;
     // пріоритет — рядок із реальним місячним обсягом (з книги / введений оператором)
     const real = rs.filter(r => r.gcalReal);
@@ -2076,15 +2087,16 @@ class Component extends DCLogic {
   }
   _lastReading(houseId){
     // пріоритет — останній рядок із розрахованим нормативом, далі — з обсягом
-    let rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && r.date && r.q > 0);
-    if (!rs.length) rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && r.date && r.gcal > 0);
-    if (!rs.length) rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl && r.date);
+    const hr = this._houseReadings(houseId);
+    let rs = hr.filter(r => !r.isControl && r.date && r.q > 0);
+    if (!rs.length) rs = hr.filter(r => !r.isControl && r.date && r.gcal > 0);
+    if (!rs.length) rs = hr.filter(r => !r.isControl && r.date);
     if (!rs.length) return null;
     rs.sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)));
     return rs[0];
   }
   _prevReading(houseId){
-    const rs = this.db.readings.filter(r => r.houseId === houseId && !r.isControl);
+    const rs = this._houseReadings(houseId).filter(r => !r.isControl);
     if (!rs.length) return null;
     rs.sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : a.id - b.id)));
     const sel = this.state.ePrevSel;
@@ -2729,7 +2741,7 @@ class Component extends DCLogic {
       entryPrevTime: eh ? ((this._prevReading(eh.id) || {}).time || '—') : '—',
       ePrevSel: s.ePrevSel || '',
       onEPrevSel: (e) => this.setState({ ePrevSel: e.target.value }, () => this.setState(this._durPatch())),
-      prevReadingOpts: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl && r.date)
+      prevReadingOpts: eh ? this._houseReadings(eh.id).filter(r => !r.isControl && r.date)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
         .map(r => ({ id: r.id, label: r.date + (r.time ? ' ' + r.time : '') + ' · ' + this.fmt(r.cur, 3) })) : [],
       mKomOblik: !!s.mKomOblik, mFop: !!s.mFop,
@@ -2763,7 +2775,7 @@ class Component extends DCLogic {
           vodDevFg: within ? CECON : COVER,
           vodDevBg: within ? tintEcon : tintOver
         };
-      })(),      entryArchive: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl)
+      })(),      entryArchive: eh ? this._houseReadings(eh.id).filter(r => !r.isControl)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
         .slice(0, 6).map(r => { const g = this._rowGcal(r); return { date: r.date || '—',
           gcal: g == null ? '—' : this.fmt(g, 2),
@@ -2845,7 +2857,7 @@ class Component extends DCLogic {
     if (s.detailId) {
       out.isDetail = true;
       const h = this.db.houses.find(x => x.id === s.detailId);
-      const hist = this.db.readings.filter(r => r.houseId === s.detailId)
+      const hist = this._houseReadings(s.detailId).slice()
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)));
       out.detail = {
         code: hName(h), addr: hSub(h) || '—', owner: h.owner || '', meter: h.meterNo || '—',
