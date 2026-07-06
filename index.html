@@ -985,14 +985,21 @@ class Component extends DCLogic {
         });
       }
     }
-    // показання з'єднуємо за адресою (Архів.Будинок == TabAbon.Адреса)
-    const byAddr = {}; houses.forEach(h => { const k = this._normAddr(h.address); if (k && !byAddr[k]) byAddr[k] = h; });
+    // показання з'єднуємо за особовим рахунком (Архів.Особовий == TabAbon.Особовий),
+    // бо на одній адресі буває багато абонентів (комерційні + розподільчі прилади).
+    // Адреса — запасний ключ, якщо особового немає.
+    const byAddr = {}, byAccount = {};
+    houses.forEach(h => {
+      const k = this._normAddr(h.address); if (k && !byAddr[k]) byAddr[k] = h;
+      const ak = this._normAddr(h.account); if (ak) byAccount[ak] = h;
+    });
 
     // --- TabBaza -> readings ---
     const arhRows = this._sheetAOA(wb, 'Архів');
     const rIdx = this._headerRow(arhRows, ['будинок', 'дата']);
     if (rIdx >= 0) {
       const map = this._colMap(arhRows[rIdx]);
+      const cAcc = this._find(map, 'особовий');
       const cHouse = this._find(map, 'будинок');
       const cDate = this._find(map, 'дата');
       const cDur = this._find(map, 'тривал');
@@ -1008,8 +1015,9 @@ class Component extends DCLogic {
       let id = 1;
       for (let i = rIdx + 1; i < arhRows.length; i++) {
         const row = arhRows[i];
+        const acc = cAcc >= 0 ? this._normAddr(row[cAcc]) : '';
         const key = cHouse >= 0 ? this._normAddr(row[cHouse]) : '';
-        const h = byAddr[key]; if (!h) continue;
+        const h = (acc && byAccount[acc]) || byAddr[key]; if (!h) continue;
         const closeV = cClose >= 0 ? String(row[cClose] || '') : '';
         const isControl = closeV.includes('Контрольне');
         const cur = cCur >= 0 ? this.num(row[cCur]) : 0;
@@ -1403,18 +1411,38 @@ class Component extends DCLogic {
     const q = this.qIdeal(house.heatLoad, reading.duration, share, reading.tAvg);
     return q > 0 ? q : null;
   }
-  // споживання за котельнями для звітного місяця (факт із приростів показань)
-  _boilerConsumption(key){
+  // Споживання по будинках за місяць. Обсяг будинку = сума КОМЕРЦІЙНИХ приладів
+  // обліку (вводів будинку). Розподільчі прилади (h.komOblik=false) — це частка
+  // споживання всередині будинку й у загальний обсяг НЕ входять (інакше подвійний
+  // облік). Норматив будинку — сума нормативів його комерційних приладів.
+  _buildingConsumption(key){
     const byB = {};
     this.db.houses.forEach(h => {
+      if (!h.komOblik) return;
       const c = this._monthConsumption(h.id, key);
       if (!c) return;
-      const bk = h.boiler || '—';
-      const b = byB[bk] || (byB[bk] = { boiler: bk, fact: 0, n: 0, houses: [] });
-      const norm = this._monthNorm(h, c.reading);
-      b.fact += c.gcal; b.n++;
-      b.houses.push({ h, gcal: c.gcal, norm });
+      const ak = this._normAddr(h.address) || ('#' + h.id);
+      const b = byB[ak] || (byB[ak] = { key: ak, address: h.address, boiler: h.boiler || '—',
+        house: h, gcal: 0, norm: 0, normOk: false, meters: 0, reading: c.reading });
+      b.gcal += c.gcal; b.meters++;
+      const nm = this._monthNorm(h, c.reading);
+      if (nm != null) { b.norm += nm; b.normOk = true; }
+      // представницьке показання — те, що має дані для нормативу (тривалість + t сер.)
+      if (c.reading && c.reading.duration > 0 && c.reading.tAvg) b.reading = c.reading;
     });
+    Object.values(byB).forEach(b => { b.gcal = this.r3(b.gcal); b.norm = this.r3(b.norm); });
+    return byB;
+  }
+  // споживання за котельнями = агрегація будинків по котельні
+  _boilerConsumption(key){
+    const byB = {};
+    Object.values(this._buildingConsumption(key)).forEach(bld => {
+      const bk = bld.boiler || '—';
+      const b = byB[bk] || (byB[bk] = { boiler: bk, fact: 0, n: 0, buildings: [] });
+      b.fact += bld.gcal; b.n++;
+      b.buildings.push(bld);
+    });
+    Object.values(byB).forEach(b => b.fact = this.r3(b.fact));
     return byB;
   }
   anBack(){ this.setState({ anBoiler: null }); }
@@ -1693,27 +1721,27 @@ class Component extends DCLogic {
         fg: m.key === curKey ? '#fff' : 'var(--ink)', bg: m.key === curKey ? 'var(--primary)' : 'var(--surface)',
         bd: m.key === curKey ? 'var(--primary)' : 'var(--line2)', tap: () => this.setOvMonth(m.key) }));
 
-      // помісячний агрегат споживання (різниця показань → Гкал)
-      const monthAgg = (key) => { let g = 0, n = 0, tsum = 0, tn = 0;
-        houses.forEach(h => { const c = this._monthConsumption(h.id, key); if (!c) return;
-          g += c.gcal; n++;
-          if (c.reading.tAvg != null && !isNaN(c.reading.tAvg) && c.reading.tAvg !== 0) { tsum += c.reading.tAvg; tn++; } });
-        return { gcal: g, n, tAvg: tn ? tsum / tn : null }; };
+      // помісячний агрегат: обсяг = сума комерційних приладів по будинках
+      const monthAgg = (key) => { const bld = Object.values(this._buildingConsumption(key));
+        let g = 0, n = 0, tsum = 0, tn = 0;
+        bld.forEach(b => { g += b.gcal; n++;
+          const t = b.reading && b.reading.tAvg;
+          if (t != null && !isNaN(t) && t !== 0) { tsum += t; tn++; } });
+        return { gcal: this.r3(g), n, tAvg: tn ? tsum / tn : null }; };
 
+      const curBld = this._buildingConsumption(curKey);
       const curAgg = monthAgg(curKey);
-      // закриття місяця рахуємо лише по будинках з приладами обліку
-      // (будинок «з лічильником» = має хоч одне некотрольне показання в базі)
+      // закриття місяця — лише комерційні прилади обліку (вводи будинків), що мають
+      // хоч одне некотрольне показання в базі
       const meteredIds = {};
       this.db.readings.forEach(r => { if (!r.isControl && r.date) meteredIds[String(r.houseId)] = true; });
-      const metered = houses.filter(h => meteredIds[String(h.id)]);
+      const meteredCom = houses.filter(h => h.komOblik && meteredIds[String(h.id)]);
       let submitted = 0; const unsub = [];
-      metered.forEach(h => { if (this._readingForMonth(h.id, curKey)) submitted++; else unsub.push(h); });
-      const total = metered.length, notSub = total - submitted;
+      meteredCom.forEach(h => { if (this._readingForMonth(h.id, curKey)) submitted++; else unsub.push(h); });
+      const total = meteredCom.length, notSub = total - submitted;
       const controlCnt = this.db.readings.filter(r => r.isControl && this._monthKey(r.date) === curKey).length;
-      // найбільше споживання
-      const consList = [];
-      houses.forEach(h => { const c = this._monthConsumption(h.id, curKey); if (c && c.gcal > 0) consList.push({ h, gcal: c.gcal }); });
-      consList.sort((a, b) => b.gcal - a.gcal);
+      // найбільше споживання (по будинках)
+      const consList = Object.values(curBld).filter(b => b.gcal > 0).sort((a, b) => b.gcal - a.gcal);
       // динаміка по місяцях — лише періоди, де книга містить приріст споживання
       const dyn = months.map(m => { const a = monthAgg(m.key); return { key: m.key, gcal: a.gcal, tAvg: a.tAvg }; })
         .filter(d => d.gcal > 0);
@@ -1721,9 +1749,11 @@ class Component extends DCLogic {
       // сезон-до-сезону: ті самі будинки в обидва місяці
       const mm = curKey.split('-'); const prevKey = mm[0] ? (parseInt(mm[0],10) - 1) + '-' + mm[1] : '';
       let curPaired = 0, prevPaired = 0, pairedN = 0;
-      if (prevKey && months.some(m => m.key === prevKey)) houses.forEach(h => {
-        const cc = this._monthConsumption(h.id, curKey), cp = this._monthConsumption(h.id, prevKey);
-        if (cc && cp) { curPaired += cc.gcal; prevPaired += cp.gcal; pairedN++; } });
+      if (prevKey && months.some(m => m.key === prevKey)) {
+        const prevBld = this._buildingConsumption(prevKey);
+        Object.keys(curBld).forEach(ak => { if (prevBld[ak]) {
+          curPaired += curBld[ak].gcal; prevPaired += prevBld[ak].gcal; pairedN++; } });
+      }
       const soPct = (pairedN >= 5 && prevPaired > 0) ? this.r2((curPaired - prevPaired) / prevPaired * 100) : null;
 
       out.ov = {
@@ -1750,9 +1780,9 @@ class Component extends DCLogic {
           lblColor: d.key === curKey ? 'var(--primary)' : 'var(--muted2)', tap: () => this.setOvMonth(d.key) })),
         hasTop: consList.length > 0,
         top: consList.slice(0, 5).map((c, i) => ({
-          rank: String(i + 1), code: hName(c.h), addr: hSub(c.h),
+          rank: String(i + 1), code: hName(c.house), addr: hSub(c.house),
           diff: this.fmt(c.gcal, 1), pct: 'Гкал',
-          tap: () => this.openDetail(c.h.id) }))
+          tap: () => this.openDetail(c.house.id) }))
       };
       return out;
     }
@@ -1833,22 +1863,22 @@ class Component extends DCLogic {
       if (s.anBoiler) {
         // деталізація котельні — будинки з фактом і відхиленням від нормативу
         const b = byB[s.anBoiler];
-        const list = (b ? b.houses.slice() : []).sort((x, y) => y.gcal - x.gcal);
+        const list = (b ? b.buildings.slice() : []).sort((x, y) => y.gcal - x.gcal);
         const maxH = Math.max(1, ...list.map(x => x.gcal));
         out.anTitle = s.anBoiler;
         out.anSub = this._monthLabel(curKey) + ' · ' + (b ? this.fmt(b.fact, 1) : '0') + ' Гкал · ' + (b ? b.n : 0) + ' буд.';
         out.anRows = list.map(x => {
-          const has = x.norm != null;
+          const has = x.normOk && x.norm > 0;
           const diff = has ? (x.gcal - x.norm) : 0;
-          const pct = has && x.norm ? this.r2(diff / x.norm * 100) : null;
+          const pct = has ? this.r2(diff / x.norm * 100) : null;
           const over = diff > 0;
-          return { name: hName(x.h), sub: hSub(x.h),
+          return { name: hName(x.house), sub: hSub(x.house),
             fact: this.fmt(x.gcal, 1),
             hasNorm: has, norm: has ? this.fmt(x.norm, 1) : '—',
             pct: has ? this.pctTxt(pct) : 'норм —',
             fg: has ? (over ? COVER : CECON) : 'var(--muted2)', bg: has ? (over ? tintOver : tintEcon) : 'var(--barTrack)',
             barW: Math.round(x.gcal / maxH * 100) + '%', barColor: has ? (over ? COVER : CECON) : 'var(--primBd)',
-            tap: () => this.openDetail(x.h.id) };
+            tap: () => this.openDetail(x.house.id) };
         });
       } else {
         // зведення по котельнях — частка у споживанні місяця
