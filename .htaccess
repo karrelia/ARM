@@ -1,0 +1,20 @@
+# АРМ Теплооблік — красиві URL /api/... для PHP-бекенда на Apache.
+# Потрібно, щоб у конфізі Apache для цієї теки було  AllowOverride All
+# і ввімкнено mod_rewrite (sudo a2enmod rewrite && sudo systemctl restart apache2).
+#
+# Якщо mod_rewrite недоступний — нічого страшного: клієнт сам перейде на
+# прямі URL /api.php/... , які працюють без переписування.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # /api/ping  ->  api.php  (PATH_INFO = /ping)
+  RewriteRule ^api/(.*)$ api.php/$1 [L,QSA]
+  RewriteRule ^api$      api.php    [L,QSA]
+</IfModule>
+
+# Захист теки з даними від прямого доступу через веб
+<IfModule mod_authz_core.c>
+  <FilesMatch "^(db|users)\.json$">
+    Require all denied
+  </FilesMatch>
+</IfModule>

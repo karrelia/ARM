@@ -1189,20 +1189,31 @@ class Component extends DCLogic {
         this.setState({ booting: false, hasData: false });
       }
     }).catch(() => this.setState({ booting: false, hasData: false }));
-    this._cloudCheck();
-    this._loadUsers();
+    // спершу визначаємо, який API доступний (/api для Node/mod_rewrite чи
+    // /api.php для «голого» Apache), і лише тоді читаємо користувачів
+    this._cloudCheck().then(() => this._loadUsers());
     this._startAutoSync();
   }
   // ---------- власний сервер (Фаза B): офлайн-перший, синхронізація по команді ----------
-  _cloudCheck(){
-    if (typeof fetch !== 'function') return;
-    fetch('/api/ping', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && d.ok) { this.setState({ cloud: true }); this._reconcileUsers(); } }).catch(() => {});
+  // Базовий шлях API. Визначається під час _cloudCheck: '/api' (Node server.js
+  // або Apache з mod_rewrite) чи '/api.php' (Apache без переписування URL).
+  _apiBase = '/api';
+  async _cloudCheck(){
+    if (typeof fetch !== 'function') return false;
+    for (const base of ['/api', '/api.php']) {
+      try {
+        const r = await fetch(base + '/ping', { cache: 'no-store' });
+        if (r.ok) { const d = await r.json(); if (d && d.ok) {
+          this._apiBase = base; this.setState({ cloud: true }); this._reconcileUsers(); return true;
+        } }
+      } catch(e){}
+    }
+    return false;
   }
   // якщо сервер щойно з'явився, а на ньому ще немає користувачів (перший адмін
   // створився до того, як підтвердилась мережа) — виштовхуємо локальних
   _reconcileUsers(){
-    fetch('/api/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+    fetch(this._apiBase + '/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
       const server = (j && j.users) || [];
       const local = this.state.users || [];
       if (server.length === 0 && local.length > 0) this._persistUsers(local);
@@ -1245,7 +1256,7 @@ class Component extends DCLogic {
   async _loadUsers(){
     let serverUsers = null;              // null = сервер недоступний; [] = сервер порожній
     try {
-      const r = await fetch('/api/users', { cache: 'no-store' });
+      const r = await fetch(this._apiBase + '/users', { cache: 'no-store' });
       if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.users)) serverUsers = j.users; }
     } catch(e){}
     let local = [];
@@ -1277,7 +1288,7 @@ class Component extends DCLogic {
   async _persistUsers(users){
     this._idbSetKey('users', users).catch(()=>{});
     try {
-      const r = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) });
+      const r = await fetch(this._apiBase + '/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) });
       if (r && r.ok) { if (!this.state.cloud) this.setState({ cloud: true }); return 0; }
       return (r && r.status) || 1;
     } catch(e){ return -1; }
@@ -1285,8 +1296,8 @@ class Component extends DCLogic {
   _saveUserWarn(st){
     if (st === 0 || st === -1) return '';
     const hint = st === 404
-      ? 'на сервері старий server.js (немає /api/users). Оновіть код і ПЕРЕЗАПУСТІТЬ «node server.js».'
-      : 'сервер не зміг зберегти (можливо, немає прав на запис теки arm-data або старий код). Оновіть і ПЕРЕЗАПУСТІТЬ «node server.js».';
+      ? 'на сервері немає API (/api/users). Node: оновіть код і ПЕРЕЗАПУСТІТЬ «node server.js». Apache: покладіть api.php у теку сайту.'
+      : 'сервер не зміг зберегти (напр. немає прав на запис теки arm-data: chown www-data:www-data arm-data). Перевірте код/права.';
     return '⚠ Сервер не зберіг користувача (відповів ' + st + '): ' + hint + ' Інші пристрої його поки не побачать.';
   }
   doLogin(){
@@ -1360,7 +1371,7 @@ class Component extends DCLogic {
       const payload = { role: this.state.role, by: this.state.me || '', baseSig: this._baseSig(),
         since: this.state.lastPull || 0, readings: push };
       if (this.state.role === 'lead') payload.assignments = this.state.assignments || {};
-      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const resp = await fetch(this._apiBase + '/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const data = await resp.json();
       const res = this._mergeReadings(data.readings || []);
@@ -1399,7 +1410,7 @@ class Component extends DCLogic {
     if (!this.db || this.state.cloudBusy) return;
     this.setState({ cloudBusy: true, importError: '' });
     try {
-      const resp = await fetch('/api/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const resp = await fetch(this._apiBase + '/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ houses: this.db.houses, boilers: this.db.boilers, baseSig: this._baseSig(), savedAt: this.db.savedAt }) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const d = await resp.json();
@@ -1410,7 +1421,7 @@ class Component extends DCLogic {
     if (this.state.cloudBusy) return;
     this.setState({ cloudBusy: true, importError: '' });
     try {
-      const resp = await fetch('/api/base', { cache: 'no-store' });
+      const resp = await fetch(this._apiBase + '/base', { cache: 'no-store' });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const d = await resp.json();
       if (!d.hasBase) throw new Error('на сервері ще немає бази — старший має її опублікувати');
@@ -1510,7 +1521,7 @@ class Component extends DCLogic {
     if (!this.state.cloud || this.state.cloudBusy) return;
     this.setState({ cloudBusy: true, importError: '' });
     try {
-      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const resp = await fetch(this._apiBase + '/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: 'lead', by: this.state.me || '', baseSig: this._baseSig(), since: this.state.lastPull || 0, readings: [], assignments: this.state.assignments || {} }) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const data = await resp.json();

@@ -57,6 +57,27 @@ PIN перевіряється на пристрої (тож вхід працю
 потрапляють у репозиторій). Без сервера додаток працює як і раніше та має
 резервний **обмін файлами** (`.json`) через месенджер.
 
+### Розгортання на Apache (без Node) — `api.php`
+
+Якщо сайт уже роздає **Apache** (напр. `http://195.64.183.13:8083/`), окремий
+Node-процес запускати не треба — той самий API дає **`api.php`** (PHP-версія
+`server.js`, ті самі маршрути й формат). Кроки:
+
+```bash
+sudo apt install php libapache2-mod-php   # якщо PHP ще немає
+# покласти api.php і .htaccess у теку сайту (там же index.html, support.js, vendor/)
+sudo mkdir -p /var/www/арм/arm-data
+sudo chown www-data:www-data /var/www/арм/arm-data   # веб-серверу потрібен запис
+sudo a2enmod rewrite && sudo systemctl restart apache2   # для красивих URL /api/…
+```
+
+Клієнт **сам визначає**, який шлях доступний: `/api/…` (Node або Apache з
+`mod_rewrite`) чи `/api.php/…` (Apache без переписування URL — працює завжди).
+Тож `.htaccess`/`mod_rewrite` необов'язкові — достатньо покласти `api.php`.
+
+> Фото передаються як data URL у складі показань. Щоб великі пакети не
+> обрізались, у `php.ini` бажано `post_max_size = 64M` (і `upload_max_filesize`).
+
 ## Можливості
 
 - **Огляд** — помісячно (селектор звітних періодів): спожито ТЕ за різницею
