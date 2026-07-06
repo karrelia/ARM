@@ -938,13 +938,12 @@
 
     <!-- ============ SETTINGS: роль виконавця (overlay) ============ -->
     <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
-    <div style="position:absolute;inset:0;z-index:42;display:flex;align-items:flex-end;justify-content:center">
-      <div onClick="{{ closeSettings }}" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
-      <div style="position:relative;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;padding:20px 18px 28px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Виконавець</div>
-          <button onClick="{{ closeSettings }}" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t140);font-weight:800;cursor:pointer">✕</button>
-        </div>
+    <div style="position:absolute;inset:0;z-index:42;background:var(--bg);display:flex;flex-direction:column">
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;background:var(--headerBg);border-bottom:1px solid var(--headerBd);padding:10px 14px">
+        <button onClick="{{ closeSettings }}" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t180);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">‹</button>
+        <div style="flex:1;font-size:var(--t150);font-weight:800;color:var(--ink)">Виконавець</div>
+      </div>
+      <div class="scrl" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 16px 30px">
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:12px">
           <div style="font-size:var(--t110);font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px">Ви увійшли як</div>
           <div style="font-size:var(--t150);font-weight:800;color:var(--ink);margin-top:2px">{{ authUserName }}</div>
@@ -996,7 +995,7 @@
 
           <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
           <div style="font-size:var(--t115);font-weight:700;color:var(--muted);margin:6px 0 8px">Завдання: розподіл між робітниками</div>
-          <div class="scrl" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:11px">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:11px">
             <sc-for list="{{ assignRows }}" as="a" hint-placeholder-count="4">
               <div style="border:1px solid var(--line);border-radius:12px;padding:9px 10px">
                 <div style="display:flex;align-items:center;gap:9px">
@@ -1011,18 +1010,44 @@
                 <sc-if value="{{ a.canExpand }}" hint-placeholder-val="{{ false }}">
                 <button onClick="{{ a.toggle }}" style="margin-top:6px;background:none;border:none;color:var(--primary);font-size:var(--t108);font-weight:700;cursor:pointer;padding:0">по будинках ({{ a.count }}) ▾</button>
                 <sc-if value="{{ a.expanded }}" hint-placeholder-val="{{ false }}">
-                <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
-                  <sc-for list="{{ a.buildings }}" as="b" hint-placeholder-count="3">
-                    <div style="display:flex;align-items:center;gap:8px">
-                      <span style="flex:1;min-width:0;font-size:var(--t110);font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</span>
-                      <div style="position:relative;width:132px;flex-shrink:0">
-                        <select value="{{ b.val }}" onChange="{{ b.onWorker }}" style="width:100%;height:34px;padding:0 24px 0 9px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t105);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
-                          <sc-for list="{{ b.opts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
-                        </select>
-                        <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t95)">▾</span>
-                      </div>
+                <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+                  <!-- панель масового призначення -->
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+                    <button onClick="{{ a.selectAll }}" style="height:32px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t108);font-weight:700;cursor:pointer">Обрати всі</button>
+                    <sc-if value="{{ a.hasSel }}" hint-placeholder-val="{{ false }}">
+                    <button onClick="{{ a.clearSel }}" style="height:32px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--muted);font-size:var(--t108);font-weight:700;cursor:pointer">Зняти</button>
+                    <span style="font-size:var(--t108);font-weight:700;color:var(--primary)">Обрано {{ a.selWord }}</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ a.hasSel }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:8px;background:var(--primTint);border:1px solid var(--primBd);border-radius:11px;padding:8px 10px;margin-bottom:10px">
+                    <span style="flex-shrink:0;font-size:var(--t110);font-weight:700;color:var(--ink)">Відповідальний:</span>
+                    <div style="position:relative;flex:1;min-width:0">
+                      <select value="{{ a.asgSelW }}" onChange="{{ a.onSelW }}" style="width:100%;height:36px;padding:0 24px 0 9px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t108);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
+                        <sc-for list="{{ a.selOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+                      </select>
+                      <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t95)">▾</span>
                     </div>
-                  </sc-for>
+                    <button onClick="{{ a.applySel }}" style="flex-shrink:0;height:36px;padding:0 14px;border-radius:9px;border:none;background:var(--primary);color:#fff;font-size:var(--t110);font-weight:800;cursor:pointer">Призначити</button>
+                  </div>
+                  </sc-if>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <sc-for list="{{ a.buildings }}" as="b" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <button onClick="{{ b.toggleSel }}" style="flex-shrink:0;width:24px;height:24px;border-radius:7px;border:2px solid {{ b.selBd }};background:{{ b.selBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;cursor:pointer;padding:0">{{ b.selMark }}</button>
+                        <div style="flex:1;min-width:0">
+                          <div style="font-size:var(--t110);font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</div>
+                          <div style="font-size:var(--t95);font-weight:600;color:var(--muted2)">{{ b.curTxt }}</div>
+                        </div>
+                        <div style="position:relative;width:124px;flex-shrink:0">
+                          <select value="{{ b.val }}" onChange="{{ b.onWorker }}" style="width:100%;height:34px;padding:0 24px 0 9px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t102);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
+                            <sc-for list="{{ b.opts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+                          </select>
+                          <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t95)">▾</span>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
                 </div>
                 </sc-if>
                 </sc-if>
@@ -1077,7 +1102,7 @@ class Component extends DCLogic {
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
-    cloud: false, cloudBusy: false, autoSync: true, asgExpand: null,
+    cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '',
     // авторизація (PIN, спільний список користувачів на сервері)
     users: [], authUser: null, authChecked: false, authError: '',
     foName: '', foPin: '', loginSel: '', loginPin: '',
@@ -1433,7 +1458,29 @@ class Component extends DCLogic {
     else a[k] = worker;                            // конкретний робітник або '' (ніхто)
     this._saveSettings({ assignments: a });
   }
-  toggleAsgExpand(boiler){ this.setState(s => ({ asgExpand: s.asgExpand === boiler ? null : boiler })); }
+  toggleAsgExpand(boiler){ this.setState(s => ({ asgExpand: s.asgExpand === boiler ? null : boiler, asgSel: {}, asgSelW: '' })); }
+  // виділення блоку будинків і призначення відповідального одним рухом
+  toggleAsgSel(address){
+    const k = '@' + this._normAddr(address);
+    const sel = { ...(this.state.asgSel || {}) };
+    if (sel[k]) delete sel[k]; else sel[k] = true;
+    this.setState({ asgSel: sel });
+  }
+  selectAllBoiler(boiler){
+    const sel = {};
+    this._buildings().filter(b => (b.boiler || '—') === boiler).forEach(b => { sel['@' + this._normAddr(b.address)] = true; });
+    this.setState({ asgSel: sel });
+  }
+  clearAsgSel(){ this.setState({ asgSel: {}, asgSelW: '' }); }
+  assignSelected(){
+    const keys = Object.keys(this.state.asgSel || {});
+    if (!keys.length) return;
+    const w = this.state.asgSelW;
+    const a = { ...(this.state.assignments || {}) };
+    keys.forEach(k => { if (w === '__inherit') delete a[k]; else a[k] = w; });
+    this._saveSettings({ assignments: a });
+    this.setState({ asgSel: {}, asgSelW: '' });
+  }
   // опублікувати завдання на сервер негайно (інакше піде автосинхронізацією)
   async cloudPublishAssign(){
     if (!this.state.cloud || this.state.cloudBusy) return;
@@ -2486,11 +2533,26 @@ class Component extends DCLogic {
             canExpand: list.length > 1, expanded, toggle: () => this.toggleAsgExpand(bl),
             buildings: [] };
           if (expanded) {
+            const sel = s.asgSel || {};
             row.buildings = list.slice().sort((a, b) => a.address.localeCompare(b.address, 'uk')).map(b => {
               const k = '@' + this._normAddr(b.address);
               const bv = (asg[k] !== undefined) ? asg[k] : '__inherit';
-              return { address: b.address, val: bv, opts: optsFor(bv, true), onWorker: (e) => this.setBuildingAssign(b.address, e.target.value) };
+              const on = !!sel[k];
+              return { address: b.address, val: bv, opts: optsFor(bv, true), onWorker: (e) => this.setBuildingAssign(b.address, e.target.value),
+                selected: on, selMark: on ? '✓' : '', selBd: on ? 'var(--primary)' : 'var(--inputBd)', selBg: on ? 'var(--primary)' : 'transparent',
+                toggleSel: () => this.toggleAsgSel(b.address),
+                curTxt: bv === '__inherit' ? 'за котельнею' : (bv || '— ніхто') };
             });
+            // панель масового призначення обраних будинків
+            const selCount = Object.keys(sel).length;
+            row.selCount = selCount; row.hasSel = selCount > 0;
+            row.selWord = selCount + ' ' + (selCount === 1 ? 'будинок' : (selCount >= 2 && selCount <= 4 ? 'будинки' : 'будинків'));
+            row.selOpts = optsFor(s.asgSelW || '', true);
+            row.asgSelW = s.asgSelW || '';
+            row.onSelW = (e) => this.setState({ asgSelW: e.target.value });
+            row.applySel = () => this.assignSelected();
+            row.selectAll = () => this.selectAllBoiler(bl);
+            row.clearSel = () => this.clearAsgSel();
           }
           return row;
         });
