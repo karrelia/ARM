@@ -727,6 +727,13 @@ if ('serviceWorker' in navigator) {
           <sc-if value="{{ eWarn }}" hint-placeholder-val="{{ false }}">
             <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:12px;padding:10px 12px;margin-bottom:13px;font-size:var(--t120);font-weight:600;color:var(--debt)">{{ eWarn }}</div>
           </sc-if>
+          <sc-if value="{{ hasEntryWarnings }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#FBF3DC;border:1px solid #E7C35C;border-radius:12px;padding:10px 12px;margin-bottom:13px">
+              <sc-for list="{{ entryWarnings }}" as="w" hint-placeholder-count="1">
+                <div style="display:flex;gap:7px;font-size:var(--t115);font-weight:600;color:#7A5B00;margin:2px 0"><span>⚠</span><span style="flex:1;min-width:0">{{ w.text }}</span></div>
+              </sc-for>
+            </div>
+          </sc-if>
 
           <!-- фото лічильника -->
           <div style="border:1px solid var(--line2);border-radius:14px;padding:13px;margin-bottom:13px">
@@ -2319,6 +2326,29 @@ class Component extends DCLogic {
     const pct = q ? this.r2(diff/q*100) : null;
     return { prev, cur, delta, gcal, q, diff, pct, valid: cur >= prev };
   }
+  // М'які, НЕблокуючі попередження — ловлять типові помилки набору (аномальний
+  // стрибок, дублікат за місяць, нульовий приріст). Не заважають зберегти.
+  _entryWarnings(h, pv){
+    const s = this.state; const w = [];
+    if (!h || !pv || !pv.valid) return w;
+    // дублікат показання за той самий звітний місяць
+    const period = s.ePeriod || (s.eDate ? this._monthKey(s.eDate) : '');
+    if (!s.eControl && period && this._houseReadings(h.id).some(r => !r.isControl && (r.period === period || this._monthKey(r.date) === period)))
+      w.push('За цей місяць уже є показання для цього приладу — збереження створить ще один запис.');
+    // приріст порівняно з типовим для цього приладу (медіана попередніх)
+    const hist = this._houseReadings(h.id).filter(r => !r.isControl).map(r => this._rowGcal(r)).filter(g => g != null && g > 0);
+    if (hist.length >= 2) {
+      const sorted = hist.slice().sort((a, b) => a - b); const med = sorted[Math.floor(sorted.length / 2)];
+      if (med > 0 && pv.gcal > 0) {
+        if (pv.gcal > med * 3) w.push('Приріст ' + this.fmt(pv.gcal, 2) + ' Гкал — значно більший за типовий для цього приладу (~' + this.fmt(med, 2) + '). Перевірте показник і розмірність.');
+        else if (pv.gcal < med / 4) w.push('Приріст ' + this.fmt(pv.gcal, 2) + ' Гкал — значно менший за типовий (~' + this.fmt(med, 2) + '). Перевірте показник.');
+      }
+    }
+    // нульовий приріст без явної позначки «немає споживання»
+    if (pv.delta === 0 && !s.eNoConsumption)
+      w.push('Нульовий приріст. Якщо споживання справді немає — увімкніть «Немає споживання».');
+    return w;
+  }
   // ---------- фото лічильника ----------
   openEntryPhotos(){ const el = document.getElementById('entryPhotoInput'); if (el) { el.value = ''; el.click(); } }
   async onEntryPhotos(e){
@@ -2725,6 +2755,7 @@ class Component extends DCLogic {
       });
     }
     const pv = this._entryPreview();
+    const eWarnings = this._entryWarnings(eh, pv);
     // різниця — лише коли заповнено поточне значення
     const dcalc = (prev, cur) => (cur === '' || cur == null) ? '—' : this.fmt(this.r3(this.num(cur) - this.num(prev)), 3);
     Object.assign(out, {
@@ -2744,6 +2775,8 @@ class Component extends DCLogic {
       entryPhotos: (s.entryPhotos || []).map(p => ({ id: p.id, url: p.url,
         remove: () => this.removeEntryPhoto(p.id), view: () => this.viewPhoto(p.url) })),
       ePreview: !!pv,
+      entryWarnings: eWarnings.map((t, i) => ({ id: i, text: t })),
+      hasEntryWarnings: eWarnings.length > 0,
       eWarn: (pv && !pv.valid) ? ('Поточний показник менший за попередній (' + this.fmt(pv.prev, 3) + ')') : '',
       eSaveDisabled: !(pv && pv.valid),
       eSaveBg: (pv && pv.valid) ? 'var(--primary)' : 'var(--muted2)',
