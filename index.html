@@ -24,6 +24,7 @@
     .scrl::-webkit-scrollbar{display:none;width:0}
     .tnum{font-variant-numeric:tabular-nums}
     input,select,button{font-family:inherit}
+    input:disabled,select:disabled{background:var(--chipBg)!important;color:var(--muted)!important;cursor:not-allowed;opacity:.7}
     @keyframes dcspin{to{transform:rotate(360deg)}}
   </style>
 </helmet>
@@ -487,13 +488,13 @@
           <div style="display:flex;gap:10px;margin-bottom:12px">
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">обчислювач</div>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mObcPovirka }}" onInput="{{ onMObcPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mObcPovirka }}" onInput="{{ onMObcPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
               <label style="display:block">
                 <span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Розмірність</span>
                 <div style="position:relative">
-                  <select value="{{ mObcUnit }}" onChange="{{ onMObcUnit }}" style="width:100%;height:36px;padding:0 22px 0 8px;border-radius:9px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t115);appearance:none;-webkit-appearance:none">
+                  <select value="{{ mObcUnit }}" onChange="{{ onMObcUnit }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 22px 0 8px;border-radius:9px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t115);appearance:none;-webkit-appearance:none">
                     <sc-for list="{{ unitOpts }}" as="u" hint-placeholder-count="4">
                       <option value="{{ u }}">{{ u }}</option>
                     </sc-for>
@@ -504,33 +505,33 @@
             </div>
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">водомір</div>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mVodTip }}" onInput="{{ onMVodTip }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input inputmode="decimal" value="{{ mVodDN }}" onInput="{{ onMVodDN }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mVodTip }}" onInput="{{ onMVodTip }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input inputmode="decimal" value="{{ mVodDN }}" onInput="{{ onMVodDN }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
             </div>
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">ТСП</div>
-              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mTspZavod }}" onInput="{{ onMTspZavod }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
-              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mTspPovirka }}" onInput="{{ onMTspPovirka }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mTspZavod }}" onInput="{{ onMTspZavod }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mTspPovirka }}" onInput="{{ onMTspPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
             </div>
           </div>
 
           <div style="display:flex;gap:10px;margin-bottom:6px">
             <label style="flex:1.5;min-width:0">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Теплове навантаження будинку, Гкал/год</span>
-              <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
             <label style="flex:1;min-width:0">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Частка абонента</span>
-              <input inputmode="decimal" value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
           </div>
           <div style="font-size:var(--t110);font-weight:600;color:var(--muted);margin-bottom:12px">Розрахункове ТН абонента (навантаження × частка): <b class="tnum" style="color:var(--ink)">{{ mHeatLoadCalc }}</b> Гкал/год</div>
 
           <div style="display:flex;gap:16px;margin-bottom:12px">
-            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mKomOblik }}" onChange="{{ onMKomOblik }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Ком. облік</span></label>
-            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mFop }}" onChange="{{ onMFop }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">ФОП</span></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mKomOblik }}" onChange="{{ onMKomOblik }}" disabled="{{ dovLock }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Ком. облік</span></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mFop }}" onChange="{{ onMFop }}" disabled="{{ dovLock }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">ФОП</span></label>
           </div>
 
           <label style="display:block;margin-bottom:10px">
@@ -600,7 +601,7 @@
             <label style="display:block;margin-bottom:10px">
               <span style="display:block;font-size:var(--t105);font-weight:700;color:var(--muted);margin-bottom:5px">Обрати з архіву</span>
               <div style="position:relative">
-                <select value="{{ ePrevSel }}" onChange="{{ onEPrevSel }}" style="width:100%;height:42px;padding:0 30px 0 11px;border-radius:11px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t120);appearance:none;-webkit-appearance:none">
+                <select value="{{ ePrevSel }}" onChange="{{ onEPrevSel }}" disabled="{{ prevLock }}" style="width:100%;height:42px;padding:0 30px 0 11px;border-radius:11px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t120);appearance:none;-webkit-appearance:none">
                   <option value="">Останнє показання (авто)</option>
                   <sc-for list="{{ prevReadingOpts }}" as="pr" hint-placeholder-count="3">
                     <option value="{{ pr.id }}">{{ pr.label }}</option>
@@ -630,25 +631,25 @@
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
-            <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <input inputmode="decimal" value="{{ tblKilkCur }}" onInput="{{ onTblKilkCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input inputmode="decimal" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <input inputmode="decimal" value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Наробіток, дні/год</span>
-            <input inputmode="decimal" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <input inputmode="decimal" value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffNar }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Простій, год</span>
-            <input inputmode="decimal" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <input inputmode="decimal" value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffProst }}</div>
           </div>
@@ -684,7 +685,7 @@
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input inputmode="decimal" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <input inputmode="decimal" value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod2 }}</div>
           </div>
@@ -970,6 +971,7 @@
           </sc-if>
           <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ cloudLoadBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити базу з сервера</button>
+          <button onClick="{{ cloudLoadAssign }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити завдання з сервера</button>
           </sc-if>
           <button onClick="{{ toggleAutoSync }}" style="display:flex;align-items:center;gap:9px;width:100%;height:44px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:8px">
             <span style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid {{ autoSyncBd }};background:{{ autoSyncBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900">{{ autoSyncMark }}</span>
@@ -1035,9 +1037,11 @@
                     <sc-for list="{{ a.buildings }}" as="b" hint-placeholder-count="3">
                       <div style="display:flex;align-items:center;gap:8px">
                         <button onClick="{{ b.toggleSel }}" style="flex-shrink:0;width:24px;height:24px;border-radius:7px;border:2px solid {{ b.selBd }};background:{{ b.selBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;cursor:pointer;padding:0">{{ b.selMark }}</button>
+                        <span style="flex-shrink:0;width:9px;height:9px;border-radius:50%;background:{{ b.stColor }}"></span>
                         <div style="flex:1;min-width:0">
-                          <div style="font-size:var(--t110);font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</div>
-                          <div style="font-size:var(--t95);font-weight:600;color:var(--muted2)">{{ b.curTxt }}</div>
+                          <div style="font-size:var(--t110);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</div>
+                          <div class="tnum" style="font-size:var(--t95);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.info }}<sc-if value="{{ b.gcalTxt }}" hint-placeholder-val="{{ false }}"> · {{ b.gcalTxt }}</sc-if></div>
+                          <div style="font-size:var(--t95);font-weight:700;color:var(--primary)">{{ b.curTxt }}</div>
                         </div>
                         <div style="position:relative;width:124px;flex-shrink:0">
                           <select value="{{ b.val }}" onChange="{{ b.onWorker }}" style="width:100%;height:34px;padding:0 24px 0 9px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t102);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
@@ -1159,12 +1163,16 @@ class Component extends DCLogic {
   saveDovidnyk(){
     const h = this._entryHouse(); if (!h) return;
     const s = this.state;
-    h.meterNo = s.mObcZavod || ''; h.unit = s.mObcUnit || h.unit || 'Гкал'; h.obcPovirka = s.mObcPovirka || '';
-    h.meterType = s.mObcTip || ''; h.share = this.num(s.mObcChastka) || h.share || 1;
-    if (s.mHeatLoad !== '') h.heatLoad = this.num(s.mHeatLoad);
-    h.vodZavod = s.mVodZavod || ''; h.vodPovirka = s.mVodPovirka || ''; h.vodTip = s.mVodTip || ''; h.dn = s.mVodDN || '';
-    h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
-    h.komOblik = !!s.mKomOblik; h.fop = !!s.mFop;
+    // Робітник у полі редагує лише контактні дані абонента; паспортні поля
+    // приладів і навантаження веде старший (щоб не розходились у базі).
+    if (s.role !== 'worker') {
+      h.meterNo = s.mObcZavod || ''; h.unit = s.mObcUnit || h.unit || 'Гкал'; h.obcPovirka = s.mObcPovirka || '';
+      h.meterType = s.mObcTip || ''; h.share = this.num(s.mObcChastka) || h.share || 1;
+      if (s.mHeatLoad !== '') h.heatLoad = this.num(s.mHeatLoad);
+      h.vodZavod = s.mVodZavod || ''; h.vodPovirka = s.mVodPovirka || ''; h.vodTip = s.mVodTip || ''; h.dn = s.mVodDN || '';
+      h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
+      h.komOblik = !!s.mKomOblik; h.fop = !!s.mFop;
+    }
     h.contact = s.mContact || ''; h.phone = s.mPhone || '';
     this._persist();
     this.setState({ savedDovidnyk: true, rev: this.state.rev + 1 });
@@ -1434,6 +1442,23 @@ class Component extends DCLogic {
         importOpen: true, importName: 'База з сервера', importMeta: d.houses.length + ' будинків' });
     } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + (err && err.message ? err.message : err) }); }
   }
+  // завантажити ЛИШЕ розподіл (завдання) із сервера — не чіпаючи базу й локальну
+  // чергу показань. Робітник підтягує оновлене завдання від старшого.
+  async cloudLoadAssign(){
+    if (this.state.cloudBusy) return;
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const resp = await fetch(this._apiBase + '/base', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const d = await resp.json();
+      const asg = d.assignments || {};
+      const n = Object.keys(asg).length;
+      this.state.assignments = asg;
+      this._saveSettings({ assignments: asg });
+      this.setState({ cloudBusy: false, rev: this.state.rev + 1, importOpen: true, importName: 'Завдання з сервера',
+        importMeta: n ? ('оновлено розподіл (' + n + ')') : 'на сервері ще немає завдання' });
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження завдання: ' + (err && err.message ? err.message : err) }); }
+  }
   _saveSettings(patch){
     const s = this.state;
     const cfg = { role: s.role, me: s.me, assignments: s.assignments, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
@@ -1541,6 +1566,21 @@ class Component extends DCLogic {
     });
     const state = total === 0 ? 'na' : (done === 0 ? 'none' : (done >= total ? 'done' : 'partial'));
     return { total, done, state };
+  }
+  // короткий опис будинку як у закладці «Будинки» (для згорнутого рядка розподілу)
+  _buildingBrief(b, rmap){
+    const st = this._collectStatus(b, rmap);
+    let gcal = 0, hasAny = false;
+    b.meters.forEach(h => { const l = this._lastReading(h.id); if (l) { gcal += l.gcal; hasAny = true; } });
+    const stColor = { done: 'var(--over)', partial: '#D4A017', none: 'var(--muted2)', na: 'var(--line2)' }[st.state];
+    const parts = [b.settlement, b.boiler].filter(Boolean).join(' · ');
+    const cnt = b.meters.length + (b.meters.length === 1 ? ' прилад' : ' прил.');
+    const stText = st.state === 'na' ? '' : (st.done + '/' + st.total + ' знято');
+    return {
+      info: [parts, cnt, stText].filter(Boolean).join(' · '),
+      gcalTxt: hasAny ? (this.fmt(gcal, 2) + ' Гкал') : '',
+      stColor
+    };
   }
 
   // ---------- IndexedDB (single key-value record) ----------
@@ -2491,6 +2531,9 @@ class Component extends DCLogic {
       photoView: s.photoView || '', hasPhotoView: !!s.photoView, closePhoto: () => this.closePhoto(),
       // роль / ім'я виконавця (Фаза 1 бригадного збору)
       roleSet: !!s.role, roleIsLead: s.role === 'lead', roleIsWorker: s.role === 'worker',
+      // робітник у полі: паспортні поля довідника та попередні показники — лише
+      // для читання (їх веде старший); робітник вводить контакти й поточні показники
+      dovLock: s.role === 'worker', prevLock: s.role === 'worker',
       roleLabel: s.role === 'lead' ? 'Старший' : (s.role === 'worker' ? 'Робітник' : 'Хто ви?'),
       meName: s.me || '', meShort: s.me ? (s.me.trim().split(/\s+/)[0].slice(0, 10)) : 'Хто ви?',
       settingsOpen: !!s.settingsOpen, openSettings: () => this.openSettings(), closeSettings: () => this.closeSettings(),
@@ -2508,7 +2551,7 @@ class Component extends DCLogic {
       pendingDot: this._pendingCount() > 0 ? '#D4A017' : 'var(--over)',
       lastSyncTxt: s.lastSyncAt ? this._agoTxt(s.lastSyncAt) : '',
       cloud: !!s.cloud, cloudBusy: !!s.cloudBusy,
-      cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(),
+      cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(), cloudLoadAssign: () => this.cloudLoadAssign(),
       cloudSyncLabel: s.cloudBusy ? 'Синхронізація…' : ('☁ Синхронізувати з сервером (' + this._pendingCount() + ')'),
       autoSync: !!s.autoSync, toggleAutoSync: () => this._saveSettings({ autoSync: !this.state.autoSync }),
       autoSyncMark: s.autoSync ? '✓' : '', autoSyncBd: s.autoSync ? 'var(--primary)' : 'var(--inputBd)', autoSyncBg: s.autoSync ? 'var(--primary)' : 'transparent',
@@ -2558,6 +2601,10 @@ class Component extends DCLogic {
         // будинки згруповані за котельнею (кількість) — для експандера
         const bByBoiler = {};
         this._buildings().forEach(b => { const k = b.boiler || '—'; (bByBoiler[k] = bByBoiler[k] || []).push(b); });
+        // карта показань для статусу збору (як у закладці «Будинки»)
+        const armap = {};
+        this.db.readings.forEach(r => { if (r.isControl) return; const m = armap[r.houseId] || (armap[r.houseId] = { base: false, field: false });
+          if (r.date) m.base = true; if (r.src === 'field') m.field = true; });
         const assignRows = (this.db.boilers || []).map(bl => {
           const cur = asg[bl] || '';
           const list = (bByBoiler[bl] || []);
@@ -2573,9 +2620,11 @@ class Component extends DCLogic {
               const k = '@' + this._normAddr(b.address);
               const bv = (asg[k] !== undefined) ? asg[k] : '__inherit';
               const on = !!sel[k];
+              const brief = this._buildingBrief(b, armap);
               return { address: b.address, val: bv, opts: optsFor(bv, true), onWorker: (e) => this.setBuildingAssign(b.address, e.target.value),
                 selected: on, selMark: on ? '✓' : '', selBd: on ? 'var(--primary)' : 'var(--inputBd)', selBg: on ? 'var(--primary)' : 'transparent',
                 toggleSel: () => this.toggleAsgSel(b.address),
+                info: brief.info, gcalTxt: brief.gcalTxt, stColor: brief.stColor,
                 curTxt: bv === '__inherit' ? 'за котельнею' : (bv || '— ніхто') };
             });
             // панель масового призначення обраних будинків
