@@ -327,12 +327,18 @@
         </sc-if>
 
         <sc-if value="{{ hasMonths }}" hint-placeholder-val="{{ false }}">
-        <div class="scrl" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:14px">
+        <div class="scrl" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px">
           <sc-for list="{{ anMonths }}" as="m" hint-placeholder-count="6">
             <button onClick="{{ m.tap }}" style="flex-shrink:0;padding:7px 13px;border-radius:20px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-size:var(--t120);font-weight:700;cursor:pointer;white-space:nowrap">{{ m.label }}</button>
           </sc-for>
         </div>
         </sc-if>
+
+        <!-- перемикач метрики -->
+        <div style="display:flex;gap:8px;margin-bottom:14px">
+          <button onClick="{{ setMetricG }}" style="flex:1;height:38px;border-radius:11px;border:1px solid {{ anMG.bd }};background:{{ anMG.bg }};color:{{ anMG.fg }};font-size:var(--t120);font-weight:700;cursor:pointer">Обсяг, Гкал</button>
+          <button onClick="{{ setMetricP }}" style="flex:1;height:38px;border-radius:11px;border:1px solid {{ anMP.bd }};background:{{ anMP.bg }};color:{{ anMP.fg }};font-size:var(--t120);font-weight:700;cursor:pointer">Питоме, Гкал/ТН</button>
+        </div>
 
         <div style="font-size:var(--t150);font-weight:800;color:var(--ink);margin-bottom:3px">{{ anTitle }}</div>
         <div style="font-size:var(--t120);font-weight:600;color:var(--muted);margin-bottom:14px">{{ anSub }}</div>
@@ -349,7 +355,7 @@
                 <span class="tnum" style="flex-shrink:0;font-size:var(--t105);font-weight:800;color:{{ r.fg }};background:{{ r.bg }};padding:2px 8px;border-radius:20px">{{ r.pct }}</span>
               </div>
               <div style="height:12px;border-radius:6px;background:var(--barTrack);overflow:hidden;margin-bottom:6px"><div style="height:100%;width:{{ r.barW }};background:{{ r.barColor }};border-radius:6px"></div></div>
-              <div class="tnum" style="font-size:var(--t115);font-weight:600;color:var(--muted2)">{{ r.sub }} · факт {{ r.fact }} Гкал</div>
+              <div class="tnum" style="font-size:var(--t115);font-weight:600;color:var(--muted2)">{{ r.sub }} · {{ r.metric }}</div>
             </button>
           </sc-for>
         </div>
@@ -759,7 +765,7 @@ class Component extends DCLogic {
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false,
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
-    detailId: null, anBoiler: null, housesBuilding: null,
+    detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
     mObcZavod: '', mObcPovirka: '', mObcTip: '', mObcChastka: '', mObcUnit: '', mHeatLoad: '',
     mVodZavod: '', mVodPovirka: '', mVodTip: '', mVodDN: '',
@@ -1480,14 +1486,17 @@ class Component extends DCLogic {
       if (!c) return;
       const ak = this._normAddr(h.address) || ('#' + h.id);
       const b = byB[ak] || (byB[ak] = { key: ak, address: h.address, boiler: h.boiler || '—',
-        house: h, gcal: 0, norm: 0, normOk: false, meters: 0, reading: c.reading });
+        house: h, gcal: 0, norm: 0, normOk: false, meters: 0, heatLoad: 0, pyt: null, reading: c.reading });
       b.gcal += c.gcal; b.meters++;
+      // теплове навантаження будинку — спільне для абонентів адреси (беремо максимум)
+      if (h.heatLoad > 0) b.heatLoad = Math.max(b.heatLoad, h.heatLoad);
       const nm = this._monthNorm(h, c.reading);
       if (nm != null) { b.norm += nm; b.normOk = true; }
       // представницьке показання — те, що має дані для нормативу (тривалість + t сер.)
       if (c.reading && c.reading.duration > 0 && c.reading.tAvg) b.reading = c.reading;
     });
-    Object.values(byB).forEach(b => { b.gcal = this.r3(b.gcal); b.norm = this.r3(b.norm); });
+    Object.values(byB).forEach(b => { b.gcal = this.r3(b.gcal); b.norm = this.r3(b.norm);
+      b.pyt = b.heatLoad > 0 ? this.r3(b.gcal / b.heatLoad) : null; });   // питоме = Гкал / од. ТН
     return byB;
   }
   // споживання за котельнями = агрегація будинків по котельні
@@ -1495,14 +1504,17 @@ class Component extends DCLogic {
     const byB = {};
     Object.values(this._buildingConsumption(key)).forEach(bld => {
       const bk = bld.boiler || '—';
-      const b = byB[bk] || (byB[bk] = { boiler: bk, fact: 0, n: 0, buildings: [] });
+      const b = byB[bk] || (byB[bk] = { boiler: bk, fact: 0, n: 0, load: 0, factLoad: 0, pyt: null, buildings: [] });
       b.fact += bld.gcal; b.n++;
+      if (bld.heatLoad > 0) { b.load += bld.heatLoad; b.factLoad += bld.gcal; }  // для питомого — лише будинки з ТН
       b.buildings.push(bld);
     });
-    Object.values(byB).forEach(b => b.fact = this.r3(b.fact));
+    Object.values(byB).forEach(b => { b.fact = this.r3(b.fact);
+      b.pyt = b.load > 0 ? this.r3(b.factLoad / b.load) : null; });
     return byB;
   }
   anBack(){ this.setState({ anBoiler: null }); }
+  setAnMetric(m){ this.setState({ anMetric: m }); }
 
   // ---------- повірка обчислювачів ----------
   // Міжповірочний інтервал теплолічильника — 4 роки. Стежимо за комерційними
@@ -1956,47 +1968,76 @@ class Component extends DCLogic {
       out.isAnalytics = true;
       const curKey = this._curMonth();
       const months = this._monthsList();
+      const isPyt = s.anMetric === 'specific';
       out.hasMonths = months.length > 0;
       out.anMonths = months.map(m => ({ label: this._monthShort(m.key),
         fg: m.key === curKey ? '#fff' : 'var(--ink)', bg: m.key === curKey ? 'var(--primary)' : 'var(--surface)',
         bd: m.key === curKey ? 'var(--primary)' : 'var(--line2)', tap: () => this.setOvMonth(m.key) }));
+      // перемикач метрики: обсяг (Гкал) / питоме (Гкал на одиницю ТН)
+      const pill = (on) => ({ fg: on ? '#fff' : 'var(--ink)', bg: on ? 'var(--primary)' : 'var(--surface)', bd: on ? 'var(--primary)' : 'var(--line2)' });
+      out.anMG = pill(!isPyt); out.anMP = pill(isPyt);
+      out.setMetricG = () => this.setAnMetric('gcal');
+      out.setMetricP = () => this.setAnMetric('specific');
 
       const byB = this._boilerConsumption(curKey);
-      const boilers = Object.values(byB).sort((a, b) => b.fact - a.fact);
+      const boilers = Object.values(byB);
       const monthTotal = boilers.reduce((s2, b) => s2 + b.fact, 0);
-      const maxF = Math.max(1, ...boilers.map(b => b.fact));
       out.anDrill = !!s.anBoiler;
       out.anBack = () => this.anBack();
       out.anEmpty = boilers.length === 0;
 
       if (s.anBoiler) {
-        // деталізація котельні — будинки з фактом і відхиленням від нормативу
         const b = byB[s.anBoiler];
-        const list = (b ? b.buildings.slice() : []).sort((x, y) => y.gcal - x.gcal);
-        const maxH = Math.max(1, ...list.map(x => x.gcal));
+        let list = b ? b.buildings.slice() : [];
         out.anTitle = s.anBoiler;
-        out.anSub = this._monthLabel(curKey) + ' · ' + (b ? this.fmt(b.fact, 1) : '0') + ' Гкал · ' + (b ? b.n : 0) + ' буд.';
-        out.anRows = list.map(x => {
-          const has = x.normOk && x.norm > 0;
-          const diff = has ? (x.gcal - x.norm) : 0;
-          const pct = has ? this.r2(diff / x.norm * 100) : null;
-          const over = diff > 0;
-          return { name: hName(x.house), sub: hSub(x.house),
-            fact: this.fmt(x.gcal, 1),
-            hasNorm: has, norm: has ? this.fmt(x.norm, 1) : '—',
-            pct: has ? this.pctTxt(pct) : 'норм —',
-            fg: has ? (over ? COVER : CECON) : 'var(--muted2)', bg: has ? (over ? tintOver : tintEcon) : 'var(--barTrack)',
-            barW: Math.round(x.gcal / maxH * 100) + '%', barColor: has ? (over ? COVER : CECON) : 'var(--primBd)',
-            tap: () => this.openDetail(x.house.id) };
-        });
+        if (isPyt) {
+          list = list.filter(x => x.pyt != null).sort((x, y) => y.pyt - x.pyt);
+          const maxP = Math.max(1e-6, ...list.map(x => x.pyt));
+          out.anSub = this._monthLabel(curKey) + ' · Гкал на од. ТН · ' + list.length + ' буд.';
+          out.anEmpty = list.length === 0;
+          out.anRows = list.map(x => ({ name: hName(x.house), sub: hSub(x.house),
+            metric: this.fmt(x.gcal, 1) + ' Гкал · ТН ' + this.fmt(x.heatLoad, x.heatLoad < 10 ? 2 : 0),
+            pct: this.fmt(x.pyt, 3), fg: 'var(--primary)', bg: 'var(--primTint)',
+            barW: Math.round(x.pyt / maxP * 100) + '%', barColor: 'var(--primary)',
+            tap: () => this.openDetail(x.house.id) }));
+        } else {
+          list = list.sort((x, y) => y.gcal - x.gcal);
+          const maxH = Math.max(1, ...list.map(x => x.gcal));
+          out.anSub = this._monthLabel(curKey) + ' · ' + (b ? this.fmt(b.fact, 1) : '0') + ' Гкал · ' + (b ? b.n : 0) + ' буд.';
+          out.anRows = list.map(x => {
+            const has = x.normOk && x.norm > 0;
+            const diff = has ? (x.gcal - x.norm) : 0;
+            const pct = has ? this.r2(diff / x.norm * 100) : null;
+            const over = diff > 0;
+            return { name: hName(x.house), sub: hSub(x.house),
+              metric: 'факт ' + this.fmt(x.gcal, 1) + ' Гкал',
+              pct: has ? this.pctTxt(pct) : 'норм —',
+              fg: has ? (over ? COVER : CECON) : 'var(--muted2)', bg: has ? (over ? tintOver : tintEcon) : 'var(--barTrack)',
+              barW: Math.round(x.gcal / maxH * 100) + '%', barColor: has ? (over ? COVER : CECON) : 'var(--primBd)',
+              tap: () => this.openDetail(x.house.id) };
+          });
+        }
+      } else if (isPyt) {
+        // питоме споживання по котельнях (Гкал / од. ТН, зважене по будинках з ТН)
+        const list = boilers.filter(b => b.pyt != null).sort((a, b) => b.pyt - a.pyt);
+        const maxP = Math.max(1e-6, ...list.map(b => b.pyt));
+        out.anTitle = 'Питоме споживання по котельнях';
+        out.anSub = this._monthLabel(curKey) + ' · Гкал на од. ТН · ' + list.length + ' котелень';
+        out.anEmpty = list.length === 0;
+        out.anRows = list.map(b => ({ name: b.boiler, sub: b.n + ' буд.',
+          metric: this.fmt(b.fact, 1) + ' Гкал · ТН ' + this.fmt(b.load, b.load < 10 ? 2 : 0),
+          pct: this.fmt(b.pyt, 3), fg: 'var(--primary)', bg: 'var(--primTint)',
+          barW: Math.round(b.pyt / maxP * 100) + '%', barColor: 'var(--primary)',
+          tap: () => this.setState({ anBoiler: b.boiler }) }));
       } else {
         // зведення по котельнях — частка у споживанні місяця
+        const list = boilers.slice().sort((a, b) => b.fact - a.fact);
+        const maxF = Math.max(1, ...list.map(b => b.fact));
         out.anTitle = 'Споживання по котельнях';
-        out.anSub = this._monthLabel(curKey) + ' · ' + this.fmt(monthTotal, 1) + ' Гкал · ' + boilers.length + ' котелень';
-        out.anRows = boilers.map(b => ({
-          name: b.boiler, sub: b.n + ' буд.',
-          fact: this.fmt(b.fact, 1),
-          hasNorm: true, pct: (monthTotal > 0 ? this.r1(b.fact / monthTotal * 100) : 0) + '%',
+        out.anSub = this._monthLabel(curKey) + ' · ' + this.fmt(monthTotal, 1) + ' Гкал · ' + list.length + ' котелень';
+        out.anRows = list.map(b => ({ name: b.boiler, sub: b.n + ' буд.',
+          metric: 'факт ' + this.fmt(b.fact, 1) + ' Гкал',
+          pct: (monthTotal > 0 ? this.r1(b.fact / monthTotal * 100) : 0) + '%',
           fg: 'var(--primary)', bg: 'var(--primTint)',
           barW: Math.round(b.fact / maxF * 100) + '%', barColor: 'var(--primary)',
           tap: () => this.setState({ anBoiler: b.boiler }) }));
