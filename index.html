@@ -330,6 +330,9 @@
               <button onClick="{{ exportHouses }}" style="display:flex;align-items:center;gap:6px;font-size:var(--t120);font-weight:700;color:var(--over);background:var(--overTint);border:none;border-radius:10px;padding:7px 11px;cursor:pointer">↓ CSV</button>
             </div>
           </div>
+          <sc-if value="{{ myOnlyNote }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:var(--t108);font-weight:600;color:var(--muted2);margin:-3px 2px 9px">{{ myOnlyNote }}</div>
+          </sc-if>
           <div style="display:flex;flex-direction:column;gap:9px">
             <sc-for list="{{ buildingList }}" as="b" hint-placeholder-count="6">
               <button onClick="{{ b.tap }}" style="display:flex;align-items:center;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:13px 14px;cursor:pointer;text-align:left;width:100%">
@@ -992,17 +995,45 @@
           </sc-if>
 
           <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
-          <div style="font-size:var(--t115);font-weight:700;color:var(--muted);margin:6px 0 8px">Розподіл котелень між робітниками</div>
-          <div class="scrl" style="max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:11px">
+          <div style="font-size:var(--t115);font-weight:700;color:var(--muted);margin:6px 0 8px">Завдання: розподіл між робітниками</div>
+          <div class="scrl" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:11px">
             <sc-for list="{{ assignRows }}" as="a" hint-placeholder-count="4">
-              <div style="display:flex;align-items:center;gap:9px">
-                <span style="flex:1;min-width:0;font-size:var(--t120);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.boiler }}</span>
-                <input value="{{ a.worker }}" onInput="{{ a.onInput }}" placeholder="робітник" style="width:130px;flex-shrink:0;height:38px;padding:0 11px;border:1px solid var(--inputBd);border-radius:10px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);font-weight:600">
+              <div style="border:1px solid var(--line);border-radius:12px;padding:9px 10px">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <span style="flex:1;min-width:0;font-size:var(--t120);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.boiler }}</span>
+                  <div style="position:relative;width:140px;flex-shrink:0">
+                    <select value="{{ a.worker }}" onChange="{{ a.onWorker }}" style="width:100%;height:38px;padding:0 26px 0 10px;border:1px solid var(--inputBd);border-radius:10px;background:var(--inputBg);color:var(--ink);font-size:var(--t112);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
+                      <sc-for list="{{ a.opts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+                    </select>
+                    <span style="position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t100)">▾</span>
+                  </div>
+                </div>
+                <sc-if value="{{ a.canExpand }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ a.toggle }}" style="margin-top:6px;background:none;border:none;color:var(--primary);font-size:var(--t108);font-weight:700;cursor:pointer;padding:0">по будинках ({{ a.count }}) ▾</button>
+                <sc-if value="{{ a.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+                  <sc-for list="{{ a.buildings }}" as="b" hint-placeholder-count="3">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="flex:1;min-width:0;font-size:var(--t110);font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.address }}</span>
+                      <div style="position:relative;width:132px;flex-shrink:0">
+                        <select value="{{ b.val }}" onChange="{{ b.onWorker }}" style="width:100%;height:34px;padding:0 24px 0 9px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t105);font-weight:600;appearance:none;-webkit-appearance:none;cursor:pointer">
+                          <sc-for list="{{ b.opts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+                        </select>
+                        <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t95)">▾</span>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+                </sc-if>
+                </sc-if>
               </div>
             </sc-for>
           </div>
-          <button onClick="{{ exportAssignment }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer">↧ Експорт завдання</button>
-          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Роздайте цей файл робітникам. Пакети, що вони надішлють, імпортуйте кнопкою вище — показання зіллються у вашу базу.</div>
+          <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ cloudPublishAssign }}" disabled="{{ cloudBusy }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer;margin-bottom:9px">⤴ Зберегти завдання на сервер</button>
+          </sc-if>
+          <button onClick="{{ exportAssignment }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">↧ Експорт завдання файлом</button>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Оберіть робітника для котельні; для великих котелень — «по будинках», щоб розподілити окремі будинки. Завдання зберігається на сервері й доходить робітникам автоматично.</div>
           </sc-if>
         </div>
       </div>
@@ -1046,7 +1077,7 @@ class Component extends DCLogic {
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
-    cloud: false, cloudBusy: false, autoSync: true,
+    cloud: false, cloudBusy: false, autoSync: true, asgExpand: null,
     // авторизація (PIN, спільний список користувачів на сервері)
     users: [], authUser: null, authChecked: false, authError: '',
     foName: '', foPin: '', loginSel: '', loginPin: '',
@@ -1346,28 +1377,64 @@ class Component extends DCLogic {
   toggleMyOnly(){ this.setState(s => ({ myOnly: !s.myOnly })); }
   toggleCollect(){ this.setState(s => ({ collectOpen: !s.collectOpen })); }
   setCollectMode(m){ this.setState({ collectMode: m }); }
-  // розбивка збору по котельнях і по робітниках (для старшого) — по всій базі
+  // розбивка збору по котельнях і по робітниках (для старшого) — по всій базі.
+  // Робітник визначається на рівні БУДИНКУ (враховує персональні призначення).
   _collectBreakdown(rmap){
     const a = this.state.assignments || {};
-    const boilerAgg = {};
+    const boilerAgg = {}, workerAgg = {}, wBoilers = {};
     this._buildings().forEach(b => {
       const st = this._collectStatus(b, rmap); if (st.total === 0) return;
-      const k = b.boiler || '—';
-      const e = boilerAgg[k] || (boilerAgg[k] = { boiler: k, worker: a[k] || '', done: 0, total: 0 });
-      e.done += st.done; e.total += st.total;
+      const bk = b.boiler || '—';
+      const be = boilerAgg[bk] || (boilerAgg[bk] = { boiler: bk, worker: a[bk] || '', done: 0, total: 0 });
+      be.done += st.done; be.total += st.total;
+      // робітник цього будинку (@адреса → котельня)
+      const rep = b.meters[0];
+      const w = (this._assignedWorker(rep) || '— не призначено');
+      const wa = workerAgg[w] || (workerAgg[w] = { worker: w, done: 0, total: 0, boilers: 0 });
+      wa.done += st.done; wa.total += st.total;
+      (wBoilers[w] = wBoilers[w] || {})[bk] = 1;
     });
+    Object.keys(workerAgg).forEach(w => { workerAgg[w].boilers = Object.keys(wBoilers[w] || {}).length; });
     const boilers = Object.values(boilerAgg).sort((x, y) => (x.done / x.total) - (y.done / y.total));
-    const workerAgg = {};
-    boilers.forEach(e => { const w = e.worker || '— не призначено'; const wa = workerAgg[w] || (workerAgg[w] = { worker: w, done: 0, total: 0, boilers: 0 });
-      wa.done += e.done; wa.total += e.total; wa.boilers++; });
     const workers = Object.values(workerAgg).sort((x, y) => (x.done / x.total) - (y.done / y.total));
     return { boilers, workers };
   }
-  // до кого прикріплений будинок (за котельнею; винятки — за особовим)
+  // до кого прикріплений будинок: спочатку персональне призначення будинку
+  // (@адреса), далі — за котельнею
   _assignedWorker(h){
     const a = this.state.assignments || {};
-    if (h && a['#' + h.account] ) return a['#' + h.account];   // виняток по особовому
-    return (h && a[h.boiler]) || '';
+    if (!h) return '';
+    const b = a['@' + this._normAddr(h.address)];
+    if (b !== undefined) return b;
+    return a[h.boiler] || '';
+  }
+  setBoilerAssign(boiler, worker){
+    const a = { ...(this.state.assignments || {}) };
+    if (worker) a[boiler] = worker; else delete a[boiler];
+    this._saveSettings({ assignments: a });
+  }
+  setBuildingAssign(address, worker){
+    const a = { ...(this.state.assignments || {}) };
+    const k = '@' + this._normAddr(address);
+    if (worker === '__inherit') delete a[k];      // «за котельнею»
+    else a[k] = worker;                            // конкретний робітник або '' (ніхто)
+    this._saveSettings({ assignments: a });
+  }
+  toggleAsgExpand(boiler){ this.setState(s => ({ asgExpand: s.asgExpand === boiler ? null : boiler })); }
+  // опублікувати завдання на сервер негайно (інакше піде автосинхронізацією)
+  async cloudPublishAssign(){
+    if (!this.state.cloud || this.state.cloudBusy) return;
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: 'lead', by: this.state.me || '', baseSig: this._baseSig(), since: this.state.lastPull || 0, readings: [], assignments: this.state.assignments || {} }) });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const data = await resp.json();
+      this._mergeReadings(data.readings || []);
+      const lastPull = Math.max(this.state.lastPull || 0, data.maxSrvAt || 0);
+      this._persist(); this._saveSettings({ lastPull });
+      this.setState({ cloudBusy: false, importOpen: true, importName: 'Завдання', importMeta: 'збережено на сервері', rev: this.state.rev + 1 });
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося зберегти завдання: ' + (err && err.message ? err.message : err) }); }
   }
   // статус збору по будинку: скільки приладів (що мають показання в базі) вже
   // мають ПОЛЬОВЕ показання цієї кампанії. rmap: houseId -> {base, field}
@@ -1562,12 +1629,6 @@ class Component extends DCLogic {
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 500);
     } catch (e) {}
   }
-  setAssign(boiler, worker){
-    const a = { ...(this.state.assignments || {}) };
-    if (worker && worker.trim()) a[boiler] = worker.trim(); else delete a[boiler];
-    this._saveSettings({ assignments: a });
-  }
-  onAssignInput(boiler, e){ this.setAssign(boiler, e.target.value); }
 
   _sheetAOA(wb, name){
     let ws = wb.Sheets[name];
@@ -2387,8 +2448,41 @@ class Component extends DCLogic {
       syncStatus: (() => { const n = this._pendingCount();
         if (n > 0) return 'Очікують вигрузки: ' + n + ' показань' + (s.lastSyncAt ? ' · востаннє ' + this._agoTxt(s.lastSyncAt) : '');
         return s.lastSyncAt ? ('Усе вигружено · востаннє ' + this._agoTxt(s.lastSyncAt)) : 'Ще нічого не вигружено'; })(),
-      assignRows: (this.db && this.db.boilers ? this.db.boilers : []).map(bl => ({
-        boiler: bl, worker: (s.assignments || {})[bl] || '', onInput: (e) => this.onAssignInput(bl, e) })),
+      cloudPublishAssign: () => this.cloudPublishAssign(),
+      ...(() => {
+        if (!this.db) return { assignRows: [], workerOpts: [] };
+        const asg = s.assignments || {};
+        // варіанти робітників зі списку користувачів (усі, з поміткою старшого)
+        const wopts = (s.users || []).map(u => ({ value: u.name, label: u.name + (u.admin ? ' · старший' : ''), sel: false }));
+        const optsFor = (cur, withInherit) => {
+          const base = withInherit
+            ? [{ value: '__inherit', label: '↳ за котельнею', sel: cur === '__inherit' }, { value: '', label: '— ніхто', sel: cur === '' }]
+            : [{ value: '', label: '— не призначено', sel: !cur }];
+          return base.concat((s.users || []).map(u => ({ value: u.name, label: u.name + (u.admin ? ' · старший' : ''), sel: cur === u.name })));
+        };
+        // будинки згруповані за котельнею (кількість) — для експандера
+        const bByBoiler = {};
+        this._buildings().forEach(b => { const k = b.boiler || '—'; (bByBoiler[k] = bByBoiler[k] || []).push(b); });
+        const assignRows = (this.db.boilers || []).map(bl => {
+          const cur = asg[bl] || '';
+          const list = (bByBoiler[bl] || []);
+          const expanded = s.asgExpand === bl;
+          const row = { boiler: bl, worker: cur, opts: optsFor(cur, false),
+            onWorker: (e) => this.setBoilerAssign(bl, e.target.value),
+            count: list.length + (list.length === 1 ? ' будинок' : ' буд.'),
+            canExpand: list.length > 1, expanded, toggle: () => this.toggleAsgExpand(bl),
+            buildings: [] };
+          if (expanded) {
+            row.buildings = list.slice().sort((a, b) => a.address.localeCompare(b.address, 'uk')).map(b => {
+              const k = '@' + this._normAddr(b.address);
+              const bv = (asg[k] !== undefined) ? asg[k] : '__inherit';
+              return { address: b.address, val: bv, opts: optsFor(bv, true), onWorker: (e) => this.setBuildingAssign(b.address, e.target.value) };
+            });
+          }
+          return row;
+        });
+        return { assignRows, workerOpts: wopts };
+      })(),
       showNav: !s.booting && s.hasData && !s.detailId,
       tabs: [['overview','📊','Огляд'],['houses','🏢','Будинки'],['analytics','📈','Аналітика'],['entry','✎','Ввід']]
         .map(t => ({ icon: t[1], label: t[2], tap: () => this.setTab(t[0]),
@@ -2704,6 +2798,12 @@ class Component extends DCLogic {
       out.myOnlyFg = s.myOnly ? '#fff' : 'var(--ink)';
       out.myOnlyBg = s.myOnly ? 'var(--primary)' : 'var(--surface)';
       out.toggleMyOnly = () => this.toggleMyOnly();
+      const mineCount = buildings.filter(b => b.meters.some(h => this._assignedWorker(h) === s.me)).length;
+      // фільтр «Тільки мої» лише ховає чужі; перегляд і зняття по будь-якому
+      // будинку доступні (вимкніть фільтр або скористайтесь пошуком у «Вводі»)
+      out.myOnlyNote = (s.myOnly && s.me)
+        ? ('Показано ваше завдання. Решта ' + (buildings.length - mineCount) + ' — доступні: вимкніть «Тільки мої».')
+        : '';
       if (s.myOnly && s.me) buildings = buildings.filter(b => b.meters.some(h => this._assignedWorker(h) === s.me));
 
       // зведення збору
