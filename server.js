@@ -26,7 +26,8 @@ const MAX_BODY = 64 * 1024 * 1024; // 64 МБ (показання з фото)
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon',
-  '.woff2': 'font/woff2', '.map': 'application/json' };
+  '.woff2': 'font/woff2', '.map': 'application/json',
+  '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
 function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, baseSig: '', savedAt: 0 }; }

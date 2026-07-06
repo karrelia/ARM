@@ -1,0 +1,18 @@
+{
+  "name": "АРМ Теплооблік",
+  "short_name": "Теплооблік",
+  "description": "Облік споживання теплової енергії — бригадний збір показань лічильників",
+  "lang": "uk",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#d4d8e4",
+  "theme_color": "#2c3884",
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

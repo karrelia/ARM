@@ -12,6 +12,20 @@
   RewriteRule ^api$      api.php    [L,QSA]
 </IfModule>
 
+# Правильний MIME для маніфесту PWA (деякі складання Apache його не знають)
+<IfModule mod_mime.c>
+  AddType application/manifest+json .webmanifest
+  AddType image/png .png
+</IfModule>
+
+# Service worker має бути з максимальною областю дії — не кешувати сам sw.js надовго
+<IfModule mod_headers.c>
+  <FilesMatch "sw\.js$">
+    Header set Cache-Control "no-cache"
+    Header set Service-Worker-Allowed "/"
+  </FilesMatch>
+</IfModule>
+
 # Захист теки з даними від прямого доступу через веб
 <IfModule mod_authz_core.c>
   <FilesMatch "^(db|users)\.json$">
