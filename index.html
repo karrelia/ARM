@@ -1243,13 +1243,28 @@ class Component extends DCLogic {
   _hashPin(salt, pin){ return this._sha256(salt + ':' + String(pin)); }
   _session(id){ try { if (id === undefined) return localStorage.getItem('armUser'); if (id === null) localStorage.removeItem('armUser'); else localStorage.setItem('armUser', id); } catch(e){ return null; } }
   async _loadUsers(){
-    let users = null;
+    let serverUsers = null;              // null = сервер недоступний; [] = сервер порожній
     try {
       const r = await fetch('/api/users', { cache: 'no-store' });
-      if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.users)) users = j.users; }
+      if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.users)) serverUsers = j.users; }
     } catch(e){}
-    if (users) { this._idbSetKey('users', users).catch(()=>{}); }        // кеш для офлайн-входу
-    else { try { users = await this._idbGetKey('users') || []; } catch(e){ users = []; } }
+    let local = [];
+    try { local = await this._idbGetKey('users') || []; } catch(e){ local = []; }
+    let users;
+    if (serverUsers && serverUsers.length) {
+      // на сервері є користувачі — вони головні
+      users = serverUsers; this._idbSetKey('users', users).catch(()=>{}); this.setState({ cloud: true });
+    } else if (local.length) {
+      // сервер порожній або недоступний, а локально Є — НЕ стираємо; якщо сервер
+      // відповів (порожній) — виштовхуємо локальних назад (відновлення), щоб
+      // інші пристрої їх побачили
+      users = local;
+      if (serverUsers !== null) { this.setState({ cloud: true }); this._persistUsers(local); }
+    } else {
+      // ніде немає — перший запуск
+      users = [];
+      if (serverUsers !== null) this.setState({ cloud: true });
+    }
     const uid = this._session();
     const authUser = uid ? (users || []).find(u => u.id === uid) || null : null;
     this.setState({ users: users || [], authChecked: true, authUser });
@@ -1257,15 +1272,15 @@ class Component extends DCLogic {
   }
   // логін визначає особу: ім'я → підпис показань, роль (адмін = Старший)
   _applyIdentity(u){ this._saveSettings({ me: u.name, role: u.admin ? 'lead' : 'worker' }); }
+  // повертає: 'ok' — збережено на сервері; 'fail' — сервер є, але не прийняв
+  // (напр. старий server.js без /api/users); 'offline' — сервера немає
   async _persistUsers(users){
     this._idbSetKey('users', users).catch(()=>{});
-    // завжди пробуємо зберегти на сервер (не чекаючи на результат /api/ping) —
-    // інакше перший адмін, створений до підтвердження мережі, не потрапить на
-    // сервер, і другий пристрій знову запропонує «Перший запуск»
     try {
       const r = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) });
-      if (r && r.ok && !this.state.cloud) this.setState({ cloud: true });
-    } catch(e){}
+      if (r && r.ok) { if (!this.state.cloud) this.setState({ cloud: true }); return 'ok'; }
+      return 'fail';
+    } catch(e){ return 'offline'; }
   }
   doLogin(){
     const u = (this.state.users || []).find(x => x.id === this.state.loginSel) || (this.state.users || [])[0];
@@ -1278,7 +1293,7 @@ class Component extends DCLogic {
     this._applyIdentity(u);
   }
   logout(){ this._session(null); this.setState({ authUser: null, adminOpen: false, settingsOpen: false, loginPin: '', loginSel: '', authError: '' }); }
-  createFirstAdmin(){
+  async createFirstAdmin(){
     const name = (this.state.foName || '').trim();
     const pin = (this.state.foPin || '').trim();
     if (!name) { this.setState({ authError: "Введіть ім'я" }); return; }
@@ -1286,12 +1301,13 @@ class Component extends DCLogic {
     const salt = this._rndHex(8);
     const u = { id: 'u_' + this._rndHex(6), name, admin: true, salt, pinHash: this._hashPin(salt, pin) };
     const users = [u];
-    this._persistUsers(users);
     this._session(u.id);
     this.setState({ users, authUser: u, foName: '', foPin: '', authError: '', adminOpen: false });
     this._applyIdentity(u);
+    const st = await this._persistUsers(users);
+    if (st === 'fail') this.setState({ importError: '⚠ Користувача створено локально, але СЕРВЕР його не зберіг. Оновіть і перезапустіть server.js — інакше інші пристрої його не побачать.' });
   }
-  addUser(){
+  async addUser(){
     const name = (this.state.nuName || '').trim();
     const pin = (this.state.nuPin || '').trim();
     if (!name) { this.setState({ authError: "Введіть ім'я користувача" }); return; }
@@ -1299,8 +1315,9 @@ class Component extends DCLogic {
     const salt = this._rndHex(8);
     const u = { id: 'u_' + this._rndHex(6), name, admin: !!this.state.nuAdmin, salt, pinHash: this._hashPin(salt, pin) };
     const users = [...(this.state.users || []), u];
-    this._persistUsers(users);
     this.setState({ users, nuName: '', nuPin: '', nuAdmin: false, authError: '' });
+    const st = await this._persistUsers(users);
+    if (st === 'fail') this.setState({ authError: '⚠ Збережено локально, але сервер не прийняв. Оновіть і перезапустіть server.js.' });
   }
   removeUser(id){
     const target = (this.state.users || []).find(u => u.id === id);
