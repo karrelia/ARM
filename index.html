@@ -289,6 +289,30 @@
               <span><b style="color:#D4A017">●</b> частково {{ collect.part }}</span>
               <span><b style="color:var(--muted2)">●</b> чекає {{ collect.none }}</span>
             </div>
+            <!-- розбивка для старшого -->
+            <sc-if value="{{ collectLead }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ collect.toggle }}" style="margin-top:10px;width:100%;text-align:center;font-size:var(--t115);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Хто зібрав / що лишилось ▾</button>
+            <sc-if value="{{ collect.open }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px;border-top:1px solid var(--line);padding-top:12px">
+              <div style="display:flex;gap:7px;margin-bottom:11px">
+                <button onClick="{{ setModeBoiler }}" style="flex:1;height:34px;border-radius:10px;border:1px solid var(--line2);background:{{ mBoilerBg }};color:{{ mBoilerFg }};font-size:var(--t110);font-weight:700;cursor:pointer">По котельнях</button>
+                <button onClick="{{ setModeWorker }}" style="flex:1;height:34px;border-radius:10px;border:1px solid var(--line2);background:{{ mWorkerBg }};color:{{ mWorkerFg }};font-size:var(--t110);font-weight:700;cursor:pointer">По робітниках</button>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <sc-for list="{{ collectRows }}" as="r" hint-placeholder-count="4">
+                  <div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+                      <span style="font-size:var(--t115);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span>
+                      <span class="tnum" style="flex-shrink:0;font-size:var(--t110);font-weight:800;color:var(--muted)">{{ r.txt }}</span>
+                    </div>
+                    <div style="height:7px;border-radius:5px;background:var(--barTrack);overflow:hidden;margin-bottom:2px"><div style="height:100%;width:{{ r.pct }};background:{{ r.barColor }};border-radius:5px"></div></div>
+                    <div style="font-size:var(--t100);font-weight:600;color:var(--muted2)">{{ r.sub }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            </sc-if>
+            </sc-if>
           </div>
           </sc-if>
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
@@ -881,6 +905,7 @@ class Component extends DCLogic {
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
+    collectOpen: false, collectMode: 'boiler',
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -974,6 +999,25 @@ class Component extends DCLogic {
   setRole(r){ this._saveSettings({ role: r }); }
   onMeName(e){ this._saveSettings({ me: e.target.value }); }
   toggleMyOnly(){ this.setState(s => ({ myOnly: !s.myOnly })); }
+  toggleCollect(){ this.setState(s => ({ collectOpen: !s.collectOpen })); }
+  setCollectMode(m){ this.setState({ collectMode: m }); }
+  // розбивка збору по котельнях і по робітниках (для старшого) — по всій базі
+  _collectBreakdown(rmap){
+    const a = this.state.assignments || {};
+    const boilerAgg = {};
+    this._buildings().forEach(b => {
+      const st = this._collectStatus(b, rmap); if (st.total === 0) return;
+      const k = b.boiler || '—';
+      const e = boilerAgg[k] || (boilerAgg[k] = { boiler: k, worker: a[k] || '', done: 0, total: 0 });
+      e.done += st.done; e.total += st.total;
+    });
+    const boilers = Object.values(boilerAgg).sort((x, y) => (x.done / x.total) - (y.done / y.total));
+    const workerAgg = {};
+    boilers.forEach(e => { const w = e.worker || '— не призначено'; const wa = workerAgg[w] || (workerAgg[w] = { worker: w, done: 0, total: 0, boilers: 0 });
+      wa.done += e.done; wa.total += e.total; wa.boilers++; });
+    const workers = Object.values(workerAgg).sort((x, y) => (x.done / x.total) - (y.done / y.total));
+    return { boilers, workers };
+  }
   // до кого прикріплений будинок (за котельнею; винятки — за особовим)
   _assignedWorker(h){
     const a = this.state.assignments || {};
@@ -2266,7 +2310,25 @@ class Component extends DCLogic {
         if (st.state === 'na') return; cColl++;
         if (st.state === 'done') cDone++; else if (st.state === 'partial') cPart++; else cNone++; });
       out.collect = { total: cColl, done: cDone, part: cPart, none: cNone,
-        pct: Math.round(cDone / Math.max(1, cColl) * 100) + '%', has: cColl > 0 };
+        pct: Math.round(cDone / Math.max(1, cColl) * 100) + '%', has: cColl > 0,
+        open: !!s.collectOpen, toggle: () => this.toggleCollect() };
+      // розбивка (тільки старший)
+      out.collectLead = s.role === 'lead';
+      if (s.role === 'lead') {
+        const bd = this._collectBreakdown(rmap);
+        const mkRow = (label, sub, done, total) => ({ label, sub,
+          txt: done + ' / ' + total, pct: Math.round(done / Math.max(1, total) * 100) + '%',
+          barColor: done >= total ? 'var(--over)' : (done > 0 ? '#D4A017' : 'var(--muted2)') });
+        out.collectMode = s.collectMode;
+        const byBoiler = s.collectMode !== 'worker';
+        out.mBoilerBg = byBoiler ? 'var(--primary)' : 'var(--surface)'; out.mBoilerFg = byBoiler ? '#fff' : 'var(--ink)';
+        out.mWorkerBg = byBoiler ? 'var(--surface)' : 'var(--primary)'; out.mWorkerFg = byBoiler ? 'var(--ink)' : '#fff';
+        out.setModeBoiler = () => this.setCollectMode('boiler');
+        out.setModeWorker = () => this.setCollectMode('worker');
+        out.collectRows = s.collectMode === 'worker'
+          ? bd.workers.map(w => mkRow(w.worker, w.boilers + (w.boilers === 1 ? ' котельня' : ' кот.'), w.done, w.total))
+          : bd.boilers.map(b => mkRow(b.boiler, b.worker || 'не призначено', b.done, b.total));
+      }
 
       out.houseCount = buildings.length;
       out.housesEmpty = buildings.length === 0;
