@@ -1272,15 +1272,22 @@ class Component extends DCLogic {
   }
   // логін визначає особу: ім'я → підпис показань, роль (адмін = Старший)
   _applyIdentity(u){ this._saveSettings({ me: u.name, role: u.admin ? 'lead' : 'worker' }); }
-  // повертає: 'ok' — збережено на сервері; 'fail' — сервер є, але не прийняв
-  // (напр. старий server.js без /api/users); 'offline' — сервера немає
+  // повертає: 0 — збережено на сервері; >0 — HTTP-статус помилки (сервер є, але
+  // не прийняв, напр. 404 = старий server.js без /api/users); -1 — сервера немає
   async _persistUsers(users){
     this._idbSetKey('users', users).catch(()=>{});
     try {
       const r = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) });
-      if (r && r.ok) { if (!this.state.cloud) this.setState({ cloud: true }); return 'ok'; }
-      return 'fail';
-    } catch(e){ return 'offline'; }
+      if (r && r.ok) { if (!this.state.cloud) this.setState({ cloud: true }); return 0; }
+      return (r && r.status) || 1;
+    } catch(e){ return -1; }
+  }
+  _saveUserWarn(st){
+    if (st === 0 || st === -1) return '';
+    const hint = st === 404
+      ? 'на сервері старий server.js (немає /api/users). Оновіть код і ПЕРЕЗАПУСТІТЬ «node server.js».'
+      : 'сервер не зміг зберегти (можливо, немає прав на запис теки arm-data або старий код). Оновіть і ПЕРЕЗАПУСТІТЬ «node server.js».';
+    return '⚠ Сервер не зберіг користувача (відповів ' + st + '): ' + hint + ' Інші пристрої його поки не побачать.';
   }
   doLogin(){
     const u = (this.state.users || []).find(x => x.id === this.state.loginSel) || (this.state.users || [])[0];
@@ -1304,8 +1311,8 @@ class Component extends DCLogic {
     this._session(u.id);
     this.setState({ users, authUser: u, foName: '', foPin: '', authError: '', adminOpen: false });
     this._applyIdentity(u);
-    const st = await this._persistUsers(users);
-    if (st === 'fail') this.setState({ importError: '⚠ Користувача створено локально, але СЕРВЕР його не зберіг. Оновіть і перезапустіть server.js — інакше інші пристрої його не побачать.' });
+    const w = this._saveUserWarn(await this._persistUsers(users));
+    if (w) this.setState({ importError: w });
   }
   async addUser(){
     const name = (this.state.nuName || '').trim();
@@ -1316,8 +1323,8 @@ class Component extends DCLogic {
     const u = { id: 'u_' + this._rndHex(6), name, admin: !!this.state.nuAdmin, salt, pinHash: this._hashPin(salt, pin) };
     const users = [...(this.state.users || []), u];
     this.setState({ users, nuName: '', nuPin: '', nuAdmin: false, authError: '' });
-    const st = await this._persistUsers(users);
-    if (st === 'fail') this.setState({ authError: '⚠ Збережено локально, але сервер не прийняв. Оновіть і перезапустіть server.js.' });
+    const w = this._saveUserWarn(await this._persistUsers(users));
+    if (w) this.setState({ authError: w });
   }
   removeUser(id){
     const target = (this.state.users || []).find(u => u.id === id);
