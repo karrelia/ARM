@@ -346,6 +346,9 @@ if ('serviceWorker' in navigator) {
               <sc-if value="{{ showMyFilter }}" hint-placeholder-val="{{ false }}">
               <button onClick="{{ toggleMyOnly }}" style="font-size:var(--t120);font-weight:700;color:{{ myOnlyFg }};background:{{ myOnlyBg }};border:1px solid var(--line2);border-radius:10px;padding:7px 11px;cursor:pointer">Тільки мої</button>
               </sc-if>
+              <sc-if value="{{ showNotDone }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ toggleNotDone }}" style="font-size:var(--t120);font-weight:700;color:{{ notDoneFg }};background:{{ notDoneBg }};border:1px solid var(--line2);border-radius:10px;padding:7px 11px;cursor:pointer">Незняті</button>
+              </sc-if>
               <button onClick="{{ exportHouses }}" style="display:flex;align-items:center;gap:6px;font-size:var(--t120);font-weight:700;color:var(--over);background:var(--overTint);border:none;border-radius:10px;padding:7px 11px;cursor:pointer">↓ CSV</button>
             </div>
           </div>
@@ -1129,7 +1132,7 @@ class Component extends DCLogic {
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false, entryPhotos: [], photoView: null,
-    role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
+    role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
     cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '',
     // авторизація (PIN, спільний список користувачів на сервері)
@@ -1498,6 +1501,7 @@ class Component extends DCLogic {
   setRole(r){ this._saveSettings({ role: r }); }
   onMeName(e){ this._saveSettings({ me: e.target.value }); }
   toggleMyOnly(){ this.setState(s => ({ myOnly: !s.myOnly })); }
+  toggleNotDone(){ this.setState(s => ({ notDone: !s.notDone })); }
   toggleCollect(){ this.setState(s => ({ collectOpen: !s.collectOpen })); }
   setCollectMode(m){ this.setState({ collectMode: m }); }
   // розбивка збору по котельнях і по робітниках (для старшого) — по всій базі.
@@ -3058,6 +3062,14 @@ class Component extends DCLogic {
       out.collect = { total: cColl, done: cDone, part: cPart, none: cNone,
         pct: Math.round(cDone / Math.max(1, cColl) * 100) + '%', has: cColl > 0,
         open: !!s.collectOpen, toggle: () => this.toggleCollect() };
+      // фільтр «Незняті» — показати лише будинки, де збір ще не завершено
+      // (зведення вище рахується по повному обсягу, список — лише незняті)
+      out.showNotDone = cColl > 0;
+      out.notDone = !!s.notDone;
+      out.notDoneFg = s.notDone ? '#fff' : 'var(--ink)';
+      out.notDoneBg = s.notDone ? '#D4A017' : 'var(--surface)';
+      out.toggleNotDone = () => this.toggleNotDone();
+      if (s.notDone) buildings = buildings.filter(b => { const st = this._collectStatus(b, rmap).state; return st === 'none' || st === 'partial'; });
       // розбивка (тільки старший)
       out.collectLead = s.role === 'lead';
       if (s.role === 'lead') {
