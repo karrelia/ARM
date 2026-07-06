@@ -283,7 +283,7 @@ if ('serviceWorker' in navigator) {
         <div style="position:sticky;top:0;z-index:5;background:var(--bg);margin:-14px -16px 11px;padding:14px 16px 11px">
           <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px;margin-bottom:11px">
             <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-            <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Будинок, адреса, № приладу обліку" style="flex:1;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
+            <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Адреса, №, особовий, власник, телефон" style="flex:1;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
           </div>
           <div style="display:flex;gap:8px">
             <div style="position:relative;flex:1">
@@ -314,6 +314,13 @@ if ('serviceWorker' in navigator) {
               <span><b style="color:#D4A017">●</b> частково {{ collect.part }}</span>
               <span><b style="color:var(--muted2)">●</b> чекає {{ collect.none }}</span>
             </div>
+            <!-- денний підсумок робітника -->
+            <sc-if value="{{ showMyToday }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px;display:flex;align-items:center;gap:8px;background:var(--primTint);border:1px solid var(--primBd);border-radius:10px;padding:8px 11px">
+              <span style="font-size:15px">✓</span>
+              <span style="font-size:var(--t115);font-weight:700;color:var(--ink)">Сьогодні ви зняли {{ myTodayTxt }}</span>
+            </div>
+            </sc-if>
             <!-- розбивка для старшого -->
             <sc-if value="{{ collectLead }}" hint-placeholder-val="{{ false }}">
             <button onClick="{{ collect.toggle }}" style="margin-top:10px;width:100%;text-align:center;font-size:var(--t115);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Хто зібрав / що лишилось ▾</button>
@@ -475,7 +482,7 @@ if ('serviceWorker' in navigator) {
             <div style="position:relative">
               <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
                 <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Будинок, адреса, № приладу обліку" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, №, особовий, власник, телефон" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
               </div>
               <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ closeEntrySearch }}" style="position:fixed;inset:0;z-index:14"></div>
@@ -2171,7 +2178,18 @@ class Component extends DCLogic {
   _streetName(addr){ return String(addr || '').replace(/,?\s*\d+\D*$/, '').replace(/^\s*(вул\.?|пров\.?|пл\.?|просп\.?|бул\.?)\s*/i, '').trim(); }
   _matchesSearch(h, q){
     if (!q) return true;
-    return (h.code + ' ' + h.address + ' ' + h.boiler + ' ' + h.owner + ' ' + h.account + ' ' + h.meterNo).toLowerCase().includes(q);
+    const hay = (h.code + ' ' + h.address + ' ' + h.boiler + ' ' + h.owner + ' ' + h.account + ' '
+      + h.meterNo + ' ' + (h.settlement || '') + ' ' + (h.phone || '') + ' ' + (h.contact || '')).toLowerCase();
+    if (hay.includes(q)) return true;
+    // цифровий пошук: телефон / особовий / № приладу без урахування пробілів і формату
+    const qd = q.replace(/\D/g, '');
+    if (qd.length >= 3) {
+      const phoneD = String(h.phone || '').replace(/\D/g, '');
+      const accD = String(h.account || '').replace(/\D/g, '');
+      const meterD = String(h.meterNo || '').replace(/\D/g, '');
+      if (phoneD.includes(qd) || accD.includes(qd) || meterD.includes(qd)) return true;
+    }
+    return false;
   }
   _filteredHouses(){
     const s = this.state; let list = this.db.houses.slice();
@@ -3062,6 +3080,11 @@ class Component extends DCLogic {
       out.collect = { total: cColl, done: cDone, part: cPart, none: cNone,
         pct: Math.round(cDone / Math.max(1, cColl) * 100) + '%', has: cColl > 0,
         open: !!s.collectOpen, toggle: () => this.toggleCollect() };
+      // денний підсумок робітника — скільки приладів він зняв сьогодні (за міткою часу)
+      const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+      const myToday = (this.db.readings || []).filter(r => r.src === 'field' && (!s.me || r.by === s.me) && (r.at || 0) >= startOfDay.getTime()).length;
+      out.showMyToday = s.role === 'worker' && myToday > 0;
+      out.myTodayTxt = myToday + ' ' + (myToday % 10 === 1 && myToday % 100 !== 11 ? 'прилад' : (myToday % 10 >= 2 && myToday % 10 <= 4 && (myToday % 100 < 10 || myToday % 100 >= 20) ? 'прилади' : 'приладів'));
       // фільтр «Незняті» — показати лише будинки, де збір ще не завершено
       // (зведення вище рахується по повному обсягу, список — лише незняті)
       out.showNotDone = cColl > 0;
