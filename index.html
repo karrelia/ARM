@@ -143,6 +143,11 @@
           </div>
         </div>
 
+        <!-- export month report -->
+        <sc-if value="{{ ov.canExport }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ ov.exportMonth }}" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--primary);font-size:var(--t125);font-weight:700;cursor:pointer;margin-bottom:14px">⭳ Експорт звіту за {{ ov.monthLabel }} (CSV)</button>
+        </sc-if>
+
         <!-- month closure -->
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -206,6 +211,40 @@
             </button>
           </sc-for>
         </div>
+
+        <!-- повірка обчислювачів -->
+        <sc-if value="{{ ov.povShow }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:var(--t140);font-weight:800;color:var(--ink)">Повірка приладів</div>
+            <button onClick="{{ ov.togglePov }}" style="font-size:var(--t120);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Список →</button>
+          </div>
+          <div style="display:flex;gap:22px;margin-bottom:2px">
+            <div>
+              <div class="tnum" style="font-size:var(--t190);font-weight:800;color:var(--debt)">{{ ov.povOver }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:var(--muted)">прострочено</div>
+            </div>
+            <div>
+              <div class="tnum" style="font-size:var(--t190);font-weight:800;color:#B8860B">{{ ov.povSoon }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:var(--muted)">до 90 днів</div>
+            </div>
+          </div>
+          <sc-if value="{{ ov.povExpanded }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+            <sc-for list="{{ ov.povList }}" as="p" hint-placeholder-count="4">
+              <button onClick="{{ p.tap }}" style="display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--line);border-radius:13px;padding:10px 12px;cursor:pointer;text-align:left;width:100%">
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:var(--t125);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</div>
+                  <div class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.sub }}</div>
+                </div>
+                <span class="tnum" style="flex-shrink:0;font-size:var(--t105);font-weight:800;color:{{ p.fg }};background:{{ p.bg }};padding:3px 9px;border-radius:20px;white-space:nowrap">{{ p.due }}</span>
+              </button>
+            </sc-for>
+            <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);text-align:center">{{ ov.povMore }}</div>
+          </div>
+          </sc-if>
+        </div>
+        </sc-if>
       </div>
       </sc-if>
 
@@ -713,7 +752,7 @@ class Component extends DCLogic {
   state = {
     tab: 'overview', theme: 'light', fontScale: 1,
     booting: true, hasData: false, rev: 0,
-    ovMonth: null, ovShowUnsub: false,
+    ovMonth: null, ovShowUnsub: false, ovShowPov: false,
     importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '',
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
@@ -851,6 +890,7 @@ class Component extends DCLogic {
   goHouses(){ this.setState({ tab: 'houses' }); }
   setOvMonth(k){ this.setState({ ovMonth: k, ovShowUnsub: false }); }
   toggleUnsub(){ this.setState(s => ({ ovShowUnsub: !s.ovShowUnsub })); }
+  togglePov(){ this.setState(s => ({ ovShowPov: !s.ovShowPov })); }
   importBase(){ const el = document.getElementById('dbImportInput'); if (el) { el.value=''; el.click(); } }
   dismissImport(){ this.setState({ importOpen: false, importError: '' }); }
 
@@ -967,13 +1007,13 @@ class Component extends DCLogic {
           unit: (cUnit >= 0 && row[cUnit]) ? String(row[cUnit]).trim() : 'Гкал',
           heatLoad: loadByAddr[this._normAddr(addr)] != null ? loadByAddr[this._normAddr(addr)] : 0,
           share: cShare >= 0 ? (this.num(row[cShare]) || 1) : 1,
-          obcPovirka: cObcPov >= 0 ? this._xlDate(row[cObcPov]) : '',
+          obcPovirka: cObcPov >= 0 ? this._povISO(row[cObcPov]) : '',
           vodZavod: cVodNo >= 0 ? String(row[cVodNo] || '').trim() : '',
           vodTip: cVodTip >= 0 ? String(row[cVodTip] || '').trim() : '',
           dn: cDn >= 0 ? String(row[cDn] || '').trim() : '',
-          vodPovirka: cVodPov >= 0 ? this._xlDate(row[cVodPov]) : '',
+          vodPovirka: cVodPov >= 0 ? this._povISO(row[cVodPov]) : '',
           tspZavod: cTspNo >= 0 ? String(row[cTspNo] || '').trim() : '',
-          tspPovirka: cTspPov >= 0 ? this._xlDate(row[cTspPov]) : '',
+          tspPovirka: cTspPov >= 0 ? this._povISO(row[cTspPov]) : '',
           komOblik: cKom >= 0 ? !!row[cKom] : false,
           fop: cFop >= 0 ? !!row[cFop] : false,
           contact: cContact >= 0 ? String(row[cContact] || '').trim() : '',
@@ -1053,6 +1093,23 @@ class Component extends DCLogic {
     return String(v);
   }
   _todayISO(){ const d = new Date(); return [d.getFullYear(), String(d.getMonth()+1).padStart(2,'0'), String(d.getDate()).padStart(2,'0')].join('-'); }
+  // Нормалізація дати повірки в ISO. У книзі формати мішані: серійні числа
+  // Excel, «YYYY-MM-DD», «DD.MM.YYYY», з опискою «DD.MM,YYYY». Явне сміття
+  // (рік поза 2000–2100) відкидаємо.
+  _povISO(v){
+    if (v == null || v === '') return '';
+    if (typeof v === 'number') {
+      if (window.XLSX && window.XLSX.SSF) { const d = window.XLSX.SSF.parse_date_code(v);
+        if (d && d.y >= 2000 && d.y <= 2100) return [d.y, String(d.m).padStart(2,'0'), String(d.d).padStart(2,'0')].join('-'); }
+      return '';
+    }
+    const s = String(v).trim().replace(/,/g, '.');
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) { const y = +m[1]; return (y >= 2000 && y <= 2100) ? `${m[1]}-${String(+m[2]).padStart(2,'0')}-${String(+m[3]).padStart(2,'0')}` : ''; }
+    m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/);
+    if (m) { const y = +m[3]; return (y >= 2000 && y <= 2100) ? `${m[3]}-${String(+m[2]).padStart(2,'0')}-${String(+m[1]).padStart(2,'0')}` : ''; }
+    return '';
+  }
 
   // ---------- demo data ----------
   loadDemo(){
@@ -1447,6 +1504,25 @@ class Component extends DCLogic {
   }
   anBack(){ this.setState({ anBoiler: null }); }
 
+  // ---------- повірка обчислювачів ----------
+  // Міжповірочний інтервал теплолічильника — 4 роки. Стежимо за комерційними
+  // (розрахунковими) приладами: дата останньої повірки + 4 роки = наступна.
+  _povirkaList(){
+    const INTERVAL_Y = 4, SOON = 90;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const out = [];
+    this.db.houses.forEach(h => {
+      if (!h.komOblik || !h.obcPovirka) return;
+      const d = new Date(h.obcPovirka + 'T00:00:00'); if (isNaN(d.getTime())) return;
+      const due = new Date(d); due.setFullYear(due.getFullYear() + INTERVAL_Y);
+      const days = Math.round((due - today) / 86400000);
+      out.push({ h, last: h.obcPovirka, due, days, over: days < 0, soon: days >= 0 && days <= SOON });
+    });
+    out.sort((a, b) => a.days - b.days);
+    return out;
+  }
+  _dmy(d){ return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); }
+
   // ---------- export ----------
   exportHouses(){
     const { list, last } = this._filteredHouses();
@@ -1455,9 +1531,28 @@ class Component extends DCLogic {
       l ? l.gcal : '', l ? l.q : '', l ? l.diff : '', l && l.pct != null ? l.pct : '']; });
     const esc = v => { const t = String(v == null ? '' : v); return /[",;\n]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t; };
     const csv = '﻿' + [header, ...rows].map(r => r.map(esc).join(';')).join('\r\n');
+    this._downloadCsv(csv, 'budynky.csv');
+  }
+  // експорт місячного звіту споживання по будинках (комерційні прилади)
+  exportMonth(){
+    const key = this._curMonth();
+    if (!key) return;
+    const bld = Object.values(this._buildingConsumption(key)).sort((a, b) => b.gcal - a.gcal);
+    const header = ['Будинок', 'Котельня', 'Комерц. приладів', 'Факт, Гкал', 'Норматив, Гкал', 'Відхилення, %', 't сер., °C'];
+    const rows = bld.map(b => {
+      const norm = (b.normOk && b.norm > 0) ? b.norm : null;
+      const pct = norm ? this.r2((b.gcal - norm) / norm * 100) : null;
+      const t = (b.reading && b.reading.tAvg) ? b.reading.tAvg : '';
+      return [b.address, b.boiler, b.meters, b.gcal, norm != null ? norm : '', pct != null ? pct : '', t];
+    });
+    const esc = v => { const t = String(v == null ? '' : v); return /[",;\n]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t; };
+    const csv = '﻿' + [header, ...rows].map(r => r.map(esc).join(';')).join('\r\n');
+    this._downloadCsv(csv, 'spozhyvannia-' + key + '.csv');
+  }
+  _downloadCsv(csv, name){
     try {
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-      const a = document.createElement('a'); a.href = url; a.download = 'budynky.csv';
+      const a = document.createElement('a'); a.href = url; a.download = name;
       document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 500);
     } catch (e) {}
   }
@@ -1755,9 +1850,14 @@ class Component extends DCLogic {
           curPaired += curBld[ak].gcal; prevPaired += prevBld[ak].gcal; pairedN++; } });
       }
       const soPct = (pairedN >= 5 && prevPaired > 0) ? this.r2((curPaired - prevPaired) / prevPaired * 100) : null;
+      // повірка обчислювачів
+      const pov = this._povirkaList();
+      const povOver = pov.filter(x => x.over), povSoon = pov.filter(x => x.soon);
+      const povShown = [...povOver, ...povSoon];
 
       out.ov = {
         monthLabel: this._monthLabel(curKey),
+        exportMonth: () => this.exportMonth(), canExport: curAgg.n > 0,
         totalGcal: this.fmt(curAgg.gcal, 1), consCnt: String(curAgg.n),
         subNote: curAgg.n > 0
           ? ('Гкал · за різницею показань · ' + curAgg.n + ' будинків')
@@ -1782,7 +1882,16 @@ class Component extends DCLogic {
         top: consList.slice(0, 5).map((c, i) => ({
           rank: String(i + 1), code: hName(c.house), addr: hSub(c.house),
           diff: this.fmt(c.gcal, 1), pct: 'Гкал',
-          tap: () => this.openDetail(c.house.id) }))
+          tap: () => this.openDetail(c.house.id) })),
+        povShow: povShown.length > 0,
+        povOver: String(povOver.length), povSoon: String(povSoon.length),
+        povExpanded: !!s.ovShowPov, togglePov: () => this.togglePov(),
+        povList: povShown.slice(0, 60).map(x => ({
+          name: hName(x.h), sub: hSub(x.h),
+          due: (x.over ? 'прострочено ' : 'до ') + this._dmy(x.due),
+          fg: x.over ? COVER : '#B8860B', bg: x.over ? tintOver : 'rgba(212,160,23,.14)',
+          tap: () => this.openDetail(x.h.id) })),
+        povMore: povShown.length > 60 ? ('…та ще ' + (povShown.length - 60)) : ''
       };
       return out;
     }
