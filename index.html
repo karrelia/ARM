@@ -1172,7 +1172,16 @@ class Component extends DCLogic {
   _cloudCheck(){
     if (typeof fetch !== 'function') return;
     fetch('/api/ping', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
-      .then(d => { if (d && d.ok) this.setState({ cloud: true }); }).catch(() => {});
+      .then(d => { if (d && d.ok) { this.setState({ cloud: true }); this._reconcileUsers(); } }).catch(() => {});
+  }
+  // якщо сервер щойно з'явився, а на ньому ще немає користувачів (перший адмін
+  // створився до того, як підтвердилась мережа) — виштовхуємо локальних
+  _reconcileUsers(){
+    fetch('/api/users', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+      const server = (j && j.users) || [];
+      const local = this.state.users || [];
+      if (server.length === 0 && local.length > 0) this._persistUsers(local);
+    }).catch(() => {});
   }
 
   // ---------- авторизація (PIN; список користувачів спільний, на сервері) ----------
@@ -1225,9 +1234,13 @@ class Component extends DCLogic {
   _applyIdentity(u){ this._saveSettings({ me: u.name, role: u.admin ? 'lead' : 'worker' }); }
   async _persistUsers(users){
     this._idbSetKey('users', users).catch(()=>{});
-    if (this.state.cloud) {
-      try { await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) }); } catch(e){}
-    }
+    // завжди пробуємо зберегти на сервер (не чекаючи на результат /api/ping) —
+    // інакше перший адмін, створений до підтвердження мережі, не потрапить на
+    // сервер, і другий пристрій знову запропонує «Перший запуск»
+    try {
+      const r = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) });
+      if (r && r.ok && !this.state.cloud) this.setState({ cloud: true });
+    } catch(e){}
   }
   doLogin(){
     const u = (this.state.users || []).find(x => x.id === this.state.loginSel) || (this.state.users || [])[0];
