@@ -829,6 +829,110 @@
     </div>
     </sc-if>
 
+    <!-- ============ ADMIN: користувачі ============ -->
+    <sc-if value="{{ adminOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:45;background:var(--bg);display:flex;flex-direction:column">
+      <div style="flex-shrink:0;display:flex;align-items:center;gap:10px;background:var(--headerBg);border-bottom:1px solid var(--headerBd);padding:10px 14px">
+        <button onClick="{{ closeAdmin }}" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t180);font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">‹</button>
+        <div style="flex:1;font-size:var(--t150);font-weight:800;color:var(--ink)">Користувачі <span style="font-size:var(--t120);font-weight:700;color:var(--muted2)">· {{ userCount }}</span></div>
+      </div>
+      <div class="scrl" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:16px 16px 28px">
+        <div style="display:flex;align-items:flex-start;gap:9px;background:var(--primTint);border:1px solid var(--primBd);border-radius:13px;padding:11px 13px;margin-bottom:15px">
+          <span style="font-size:var(--t140);line-height:1">☁</span>
+          <div style="font-size:var(--t115);font-weight:600;color:var(--ink);line-height:1.45">Зміни зберігаються на сервері бригади й одразу доступні на всіх пристроях. Робітники входять під своїм ім'ям і PIN.</div>
+        </div>
+
+        <!-- додати користувача -->
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:16px">
+          <div style="font-size:var(--t135);font-weight:800;color:var(--ink);margin-bottom:12px">Додати користувача</div>
+          <input value="{{ nuName }}" onInput="{{ onNuName }}" placeholder="Ім'я (напр. Іван Коваль)" style="width:100%;height:46px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;font-size:var(--t135);background:var(--inputBg);color:var(--ink);outline:none;margin-bottom:10px" />
+          <input value="{{ nuPin }}" onInput="{{ onNuPin }}" type="password" inputmode="numeric" placeholder="PIN (мін. 4 цифри)" style="width:100%;height:46px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;font-size:var(--t135);background:var(--inputBg);color:var(--ink);outline:none;margin-bottom:10px" />
+          <button onClick="{{ toggleNuAdmin }}" style="display:flex;align-items:center;gap:9px;width:100%;height:44px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;background:var(--inputBg);color:var(--ink);font-size:var(--t130);font-weight:700;cursor:pointer;margin-bottom:12px">
+            <span style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid {{ nuAdminBd }};background:{{ nuAdminBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900">{{ nuAdminMark }}</span>
+            Права старшого (адміністратора)
+          </button>
+          <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}"><div style="font-size:var(--t115);font-weight:700;color:var(--debt);margin-bottom:10px">{{ authError }}</div></sc-if>
+          <button onClick="{{ addUser }}" style="width:100%;height:48px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t135);font-weight:800;cursor:pointer">＋ Додати</button>
+        </div>
+
+        <!-- список -->
+        <div style="font-size:var(--t130);font-weight:700;color:var(--muted);margin:0 2px 9px">Список користувачів</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{ userList }}" as="u" hint-placeholder-count="2">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 13px">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div style="width:40px;height:40px;flex-shrink:0;border-radius:11px;background:var(--primTint);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:var(--t150);font-weight:800">{{ u.initial }}</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:var(--t135);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</div>
+                  <span style="display:inline-block;font-size:var(--t105);font-weight:700;color:{{ u.roleFg }};background:{{ u.roleBg }};border-radius:7px;padding:2px 8px;margin-top:3px">{{ u.roleTxt }}</span>
+                </div>
+                <button onClick="{{ u.startReset }}" title="Скинути PIN" style="width:38px;height:38px;flex-shrink:0;border-radius:11px;border:1px solid var(--line2);background:var(--surface);color:var(--primary);font-size:var(--t150);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">🔑</button>
+                <button onClick="{{ u.remove }}" title="Видалити" style="width:38px;height:38px;flex-shrink:0;border-radius:11px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t150);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0">🗑</button>
+              </div>
+              <sc-if value="{{ u.isReset }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:8px;margin-top:10px">
+                  <input value="{{ pinResetVal }}" onInput="{{ onPinResetVal }}" type="password" inputmode="numeric" placeholder="Новий PIN (мін. 4 цифри)" style="flex:1;min-width:0;height:44px;border:1px solid var(--inputBd);border-radius:11px;padding:0 13px;font-size:var(--t130);background:var(--inputBg);color:var(--ink);outline:none" />
+                  <button onClick="{{ savePinReset }}" title="Зберегти" style="width:44px;height:44px;flex-shrink:0;border-radius:11px;border:none;background:var(--primary);color:#fff;font-size:var(--t150);cursor:pointer">✓</button>
+                  <button onClick="{{ cancelPinReset }}" title="Скасувати" style="width:44px;height:44px;flex-shrink:0;border-radius:11px;border:1px solid var(--line2);background:var(--surface);color:var(--muted);font-size:var(--t150);cursor:pointer">✕</button>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ ACCESS: перевірка входу ============ -->
+    <sc-if value="{{ authChecking }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;z-index:56;background:var(--bg);display:flex;align-items:center;justify-content:center">
+      <span style="width:34px;height:34px;border-radius:50%;border:3px solid var(--primary);border-right-color:transparent;animation:dcspin .7s linear infinite"></span>
+    </div>
+    </sc-if>
+
+    <!-- ============ ACCESS: вхід / перший запуск ============ -->
+    <sc-if value="{{ authGate }}" hint-placeholder-val="{{ false }}">
+    <div class="scrl" style="position:absolute;inset:0;z-index:55;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 22px;overflow-y:auto">
+      <div style="width:100%;max-width:340px">
+        <div style="text-align:center;margin-bottom:22px">
+          <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:linear-gradient(150deg,#5566d6,#2c3884);display:flex;align-items:center;justify-content:center">
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2C12 6 8 7 8 12a4 4 0 0 0 8 0c0-2-1-3-1-3 1 3-1 4-1 4 .5-2-2-4-2-8z" fill="#ffd27a" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"></path></svg>
+          </div>
+          <div style="font-size:var(--t190);font-weight:800;color:var(--ink)">АРМ Теплооблік</div>
+          <div style="font-size:var(--t125);font-weight:600;color:var(--muted2);margin-top:2px">Вхід для співробітників</div>
+        </div>
+
+        <sc-if value="{{ isFirstRun }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px">
+          <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:4px">Перший запуск</div>
+          <div style="font-size:var(--t120);font-weight:500;color:var(--muted);line-height:1.45;margin-bottom:14px">Створіть адміністратора (старшого) — він додаватиме інших користувачів і розподілятиме роботу.</div>
+          <label style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:6px">Ім'я</label>
+          <input value="{{ foName }}" onInput="{{ onFoName }}" placeholder="напр. Петро Сеник" style="width:100%;height:48px;border:1px solid var(--inputBd);border-radius:13px;padding:0 14px;font-size:var(--t140);background:var(--inputBg);color:var(--ink);outline:none;margin-bottom:12px" />
+          <label style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:6px">PIN (мін. 4 цифри)</label>
+          <input value="{{ foPin }}" onInput="{{ onFoPin }}" type="password" inputmode="numeric" placeholder="••••" style="width:100%;height:48px;border:1px solid var(--inputBd);border-radius:13px;padding:0 14px;font-size:var(--t140);background:var(--inputBg);color:var(--ink);outline:none" />
+          <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}"><div style="font-size:var(--t115);font-weight:700;color:var(--debt);margin-top:10px">{{ authError }}</div></sc-if>
+          <button onClick="{{ createFirstAdmin }}" style="width:100%;height:50px;margin-top:16px;border-radius:14px;border:none;background:var(--primary);color:#fff;font-size:var(--t140);font-weight:800;cursor:pointer">Створити адміністратора</button>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px">
+          <label style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:6px">Користувач</label>
+          <select value="{{ loginSel }}" onChange="{{ onLoginSel }}" style="width:100%;height:48px;border:1px solid var(--inputBd);border-radius:13px;padding:0 12px;font-size:var(--t140);background:var(--inputBg);color:var(--ink);font-weight:700;cursor:pointer;-webkit-appearance:menulist;appearance:menulist;margin-bottom:12px">
+            <sc-for list="{{ loginOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <label style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:6px">PIN</label>
+          <input value="{{ loginPin }}" onInput="{{ onLoginPin }}" onKeyDown="{{ onLoginKey }}" type="password" inputmode="numeric" placeholder="••••" style="width:100%;height:48px;border:1px solid var(--inputBd);border-radius:13px;padding:0 14px;font-size:var(--t140);background:var(--inputBg);color:var(--ink);outline:none" />
+          <sc-if value="{{ authError }}" hint-placeholder-val="{{ false }}"><div style="font-size:var(--t115);font-weight:700;color:var(--debt);margin-top:10px">{{ authError }}</div></sc-if>
+          <button onClick="{{ doLogin }}" style="width:100%;height:50px;margin-top:16px;border-radius:14px;border:none;background:var(--primary);color:#fff;font-size:var(--t140);font-weight:800;cursor:pointer">Увійти</button>
+        </div>
+        </sc-if>
+
+        <div style="font-size:var(--t105);font-weight:500;color:var(--muted2);text-align:center;line-height:1.45;margin-top:16px">Організаційний вхід. Список користувачів спільний — на сервері бригади.</div>
+      </div>
+    </div>
+    </sc-if>
+
     <!-- ============ SETTINGS: роль виконавця (overlay) ============ -->
     <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;z-index:42;display:flex;align-items:flex-end;justify-content:center">
@@ -838,14 +942,18 @@
           <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Виконавець</div>
           <button onClick="{{ closeSettings }}" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t140);font-weight:800;cursor:pointer">✕</button>
         </div>
-        <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:8px">Роль на цьому пристрої</div>
-        <div style="display:flex;gap:9px;margin-bottom:16px">
-          <button onClick="{{ setRoleLead }}" style="flex:1;height:46px;border-radius:13px;border:1px solid var(--line2);background:{{ roleLeadBg }};color:{{ roleLeadFg }};font-size:var(--t130);font-weight:800;cursor:pointer">Старший</button>
-          <button onClick="{{ setRoleWorker }}" style="flex:1;height:46px;border-radius:13px;border:1px solid var(--line2);background:{{ roleWorkerBg }};color:{{ roleWorkerFg }};font-size:var(--t130);font-weight:800;cursor:pointer">Робітник</button>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:12px">
+          <div style="font-size:var(--t110);font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px">Ви увійшли як</div>
+          <div style="font-size:var(--t150);font-weight:800;color:var(--ink);margin-top:2px">{{ authUserName }}</div>
+          <div style="font-size:var(--t115);font-weight:600;color:var(--primary);margin-top:1px">{{ authUserRole }}</div>
         </div>
-        <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:8px">Ім'я (для підпису показань)</div>
-        <input value="{{ meName }}" onInput="{{ onMeName }}" placeholder="напр. Іван Коваль" style="width:100%;height:48px;padding:0 14px;border:1px solid var(--inputBd);border-radius:13px;background:var(--inputBg);color:var(--ink);font-size:var(--t135);font-weight:600">
-        <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:10px">Кожне зняте показання підписується цим ім'ям і часом — так старший бачить, хто що зібрав.</div>
+        <div style="display:flex;gap:9px;margin-bottom:6px">
+          <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ openAdmin }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Користувачі ({{ userCount }})</button>
+          </sc-if>
+          <button onClick="{{ logout }}" style="flex:1;height:44px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t120);font-weight:700;cursor:pointer">Вийти</button>
+        </div>
+        <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Кожне зняте показання підписується вашим ім'ям і часом — так старший бачить, хто що зібрав.</div>
 
         <!-- синхронізація з власним сервером (Фаза B) -->
         <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
@@ -861,7 +969,11 @@
           <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ cloudLoadBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити базу з сервера</button>
           </sc-if>
-          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2)">Дані вводяться офлайн (у підвалі без зв'язку) і зберігаються локально. Там, де є мережа, натисніть «Синхронізувати» — черга піде на сервер, а ви отримаєте оновлення від інших.</div>
+          <button onClick="{{ toggleAutoSync }}" style="display:flex;align-items:center;gap:9px;width:100%;height:44px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:8px">
+            <span style="width:22px;height:22px;flex-shrink:0;border-radius:6px;border:2px solid {{ autoSyncBd }};background:{{ autoSyncBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900">{{ autoSyncMark }}</span>
+            Автосинхронізація
+          </button>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2)">{{ autoSyncTxt }}. Дані вводяться офлайн (у підвалі без зв'язку) і зберігаються локально; щойно з'явиться мережа — черга сама піде на сервер, а старший побачить оновлення.</div>
         </div>
         </sc-if>
 
@@ -933,8 +1045,12 @@ class Component extends DCLogic {
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
-    collectOpen: false, collectMode: 'boiler', lastSyncAt: 0,
-    cloud: false, cloudBusy: false,
+    collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
+    cloud: false, cloudBusy: false, autoSync: true,
+    // авторизація (PIN, спільний список користувачів на сервері)
+    users: [], authUser: null, authChecked: false, authError: '',
+    foName: '', foPin: '', loginSel: '', loginPin: '',
+    adminOpen: false, nuName: '', nuPin: '', nuAdmin: false, pinResetId: null, pinResetVal: '',
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -1006,7 +1122,8 @@ class Component extends DCLogic {
     // налаштування пристрою (роль/ім'я/розподіл) зберігаються окремим ключем,
     // щоб імпорт нової бази їх не стирав
     this._idbGetKey('settings').then(cfg => {
-      if (cfg) this.setState({ role: cfg.role || '', me: cfg.me || '', assignments: cfg.assignments || {}, lastSyncAt: cfg.lastSyncAt || 0 });
+      if (cfg) this.setState({ role: cfg.role || '', me: cfg.me || '', assignments: cfg.assignments || {},
+        lastSyncAt: cfg.lastSyncAt || 0, lastPull: cfg.lastPull || 0, autoSync: cfg.autoSync !== false });
     }).catch(() => {});
     this._idbGet().then(saved => {
       if (saved && saved.houses && saved.houses.length) {
@@ -1017,6 +1134,8 @@ class Component extends DCLogic {
       }
     }).catch(() => this.setState({ booting: false, hasData: false }));
     this._cloudCheck();
+    this._loadUsers();
+    this._startAutoSync();
   }
   // ---------- власний сервер (Фаза B): офлайн-перший, синхронізація по команді ----------
   _cloudCheck(){
@@ -1024,14 +1143,129 @@ class Component extends DCLogic {
     fetch('/api/ping', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
       .then(d => { if (d && d.ok) this.setState({ cloud: true }); }).catch(() => {});
   }
-  async cloudSync(){
+
+  // ---------- авторизація (PIN; список користувачів спільний, на сервері) ----------
+  // Чистий JS SHA-256 — працює на http:// у локальній мережі, де crypto.subtle недоступний.
+  _sha256(input){
+    var ascii = unescape(encodeURIComponent(String(input)));
+    function rr(v, a){ return (v>>>a) | (v<<(32 - a)); }
+    var maxWord = Math.pow(2, 32), result = '', words = [], asciiBitLength = ascii.length*8;
+    var hh = [], k = [], pc = 0, isC = {};
+    for (var cand = 2; pc < 64; cand++){ if (!isC[cand]){ for (var m = 0; m < 313; m += cand){ isC[m] = cand; } if (pc < 8) hh[pc] = (Math.pow(cand, .5)*maxWord)|0; k[pc++] = (Math.pow(cand, 1/3)*maxWord)|0; } }
+    var hash = hh.slice(0); ascii += '\x80';
+    while (ascii.length % 64 - 56) ascii += '\x00';
+    var i, j;
+    for (i = 0; i < ascii.length; i++){ j = ascii.charCodeAt(i); if (j >> 8) return ''; words[i>>2] |= j << ((3 - i)%4)*8; }
+    words[words.length] = (asciiBitLength/maxWord)|0; words[words.length] = asciiBitLength;
+    for (j = 0; j < words.length;){
+      var w = words.slice(j, j += 16), oldHash = hash; hash = hash.slice(0, 8);
+      for (i = 0; i < 64; i++){
+        var w15 = w[i - 15], w2 = w[i - 2], a = hash[0], e = hash[4];
+        var t1 = hash[7] + (rr(e,6) ^ rr(e,11) ^ rr(e,25)) + ((e & hash[5]) ^ ((~e) & hash[6])) + k[i]
+          + (w[i] = (i < 16) ? (w[i]|0) : ((w[i-16]|0) + (rr(w15,7) ^ rr(w15,18) ^ (w15>>>3)) + (w[i-7]|0) + (rr(w2,17) ^ rr(w2,19) ^ (w2>>>10))) | 0);
+        var t2 = (rr(a,2) ^ rr(a,13) ^ rr(a,22)) + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(t1 + t2)|0].concat(hash); hash[4] = (hash[4] + t1)|0;
+      }
+      for (i = 0; i < 8; i++){ hash[i] = (hash[i] + oldHash[i])|0; }
+    }
+    for (i = 0; i < 8; i++){ for (j = 3; j + 1; j--){ var b = (hash[i] >> (j*8)) & 255; result += ((b < 16) ? '0' : '') + b.toString(16); } }
+    return result;
+  }
+  _rndHex(n){
+    try { const a = new Uint8Array(n); crypto.getRandomValues(a); return [...a].map(b => b.toString(16).padStart(2,'0')).join(''); }
+    catch(e){ let s = ''; for (let i=0;i<n;i++) s += Math.floor(Math.random()*256).toString(16).padStart(2,'0'); return s; }
+  }
+  _hashPin(salt, pin){ return this._sha256(salt + ':' + String(pin)); }
+  _session(id){ try { if (id === undefined) return localStorage.getItem('armUser'); if (id === null) localStorage.removeItem('armUser'); else localStorage.setItem('armUser', id); } catch(e){ return null; } }
+  async _loadUsers(){
+    let users = null;
+    try {
+      const r = await fetch('/api/users', { cache: 'no-store' });
+      if (r.ok) { const j = await r.json(); if (j && Array.isArray(j.users)) users = j.users; }
+    } catch(e){}
+    if (users) { this._idbSetKey('users', users).catch(()=>{}); }        // кеш для офлайн-входу
+    else { try { users = await this._idbGetKey('users') || []; } catch(e){ users = []; } }
+    const uid = this._session();
+    const authUser = uid ? (users || []).find(u => u.id === uid) || null : null;
+    this.setState({ users: users || [], authChecked: true, authUser });
+    if (authUser) this._applyIdentity(authUser);
+  }
+  // логін визначає особу: ім'я → підпис показань, роль (адмін = Старший)
+  _applyIdentity(u){ this._saveSettings({ me: u.name, role: u.admin ? 'lead' : 'worker' }); }
+  async _persistUsers(users){
+    this._idbSetKey('users', users).catch(()=>{});
+    if (this.state.cloud) {
+      try { await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ users }) }); } catch(e){}
+    }
+  }
+  doLogin(){
+    const u = (this.state.users || []).find(x => x.id === this.state.loginSel) || (this.state.users || [])[0];
+    if (!u) { this.setState({ authError: 'Оберіть користувача' }); return; }
+    const pin = (this.state.loginPin || '').trim();
+    if (!pin) { this.setState({ authError: 'Введіть PIN' }); return; }
+    if (this._hashPin(u.salt, pin) !== u.pinHash) { this.setState({ authError: 'Невірний PIN' }); return; }
+    this._session(u.id);
+    this.setState({ authUser: u, loginPin: '', authError: '' });
+    this._applyIdentity(u);
+  }
+  logout(){ this._session(null); this.setState({ authUser: null, adminOpen: false, settingsOpen: false, loginPin: '', loginSel: '', authError: '' }); }
+  createFirstAdmin(){
+    const name = (this.state.foName || '').trim();
+    const pin = (this.state.foPin || '').trim();
+    if (!name) { this.setState({ authError: "Введіть ім'я" }); return; }
+    if (pin.length < 4) { this.setState({ authError: 'PIN — мінімум 4 цифри' }); return; }
+    const salt = this._rndHex(8);
+    const u = { id: 'u_' + this._rndHex(6), name, admin: true, salt, pinHash: this._hashPin(salt, pin) };
+    const users = [u];
+    this._persistUsers(users);
+    this._session(u.id);
+    this.setState({ users, authUser: u, foName: '', foPin: '', authError: '', adminOpen: false });
+    this._applyIdentity(u);
+  }
+  addUser(){
+    const name = (this.state.nuName || '').trim();
+    const pin = (this.state.nuPin || '').trim();
+    if (!name) { this.setState({ authError: "Введіть ім'я користувача" }); return; }
+    if (pin.length < 4) { this.setState({ authError: 'PIN — мінімум 4 цифри' }); return; }
+    const salt = this._rndHex(8);
+    const u = { id: 'u_' + this._rndHex(6), name, admin: !!this.state.nuAdmin, salt, pinHash: this._hashPin(salt, pin) };
+    const users = [...(this.state.users || []), u];
+    this._persistUsers(users);
+    this.setState({ users, nuName: '', nuPin: '', nuAdmin: false, authError: '' });
+  }
+  removeUser(id){
+    const target = (this.state.users || []).find(u => u.id === id);
+    if (!target) return;
+    const admins = (this.state.users || []).filter(u => u.admin);
+    if (target.admin && admins.length <= 1) { this.setState({ authError: 'Не можна видалити останнього адміністратора' }); return; }
+    if (typeof window !== 'undefined' && window.confirm && !window.confirm('Видалити користувача «' + target.name + '»?')) return;
+    const users = (this.state.users || []).filter(u => u.id !== id);
+    this._persistUsers(users);
+    this.setState({ users, authError: '' });
+  }
+  startPinReset(id){ this.setState({ pinResetId: id, pinResetVal: '', authError: '' }); }
+  cancelPinReset(){ this.setState({ pinResetId: null, pinResetVal: '' }); }
+  savePinReset(){
+    const id = this.state.pinResetId;
+    const pin = (this.state.pinResetVal || '').trim();
+    if (!id) return;
+    if (pin.length < 4) { this.setState({ authError: 'PIN — мінімум 4 цифри' }); return; }
+    const salt = this._rndHex(8);
+    const users = (this.state.users || []).map(u => u.id === id ? { ...u, salt, pinHash: this._hashPin(salt, pin) } : u);
+    this._persistUsers(users);
+    this.setState({ users, pinResetId: null, pinResetVal: '', authError: '' });
+  }
+  openAdmin(){ this.setState({ adminOpen: true, authError: '' }); }
+  closeAdmin(){ this.setState({ adminOpen: false, authError: '' }); }
+  async cloudSync(silent){
     if (!this.db || this.state.cloudBusy) return;
     this.setState({ cloudBusy: true, importError: '' });
     try {
       const accById = {}; this.db.houses.forEach(h => { accById[h.id] = h.account; });
       const push = this.db.readings.filter(r => r.src === 'field' && !r.synced)
         .map(r => { const o = { ...r, account: accById[r.houseId] || '' }; delete o.houseId; return o; });
-      const payload = { role: this.state.role, by: this.state.me || '', baseSig: this._baseSig(), readings: push };
+      const payload = { role: this.state.role, by: this.state.me || '', baseSig: this._baseSig(),
+        since: this.state.lastPull || 0, readings: push };
       if (this.state.role === 'lead') payload.assignments = this.state.assignments || {};
       const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
@@ -1040,13 +1274,34 @@ class Component extends DCLogic {
       this.db.readings.forEach(r => { if (r.src === 'field') r.synced = true; });
       if (this.state.role !== 'lead' && data.assignments) this.state.assignments = data.assignments;
       this._persist();
-      this._saveSettings({ lastSyncAt: Date.now(), assignments: this.state.assignments });
-      this.setState({ cloudBusy: false, settingsOpen: false, importOpen: true, importName: 'Синхронізація з сервером',
-        importMeta: 'надіслано ' + push.length + ' · отримано +' + res.added + ' нових' + (data.warnBase ? ' · ⚠ інша база' : ''), rev: this.state.rev + 1 });
+      const lastPull = Math.max(this.state.lastPull || 0, data.maxSrvAt || 0);
+      this._saveSettings({ lastSyncAt: Date.now(), lastPull, assignments: this.state.assignments });
+      const patch = { cloudBusy: false, rev: this.state.rev + 1 };
+      // тихо (автосинхронізація): без спливаючого повідомлення й без закриття панелі,
+      // але дашборд оновиться сам (rev++). Показуємо тост лише коли є що показати.
+      if (!silent || res.added > 0 || push.length > 0) {
+        patch.importOpen = true; patch.importName = 'Синхронізація з сервером';
+        patch.importMeta = 'надіслано ' + push.length + ' · отримано +' + res.added + ' нових' + (data.warnBase ? ' · ⚠ інша база' : '');
+        if (!silent) patch.settingsOpen = false;
+      }
+      this.setState(patch);
     } catch (err) {
-      this.setState({ cloudBusy: false, importError: 'Синхронізація не вдалася: ' + (err && err.message ? err.message : err) });
+      this.setState({ cloudBusy: false, ...(silent ? {} : { importError: 'Синхронізація не вдалася: ' + (err && err.message ? err.message : err) }) });
     }
   }
+  // ---- автосинхронізація: коли є мережа, черга сама йде на сервар, а дашборд
+  //      старшого підтягує оновлення (офлайн — просто чекаємо на зв'язок) ----
+  _startAutoSync(){
+    if (this._syncTimer) return;
+    const tick = () => { if (this.state.autoSync && this.state.cloud && this.state.authUser
+      && !this.state.cloudBusy && (typeof navigator === 'undefined' || navigator.onLine !== false)) this.cloudSync(true); };
+    this._syncTimer = setInterval(tick, 20000);                 // кожні 20 с
+    this._onOnline = () => setTimeout(tick, 800);               // одразу після відновлення мережі
+    try { window.addEventListener('online', this._onOnline);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); }); } catch(e){}
+  }
+  componentWillUnmount(){ if (this._syncTimer) { clearInterval(this._syncTimer); this._syncTimer = null; }
+    try { if (this._onOnline) window.removeEventListener('online', this._onOnline); } catch(e){} }
   async cloudPublishBase(){
     if (!this.db || this.state.cloudBusy) return;
     this.setState({ cloudBusy: true, importError: '' });
@@ -1068,14 +1323,16 @@ class Component extends DCLogic {
       if (!d.hasBase) throw new Error('на сервері ще немає бази — старший має її опублікувати');
       this.db = { houses: d.houses, readings: [], boilers: d.boilers || [], baseSig: d.baseSig, baseDate: this._todayISO(), savedAt: Date.now() };
       this._persist();
-      if (d.assignments) this._saveSettings({ assignments: d.assignments });
+      // нова база — скидаємо позначку інкрементальної синхронізації, щоб перша
+      // синхронізація підтягнула всі показання з сервера
+      this._saveSettings({ lastPull: 0, assignments: d.assignments || this.state.assignments });
       this.setState({ cloudBusy: false, hasData: true, booting: false, tab: 'overview', settingsOpen: false,
         importOpen: true, importName: 'База з сервера', importMeta: d.houses.length + ' будинків' });
     } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + (err && err.message ? err.message : err) }); }
   }
   _saveSettings(patch){
     const s = this.state;
-    const cfg = { role: s.role, me: s.me, assignments: s.assignments, lastSyncAt: s.lastSyncAt, ...(patch || {}) };
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
     this.setState(patch || {});
     this._idbSetKey('settings', cfg).catch(() => {});
   }
@@ -2097,6 +2354,36 @@ class Component extends DCLogic {
       cloud: !!s.cloud, cloudBusy: !!s.cloudBusy,
       cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(),
       cloudSyncLabel: s.cloudBusy ? 'Синхронізація…' : ('☁ Синхронізувати з сервером (' + this._pendingCount() + ')'),
+      autoSync: !!s.autoSync, toggleAutoSync: () => this._saveSettings({ autoSync: !this.state.autoSync }),
+      autoSyncMark: s.autoSync ? '✓' : '', autoSyncBd: s.autoSync ? 'var(--primary)' : 'var(--inputBd)', autoSyncBg: s.autoSync ? 'var(--primary)' : 'transparent',
+      autoSyncTxt: s.lastSyncAt ? ('Автосинхронізація · востаннє ' + this._agoTxt(s.lastSyncAt)) : 'Автосинхронізація, коли є мережа',
+      // --- авторизація ---
+      authGate: s.authChecked && !s.authUser,
+      authChecking: !s.authChecked,
+      isFirstRun: s.authChecked && (s.users || []).length === 0,
+      isLogin: s.authChecked && (s.users || []).length > 0,
+      authed: !!s.authUser, isAdmin: !!(s.authUser && s.authUser.admin),
+      authError: s.authError || '',
+      authUserName: s.authUser ? s.authUser.name : '', authUserRole: (s.authUser && s.authUser.admin) ? 'Старший (адміністратор)' : 'Робітник',
+      foName: s.foName, foPin: s.foPin, onFoName: this.setField('foName'), onFoPin: this.setField('foPin'),
+      createFirstAdmin: () => this.createFirstAdmin(),
+      loginSel: s.loginSel || ((s.users || [])[0] && s.users[0].id) || '', loginPin: s.loginPin,
+      loginOpts: (s.users || []).map(u => ({ value: u.id, label: u.name + (u.admin ? ' · старший' : '') })),
+      onLoginSel: this.setField('loginSel'), onLoginPin: this.setField('loginPin'),
+      onLoginKey: (e) => { if (e && e.key === 'Enter') this.doLogin(); },
+      doLogin: () => this.doLogin(), logout: () => this.logout(),
+      adminOpen: !!s.adminOpen, openAdmin: () => this.openAdmin(), closeAdmin: () => this.closeAdmin(),
+      userCount: (s.users || []).length,
+      userList: (s.users || []).map(u => ({ id: u.id, name: u.name, initial: (u.name || '?').trim().charAt(0).toUpperCase(),
+        roleTxt: u.admin ? 'Старший' : 'Робітник',
+        roleFg: u.admin ? 'var(--primary)' : 'var(--muted2)', roleBg: u.admin ? 'var(--primTint)' : 'var(--chipBg)',
+        isReset: s.pinResetId === u.id, remove: () => this.removeUser(u.id), startReset: () => this.startPinReset(u.id) })),
+      nuName: s.nuName, nuPin: s.nuPin, nuAdmin: !!s.nuAdmin,
+      onNuName: this.setField('nuName'), onNuPin: this.setField('nuPin'), toggleNuAdmin: () => this.setState(st => ({ nuAdmin: !st.nuAdmin })),
+      nuAdminMark: s.nuAdmin ? '✓' : '', nuAdminBd: s.nuAdmin ? 'var(--primary)' : 'var(--inputBd)', nuAdminBg: s.nuAdmin ? 'var(--primary)' : 'transparent',
+      addUser: () => this.addUser(),
+      pinResetVal: s.pinResetVal, onPinResetVal: this.setField('pinResetVal'),
+      savePinReset: () => this.savePinReset(), cancelPinReset: () => this.cancelPinReset(),
       syncStatus: (() => { const n = this._pendingCount();
         if (n > 0) return 'Очікують вигрузки: ' + n + ' показань' + (s.lastSyncAt ? ' · востаннє ' + this._agoTxt(s.lastSyncAt) : '');
         return s.lastSyncAt ? ('Усе вигружено · востаннє ' + this._agoTxt(s.lastSyncAt)) : 'Ще нічого не вигружено'; })(),
