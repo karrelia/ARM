@@ -2311,6 +2311,14 @@ class Component extends DCLogic {
   removeEntryPhoto(id){ this.setState(st => ({ entryPhotos: st.entryPhotos.filter(p => p.id !== id) })); }
   viewPhoto(url){ this.setState({ photoView: url }); }
   closePhoto(){ this.setState({ photoView: null }); }
+  // Джерело для <img>: локальне фото — це data:URL (показуємо як є, працює офлайн);
+  // фото, що сервер виніс у файл, зберігається у показанні як посилання «srv:<id>»
+  // і віддається ендпоінтом /photo/<id> (без base64 у db.json).
+  _photoUrl(u){
+    u = String(u == null ? '' : u);
+    if (u.indexOf('data:') === 0) return u;
+    return this._apiBase + '/photo/' + u.replace(/^srv:/, '');
+  }
   // Зменшуємо фото до розміру, достатнього щоб розібрати показник (довша сторона
   // ≤ 1280 px, JPEG q≈0.72) — щоб не роздувати сховище.
   _downscaleImage(file, maxEdge = 1280, quality = 0.72){
@@ -2760,7 +2768,7 @@ class Component extends DCLogic {
         .slice(0, 6).map(r => { const g = this._rowGcal(r); return { date: r.date || '—',
           gcal: g == null ? '—' : this.fmt(g, 2),
           hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
-          photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) })) }; }) : [],
+          photos: (r.photos || []).map(u => { const su = this._photoUrl(u); return { url: su, view: () => this.viewPhoto(su) }; }) }; }) : [],
       entryArchiveEmpty: !eh || !this.db.readings.some(r => r.houseId === eh.id && !r.isControl)
     });
     {
@@ -2854,7 +2862,7 @@ class Component extends DCLogic {
         tAvg: this.fmt(r.tAvg, 1), pct: this.pctTxt(r.pct),
         fg: r.diff > 0 ? COVER : CECON, bg: r.diff > 0 ? tintOver : tintEcon,
         hasPhotos: !!(r.photos && r.photos.length),
-        photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) }))
+        photos: (r.photos || []).map(u => { const su = this._photoUrl(u); return { url: su, view: () => this.viewPhoto(su) }; })
       }));
       return out;
     }

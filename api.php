@@ -30,6 +30,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(20
 $DATA_DIR   = __DIR__ . '/arm-data';
 $DB_FILE    = $DATA_DIR . '/db.json';
 $USERS_FILE = $DATA_DIR . '/users.json';
+$PHOTOS_DIR = $DATA_DIR . '/photos';   // фото винесені з db.json в окремі файли
 
 // ---------- визначення маршруту ----------
 // Для /api.php/xxx  беремо PATH_INFO. Для переписаного /api/xxx  дістаємо
@@ -99,6 +100,29 @@ function save_users($users) {
     @rename($tmp, $USERS_FILE);
 }
 
+// ---------- фото: винесення data:URL у файли (щоб db.json не роздувався) ----------
+// Повертає посилання «srv:<id>» замість base64. id = sha1 вмісту (дедуплікація).
+function store_photo($dataUrl) {
+    global $PHOTOS_DIR;
+    if (!is_string($dataUrl) || strpos($dataUrl, 'data:') !== 0) return $dataUrl; // вже посилання або сміття
+    $comma = strpos($dataUrl, ',');
+    if ($comma === false) return $dataUrl;
+    $b64 = substr($dataUrl, $comma + 1);
+    $bin = base64_decode($b64, true);
+    if ($bin === false || strlen($bin) === 0) return $dataUrl;
+    $id = 'p_' . sha1($bin);
+    if (!is_dir($PHOTOS_DIR)) @mkdir($PHOTOS_DIR, 0775, true);
+    $path = $PHOTOS_DIR . '/' . $id . '.jpg';
+    if (!is_file($path)) file_put_contents($path, $bin, LOCK_EX);
+    return 'srv:' . $id;
+}
+function externalize_photos(&$rec) {
+    if (!isset($rec['photos']) || !is_array($rec['photos'])) return;
+    $out = array();
+    foreach ($rec['photos'] as $p) $out[] = store_photo($p);
+    $rec['photos'] = $out;
+}
+
 // ---------- зведення показань (дзеркалить server.js / клієнтський _mergeReadings) ----------
 function norm_s($s) { return strtolower(trim((string)($s === null ? '' : $s))); }
 function key_of($r) {
@@ -115,6 +139,7 @@ function merge_readings(&$db, $incoming) {
         $rec = $inc;
         unset($rec['houseId']); unset($rec['srvAt']);
         $rec['synced'] = true;
+        externalize_photos($rec);   // base64 → файли, у db.json лише посилання
         $k = key_of($rec);
         if (!isset($index[$k])) {
             $rec['srvAt'] = $now;
@@ -205,6 +230,18 @@ if ($path === 'sync' && $method === 'POST') {
     send_json(200, array('ok' => true, 'warnBase' => (bool)$warnBase, 'stats' => $stats,
         'readings' => $out, 'maxSrvAt' => max_srv_at($db), 'assignments' => assign_out($db['assignments']),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));
+}
+
+// GET /photo/<id> — віддати винесене фото
+if (strpos($path, 'photo/') === 0 && $method === 'GET') {
+    $id = substr($path, strlen('photo/'));
+    if (!preg_match('/^p_[a-f0-9]{40}$/', $id)) { http_response_code(400); exit; }
+    $file = $PHOTOS_DIR . '/' . $id . '.jpg';
+    if (!is_file($file)) { http_response_code(404); exit; }
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, max-age=31536000, immutable'); // вміст-адресоване — незмінне
+    readfile($file);
+    exit;
 }
 
 send_json(404, array('error' => 'невідомий маршрут'));

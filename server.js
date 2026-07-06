@@ -21,6 +21,8 @@ const PORT = parseInt(process.env.PORT || '8083', 10);
 const DATA_DIR = path.join(ROOT, 'arm-data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const PHOTOS_DIR = path.join(DATA_DIR, 'photos'); // фото винесені з db.json в окремі файли
+const crypto = require('crypto');
 const MAX_BODY = 64 * 1024 * 1024; // 64 МБ (показання з фото)
 
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -49,6 +51,25 @@ function saveUsers(users){
   fs.renameSync(tmp, USERS_FILE);
 }
 
+// ---------- фото: винесення data:URL у файли (щоб db.json не роздувався) ----------
+function storePhoto(dataUrl){
+  if (typeof dataUrl !== 'string' || dataUrl.indexOf('data:') !== 0) return dataUrl; // вже посилання
+  const comma = dataUrl.indexOf(',');
+  if (comma === -1) return dataUrl;
+  let bin;
+  try { bin = Buffer.from(dataUrl.slice(comma + 1), 'base64'); } catch (e) { return dataUrl; }
+  if (!bin || !bin.length) return dataUrl;
+  const id = 'p_' + crypto.createHash('sha1').update(bin).digest('hex');
+  fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+  const file = path.join(PHOTOS_DIR, id + '.jpg');
+  if (!fs.existsSync(file)) fs.writeFileSync(file, bin);
+  return 'srv:' + id;
+}
+function externalizePhotos(rec){
+  if (!Array.isArray(rec.photos)) return;
+  rec.photos = rec.photos.map(storePhoto);
+}
+
 // ---------- зведення показань (дзеркалить клієнтський _mergeReadings) ----------
 const norm = s => String(s == null ? '' : s).trim().toLowerCase();
 function keyOf(r){ return norm(r.account) + '|' + (r.date || '') + '|' + (r.isControl ? 'k' : ''); }
@@ -61,6 +82,7 @@ function mergeReadings(db, incoming){
     if (!inc || !inc.account) { skipped++; return; }
     const rec = Object.assign({}, inc); delete rec.houseId; delete rec.srvAt; // srvAt/houseId — серверні/локальні
     rec.synced = true;
+    externalizePhotos(rec); // base64 → файли, у db.json лише посилання
     const k = keyOf(rec), ex = index[k];
     if (!ex) { rec.srvAt = now; db.readings.push(rec); index[k] = rec; added++; }
     else {
@@ -105,6 +127,19 @@ async function handleApi(req, res, url){
     if (incoming.length === 0 && loadUsers().length > 0) return sendJson(res, 409, { error: 'відмова: спроба стерти всіх користувачів' });
     saveUsers(incoming);
     return sendJson(res, 200, { ok: true, count: incoming.length });
+  }
+
+  // GET /api/photo/<id> — віддати винесене фото
+  if (p.indexOf('/api/photo/') === 0 && req.method === 'GET') {
+    const id = p.slice('/api/photo/'.length);
+    if (!/^p_[a-f0-9]{40}$/.test(id)) return sendJson(res, 400, { error: 'некоректний id' });
+    const file = path.join(PHOTOS_DIR, id + '.jpg');
+    fs.stat(file, (err, st) => {
+      if (err || !st.isFile()) { res.writeHead(404); return res.end('404'); }
+      res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=31536000, immutable' });
+      fs.createReadStream(file).pipe(res);
+    });
+    return;
   }
 
   // GET /api/base — довідник для завантаження робітником (без показань)
