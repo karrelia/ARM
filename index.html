@@ -54,9 +54,12 @@
           <button onClick="{{ cycleFont }}" title="Розмір шрифту" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:baseline;justify-content:center;gap:1px;cursor:pointer;padding:0;color:var(--ink)">
             <span style="font-size:15px;font-weight:800">А</span><span style="font-size:10px;font-weight:800">а</span>
           </button>
-          <button onClick="{{ openSettings }}" title="Виконавець" style="height:38px;padding:0 11px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink)">
+          <button onClick="{{ openSettings }}" title="Виконавець" style="position:relative;height:38px;padding:0 11px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-6 8-6s8 2 8 6"></path></svg>
             <span style="font-size:var(--t110);font-weight:700;max-width:64px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ meShort }}</span>
+            <sc-if value="{{ hasPending }}" hint-placeholder-val="{{ false }}">
+            <span class="tnum" style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#D4A017;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;box-sizing:border-box">{{ pendingBadge }}</span>
+            </sc-if>
           </button>
         </div>
       </div>
@@ -847,8 +850,12 @@
           <button onClick="{{ importSyncFile }}" style="width:100%;height:46px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:700;cursor:pointer;margin-bottom:9px">↥ Імпорт файлу (завдання / пакет)</button>
 
           <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
-          <button onClick="{{ exportPackage }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer">↧ Вигрузити пакет за день ({{ fieldCount }})</button>
-          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Експортує ваші зняті показання (з фото) одним файлом — надішліть його старшому в месенджер.</div>
+          <div style="display:flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:9px">
+            <span style="flex-shrink:0;width:10px;height:10px;border-radius:50%;background:{{ pendingDot }}"></span>
+            <span style="flex:1;min-width:0;font-size:var(--t115);font-weight:600;color:var(--ink)">{{ syncStatus }}</span>
+          </div>
+          <button onClick="{{ exportPackage }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer">↧ Вигрузити чергу ({{ fieldCount }})</button>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Дані вводяться офлайн і зберігаються локально (навіть у підвалі без зв'язку). Тут, де є покриття, вигрузіть чергу одним файлом і надішліть старшому. Вигрузка містить усі ваші показання з фото.</div>
           </sc-if>
 
           <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
@@ -905,7 +912,7 @@ class Component extends DCLogic {
     entrySearchOpen: false, entrySearchQ: '',
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
-    collectOpen: false, collectMode: 'boiler',
+    collectOpen: false, collectMode: 'boiler', lastSyncAt: 0,
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -977,7 +984,7 @@ class Component extends DCLogic {
     // налаштування пристрою (роль/ім'я/розподіл) зберігаються окремим ключем,
     // щоб імпорт нової бази їх не стирав
     this._idbGetKey('settings').then(cfg => {
-      if (cfg) this.setState({ role: cfg.role || '', me: cfg.me || '', assignments: cfg.assignments || {} });
+      if (cfg) this.setState({ role: cfg.role || '', me: cfg.me || '', assignments: cfg.assignments || {}, lastSyncAt: cfg.lastSyncAt || 0 });
     }).catch(() => {});
     this._idbGet().then(saved => {
       if (saved && saved.houses && saved.houses.length) {
@@ -990,10 +997,13 @@ class Component extends DCLogic {
   }
   _saveSettings(patch){
     const s = this.state;
-    const cfg = { role: s.role, me: s.me, assignments: s.assignments, ...(patch || {}) };
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, lastSyncAt: s.lastSyncAt, ...(patch || {}) };
     this.setState(patch || {});
     this._idbSetKey('settings', cfg).catch(() => {});
   }
+  // локальна черга: польові показання, ще не вигружені (підвали без покриття —
+  // вводимо офлайн, вигружаємо командою, коли є зв'язок)
+  _pendingCount(){ return this.db ? this.db.readings.filter(r => r.src === 'field' && !r.synced).length : 0; }
   openSettings(){ this.setState({ settingsOpen: true }); }
   closeSettings(){ this.setState({ settingsOpen: false }); }
   setRole(r){ this._saveSettings({ role: r }); }
@@ -1177,7 +1187,7 @@ class Component extends DCLogic {
       if (!h) { skipped++; return; }                                  // абонента немає в базі
       const k = keyOf(inc.account, inc.date, inc.isControl);
       const ex = index[k];
-      const rec = { ...inc, houseId: h.id }; delete rec.account;
+      const rec = { ...inc, houseId: h.id, synced: true }; delete rec.account;
       if (!ex) {
         rec.id = (this.db.readings.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
         this.db.readings.push(rec); index[k] = rec; added++;
@@ -1198,7 +1208,12 @@ class Component extends DCLogic {
     if (!readings.length) { this.setState({ importOpen: true, importName: 'Пакет', importMeta: 'немає польових показань для вигрузки' }); return; }
     const pkg = { type: 'arm-package', baseSig: this._baseSig(), by: this.state.me || '', createdAt: new Date().toISOString(), count: readings.length, readings };
     this._downloadText(JSON.stringify(pkg), 'paket-' + this._todayISO() + '.json');
-    this.setState({ settingsOpen: false, importOpen: true, importName: 'Пакет за день', importMeta: 'вигружено ' + readings.length + ' показань — надішліть старшому' });
+    // позначаємо вигруженими → локальна черга очищується (експорт завжди містить
+    // усі польові показання, тож повторна вигрузка нічого не втратить)
+    this.db.readings.forEach(r => { if (r.src === 'field') r.synced = true; });
+    this._persist();
+    this._saveSettings({ lastSyncAt: Date.now() });
+    this.setState({ settingsOpen: false, importOpen: true, importName: 'Пакет за день', importMeta: 'вигружено ' + readings.length + ' показань — надішліть старшому', rev: this.state.rev + 1 });
   }
   exportAssignment(){
     const pkg = { type: 'arm-assign', baseSig: this._baseSig(), by: this.state.me || '', createdAt: new Date().toISOString(), assignments: this.state.assignments || {} };
@@ -1789,7 +1804,7 @@ class Component extends DCLogic {
       vodomir: this.num(s.tblVod2Cur), vytraty: this.num(s.sVytraty), potuzhnist: this.num(s.sPotuzhnist),
       tVhid: this.num(s.sTempVhid), tVyhid: this.num(s.sTempVyhid),
       photos: (s.entryPhotos || []).map(p => p.url),
-      src: 'field', by: s.me || '', at: Date.now()          // підпис польового зняття
+      src: 'field', by: s.me || '', at: Date.now(), synced: false   // підпис + локальна черга
     });
     // оновлюємо «останні збережені» показники в довіднику → стануть «попередніми» наступного разу
     if (!s.eControl) {
@@ -1876,6 +1891,18 @@ class Component extends DCLogic {
     return out;
   }
   _dmy(d){ return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); }
+  _agoTxt(ts){
+    if (!ts) return '';
+    const min = Math.floor((Date.now() - ts) / 60000);
+    if (min < 1) return 'щойно';
+    if (min < 60) return min + ' хв тому';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + ' год тому';
+    const day = Math.floor(hr / 24);
+    if (day === 1) return 'вчора';
+    if (day < 7) return day + ' дн. тому';
+    const d = new Date(ts); return this._dmy(d);
+  }
 
   // ---------- export ----------
   exportHouses(){
@@ -1981,10 +2008,17 @@ class Component extends DCLogic {
       onMeName: (e) => this.onMeName(e),
       roleLeadBg: s.role === 'lead' ? 'var(--primary)' : 'var(--surface)', roleLeadFg: s.role === 'lead' ? '#fff' : 'var(--ink)',
       roleWorkerBg: s.role === 'worker' ? 'var(--primary)' : 'var(--surface)', roleWorkerFg: s.role === 'worker' ? '#fff' : 'var(--ink)',
-      // синхронізація (Фаза 2)
+      // синхронізація (Фаза 2/B)
       importSyncFile: () => this.importBase(),
       exportPackage: () => this.exportPackage(), exportAssignment: () => this.exportAssignment(),
       fieldCount: this.db ? this.db.readings.filter(r => r.src === 'field').length : 0,
+      pendingCount: this._pendingCount(), hasPending: this._pendingCount() > 0,
+      pendingBadge: this._pendingCount() > 99 ? '99+' : String(this._pendingCount()),
+      pendingDot: this._pendingCount() > 0 ? '#D4A017' : 'var(--over)',
+      lastSyncTxt: s.lastSyncAt ? this._agoTxt(s.lastSyncAt) : '',
+      syncStatus: (() => { const n = this._pendingCount();
+        if (n > 0) return 'Очікують вигрузки: ' + n + ' показань' + (s.lastSyncAt ? ' · востаннє ' + this._agoTxt(s.lastSyncAt) : '');
+        return s.lastSyncAt ? ('Усе вигружено · востаннє ' + this._agoTxt(s.lastSyncAt)) : 'Ще нічого не вигружено'; })(),
       assignRows: (this.db && this.db.boilers ? this.db.boilers : []).map(bl => ({
         boiler: bl, worker: (s.assignments || {})[bl] || '', onInput: (e) => this.onAssignInput(bl, e) })),
       showNav: !s.booting && s.hasData && !s.detailId,
