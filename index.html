@@ -650,6 +650,26 @@
             <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:12px;padding:10px 12px;margin-bottom:13px;font-size:var(--t120);font-weight:600;color:var(--debt)">{{ eWarn }}</div>
           </sc-if>
 
+          <!-- фото лічильника -->
+          <div style="border:1px solid var(--line2);border-radius:14px;padding:13px;margin-bottom:13px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div style="font-size:var(--t125);font-weight:800;color:var(--ink)">Фото лічильника</div>
+              <button onClick="{{ openEntryPhotos }}" style="display:flex;align-items:center;gap:6px;height:36px;padding:0 13px;border-radius:11px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t115);font-weight:700;cursor:pointer">＋ Додати фото</button>
+            </div>
+            <input id="entryPhotoInput" type="file" accept="image/*" multiple="{{ true }}" onChange="{{ onEntryPhotos }}" style="display:none">
+            <sc-if value="{{ hasEntryPhotos }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{ entryPhotos }}" as="ph" hint-placeholder-count="3">
+                <div style="position:relative;width:76px;height:76px;border-radius:10px;overflow:hidden;border:1px solid var(--line2)">
+                  <img onClick="{{ ph.view }}" src="{{ ph.url }}" alt="фото лічильника" style="width:100%;height:100%;object-fit:cover;cursor:pointer">
+                  <button onClick="{{ ph.remove }}" style="position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;border:none;background:rgba(0,0,0,.6);color:#fff;font-size:13px;font-weight:800;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+                </div>
+              </sc-for>
+            </div>
+            </sc-if>
+            <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);margin-top:8px">{{ entryPhotoHint }}</div>
+          </div>
+
           <button onClick="{{ saveReading }}" disabled="{{ eSaveDisabled }}" style="width:100%;height:52px;border-radius:15px;border:none;background:{{ eSaveBg }};color:#fff;font-size:var(--t145);font-weight:800;cursor:pointer;margin-bottom:9px">Зберегти у архів</button>
           <div style="display:flex;gap:9px">
             <button onClick="{{ resetStubFields }}" style="flex:1;height:42px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Очистити форму</button>
@@ -663,9 +683,18 @@
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:10px">Архів</div>
           <div style="display:flex;flex-direction:column;gap:7px">
             <sc-for list="{{ entryArchive }}" as="a" hint-placeholder-count="3">
-              <div style="display:flex;justify-content:space-between;background:var(--chipBg);border-radius:10px;padding:8px 12px">
-                <span class="tnum" style="font-size:var(--t120);font-weight:600;color:var(--ink)">{{ a.date }}</span>
-                <span class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ a.gcal }} Гкал</span>
+              <div style="background:var(--chipBg);border-radius:10px;padding:8px 12px">
+                <div style="display:flex;justify-content:space-between">
+                  <span class="tnum" style="font-size:var(--t120);font-weight:600;color:var(--ink)">{{ a.date }}</span>
+                  <span class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ a.gcal }} Гкал</span>
+                </div>
+                <sc-if value="{{ a.hasPhotos }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px">
+                  <sc-for list="{{ a.photos }}" as="ph" hint-placeholder-count="1">
+                    <img onClick="{{ ph.view }}" src="{{ ph.url }}" alt="фото лічильника" style="width:48px;height:48px;border-radius:7px;object-fit:cover;border:1px solid var(--line2);cursor:pointer">
+                  </sc-for>
+                </div>
+                </sc-if>
               </div>
             </sc-for>
             <sc-if value="{{ entryArchiveEmpty }}" hint-placeholder-val="{{ false }}">
@@ -722,6 +751,13 @@
                 <span>різн. <b style="color:{{ r.fg }}">{{ r.diff }}</b></span>
                 <span>t {{ r.tAvg }}°</span>
               </div>
+              <sc-if value="{{ r.hasPhotos }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
+                <sc-for list="{{ r.photos }}" as="ph" hint-placeholder-count="1">
+                  <img onClick="{{ ph.view }}" src="{{ ph.url }}" alt="фото лічильника" style="width:54px;height:54px;border-radius:8px;object-fit:cover;border:1px solid var(--line2);cursor:pointer">
+                </sc-for>
+              </div>
+              </sc-if>
             </div>
           </sc-for>
           <sc-if value="{{ detailHistEmpty }}" hint-placeholder-val="{{ false }}">
@@ -734,6 +770,14 @@
         <button onClick="{{ detail.prev }}" style="flex:1;height:48px;border-radius:13px;border:1px solid var(--inputBd);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;white-space:nowrap;padding:0 6px">← Попер.</button>
         <button onClick="{{ detail.next }}" style="flex:1;height:48px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t120);font-weight:700;cursor:pointer;white-space:nowrap;padding:0 6px">Наступн. →</button>
       </div>
+    </div>
+    </sc-if>
+
+    <!-- ============ PHOTO LIGHTBOX (overlay) ============ -->
+    <sc-if value="{{ hasPhotoView }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePhoto }}" style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:40;background:rgba(0,0,0,.9);display:flex;align-items:center;justify-content:center;padding:16px">
+      <img src="{{ photoView }}" alt="фото лічильника" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain">
+      <button onClick="{{ closePhoto }}" style="position:absolute;top:14px;right:14px;width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:20px;font-weight:800;line-height:1;cursor:pointer">✕</button>
     </div>
     </sc-if>
 
@@ -763,7 +807,7 @@ class Component extends DCLogic {
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '',
-    eNoConsumption: false,
+    eNoConsumption: false, entryPhotos: [], photoView: null,
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -1262,7 +1306,7 @@ class Component extends DCLogic {
       tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
       tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
       tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
-      eCur: '', savedDovidnyk: false, ePrevSel: '',
+      eCur: '', savedDovidnyk: false, ePrevSel: '', entryPhotos: [],
       // тривалість рахується автоматично від попереднього до поточного вимірювання
       eDur: this._autoDur(this.state.eDate, this.state.eTime || this._nowHM(), h)
     };
@@ -1432,6 +1476,49 @@ class Component extends DCLogic {
     const pct = q ? this.r2(diff/q*100) : null;
     return { prev, cur, delta, gcal, q, diff, pct, valid: cur >= prev };
   }
+  // ---------- фото лічильника ----------
+  openEntryPhotos(){ const el = document.getElementById('entryPhotoInput'); if (el) { el.value = ''; el.click(); } }
+  async onEntryPhotos(e){
+    const files = Array.from((e.target && e.target.files) || []);
+    if (e.target) e.target.value = '';
+    const MAX = 8;
+    for (const f of files){
+      if (!/^image\//.test(f.type)) continue;
+      if (this.state.entryPhotos.length >= MAX) break;
+      try {
+        const url = await this._downscaleImage(f);
+        const id = (this._photoSeq = (this._photoSeq || 0) + 1);
+        this.setState(st => ({ entryPhotos: [...st.entryPhotos, { id, url }] }));
+      } catch (err) {}
+    }
+  }
+  removeEntryPhoto(id){ this.setState(st => ({ entryPhotos: st.entryPhotos.filter(p => p.id !== id) })); }
+  viewPhoto(url){ this.setState({ photoView: url }); }
+  closePhoto(){ this.setState({ photoView: null }); }
+  // Зменшуємо фото до розміру, достатнього щоб розібрати показник (довша сторона
+  // ≤ 1280 px, JPEG q≈0.72) — щоб не роздувати сховище.
+  _downscaleImage(file, maxEdge = 1280, quality = 0.72){
+    return new Promise((resolve, reject) => {
+      const draw = (src, w, h) => {
+        const scale = Math.min(1, maxEdge / Math.max(w || 1, h || 1));
+        const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+        const cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+        cv.getContext('2d').drawImage(src, 0, 0, cw, ch);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      };
+      const viaImg = () => {
+        const img = new Image();
+        img.onload = () => { draw(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(img.src); };
+        img.onerror = reject; img.src = URL.createObjectURL(file);
+      };
+      if (window.createImageBitmap) {
+        createImageBitmap(file, { imageOrientation: 'from-image' })
+          .then(bmp => { draw(bmp, bmp.width, bmp.height); if (bmp.close) bmp.close(); })
+          .catch(viaImg);
+      } else viaImg();
+    });
+  }
+
   saveReading(){
     const h = this._entryHouse(); const pv = this._entryPreview();
     if (!h || !pv || !pv.valid) return;
@@ -1447,7 +1534,8 @@ class Component extends DCLogic {
       // додаткові показники приладів
       voda: this.num(s.tblVodCur), robota: this.num(s.tblNarCur), prostiy: this.num(s.tblProstCur),
       vodomir: this.num(s.tblVod2Cur), vytraty: this.num(s.sVytraty), potuzhnist: this.num(s.sPotuzhnist),
-      tVhid: this.num(s.sTempVhid), tVyhid: this.num(s.sTempVyhid)
+      tVhid: this.num(s.sTempVhid), tVyhid: this.num(s.sTempVyhid),
+      photos: (s.entryPhotos || []).map(p => p.url)
     });
     // оновлюємо «останні збережені» показники в довіднику → стануть «попередніми» наступного разу
     if (!s.eControl) {
@@ -1459,7 +1547,7 @@ class Component extends DCLogic {
     }
     this._persist();
     // t середньодобова і t приміщення НЕ скидаємо (вводяться один раз, за потреби коригуються)
-    this.setState({ ...this._entryPatchFor(h), eDate: this._todayISO(), eTime: this._nowHM(),
+    this.setState({ ...this._entryPatchFor(h), entryPhotos: [], eDate: this._todayISO(), eTime: this._nowHM(),
       eControl: false, importOpen: true, importName: h.code, importMeta: 'показання збережено', rev: this.state.rev + 1 });
   }
 
@@ -1628,6 +1716,7 @@ class Component extends DCLogic {
       goEntry: () => this.goEntry(),
       goHouses: () => this.goHouses(),
       isOverview: false, isHouses: false, isAnalytics: false, isEntry: false, isDetail: false,
+      photoView: s.photoView || '', hasPhotoView: !!s.photoView, closePhoto: () => this.closePhoto(),
       showNav: !s.booting && s.hasData && !s.detailId,
       tabs: [['overview','📊','Огляд'],['houses','🏢','Будинки'],['analytics','📈','Аналітика'],['entry','✎','Ввід']]
         .map(t => ({ icon: t[1], label: t[2], tap: () => this.setTab(t[0]),
@@ -1672,6 +1761,11 @@ class Component extends DCLogic {
       addNewHouse: () => this.addNewHouse(),
       onEDur: (e) => this.onEDur(e), onETavg: (e) => this.onETavg(e), onECur: (e) => this.onECur(e),
       saveReading: () => this.saveReading(),
+      onEntryPhotos: (e) => this.onEntryPhotos(e), openEntryPhotos: () => this.openEntryPhotos(),
+      hasEntryPhotos: (s.entryPhotos || []).length > 0,
+      entryPhotoHint: (s.entryPhotos || []).length ? ((s.entryPhotos.length) + ' з 8 · торкніться, щоб переглянути') : 'до 8 фото · камера або галерея',
+      entryPhotos: (s.entryPhotos || []).map(p => ({ id: p.id, url: p.url,
+        remove: () => this.removeEntryPhoto(p.id), view: () => this.viewPhoto(p.url) })),
       ePreview: !!pv,
       eWarn: (pv && !pv.valid) ? ('Поточний показник менший за попередній (' + this.fmt(pv.prev, 3) + ')') : '',
       eSaveDisabled: !(pv && pv.valid),
@@ -1721,7 +1815,9 @@ class Component extends DCLogic {
         };
       })(),      entryArchive: eh ? this.db.readings.filter(r => r.houseId === eh.id && !r.isControl)
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
-        .slice(0, 6).map(r => ({ date: r.date || '—', gcal: this.fmt(r.gcal, 2) })) : [],
+        .slice(0, 6).map(r => ({ date: r.date || '—', gcal: this.fmt(r.gcal, 2),
+          hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
+          photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) })) })) : [],
       entryArchiveEmpty: !eh || !this.db.readings.some(r => r.houseId === eh.id && !r.isControl)
     });
     {
@@ -1813,7 +1909,9 @@ class Component extends DCLogic {
         date: r.isControl ? 'Контрольне' : (r.date || '—'),
         gcal: this.fmt(r.gcal, 3), q: this.fmt(r.q, 3), diff: this.fmt(r.diff, 3),
         tAvg: this.fmt(r.tAvg, 1), pct: this.pctTxt(r.pct),
-        fg: r.diff > 0 ? COVER : CECON, bg: r.diff > 0 ? tintOver : tintEcon
+        fg: r.diff > 0 ? COVER : CECON, bg: r.diff > 0 ? tintOver : tintEcon,
+        hasPhotos: !!(r.photos && r.photos.length),
+        photos: (r.photos || []).map(u => ({ url: u, view: () => this.viewPhoto(u) }))
       }));
       return out;
     }
