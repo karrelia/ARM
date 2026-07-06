@@ -101,8 +101,11 @@
         <div style="width:84px;height:84px;border-radius:24px;background:var(--primTint);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:42px;margin-bottom:20px">🔥</div>
         <div style="font-size:var(--t200);font-weight:800;color:var(--ink);margin-bottom:8px">Базу ще не завантажено</div>
         <div style="font-size:var(--t135);font-weight:500;color:var(--muted);line-height:1.5;max-width:340px;margin-bottom:22px">Імпортуйте книгу ЗБЛ (.xlsm / .xlsx) з будинками та показаннями — і ви побачите облік теплової енергії, нормативний розрахунок і аналітику. Дані обробляються лише на вашому пристрої.</div>
+        <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ cloudLoadBase }}" disabled="{{ cloudBusy }}" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 24px;border-radius:15px;border:none;background:var(--primary);color:#fff;font-size:var(--t150);font-weight:800;cursor:pointer;margin-bottom:12px">⤵ Завантажити базу з сервера</button>
+        </sc-if>
         <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
-          <button onClick="{{ importBase }}" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 24px;border-radius:15px;border:none;background:var(--primary);color:#fff;font-size:var(--t150);font-weight:800;cursor:pointer">↧ Завантажити базу</button>
+          <button onClick="{{ importBase }}" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 24px;border-radius:15px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t140);font-weight:700;cursor:pointer">↧ Імпорт файлу (.xlsx)</button>
           <button onClick="{{ loadDemo }}" style="display:flex;align-items:center;gap:9px;height:52px;padding:0 22px;border-radius:15px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t140);font-weight:700;cursor:pointer">Демо-дані</button>
         </div>
       </div>
@@ -844,9 +847,27 @@
         <input value="{{ meName }}" onInput="{{ onMeName }}" placeholder="напр. Іван Коваль" style="width:100%;height:48px;padding:0 14px;border:1px solid var(--inputBd);border-radius:13px;background:var(--inputBg);color:var(--ink);font-size:var(--t135);font-weight:600">
         <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:10px">Кожне зняте показання підписується цим ім'ям і часом — так старший бачить, хто що зібрав.</div>
 
-        <!-- синхронізація (обмін файлами) -->
+        <!-- синхронізація з власним сервером (Фаза B) -->
+        <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
         <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:15px">
-          <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:10px">Синхронізація (обмін файлами)</div>
+          <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--over)"></span>
+            <div style="font-size:var(--t120);font-weight:700;color:var(--muted)">Сервер підключено</div>
+          </div>
+          <button onClick="{{ cloudSync }}" disabled="{{ cloudBusy }}" style="width:100%;height:48px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t130);font-weight:800;cursor:pointer;margin-bottom:9px">{{ cloudSyncLabel }}</button>
+          <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ cloudPublishBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤴ Опублікувати базу на сервер</button>
+          </sc-if>
+          <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ cloudLoadBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити базу з сервера</button>
+          </sc-if>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2)">Дані вводяться офлайн (у підвалі без зв'язку) і зберігаються локально. Там, де є мережа, натисніть «Синхронізувати» — черга піде на сервер, а ви отримаєте оновлення від інших.</div>
+        </div>
+        </sc-if>
+
+        <!-- синхронізація файлами (резервний спосіб) -->
+        <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:15px">
+          <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:10px">Обмін файлами (без сервера)</div>
           <button onClick="{{ importSyncFile }}" style="width:100%;height:46px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:700;cursor:pointer;margin-bottom:9px">↥ Імпорт файлу (завдання / пакет)</button>
 
           <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
@@ -913,6 +934,7 @@ class Component extends DCLogic {
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0,
+    cloud: false, cloudBusy: false,
     mAddress: '', mOwner: '', mAccount: '', mSettlement: '', mBoiler: '',
     detailId: null, anBoiler: null, anMetric: 'gcal', housesBuilding: null,
     // --- паспортні поля приладів обліку (заглушки UI, довести логіку пізніше в Code) ---
@@ -994,6 +1016,62 @@ class Component extends DCLogic {
         this.setState({ booting: false, hasData: false });
       }
     }).catch(() => this.setState({ booting: false, hasData: false }));
+    this._cloudCheck();
+  }
+  // ---------- власний сервер (Фаза B): офлайн-перший, синхронізація по команді ----------
+  _cloudCheck(){
+    if (typeof fetch !== 'function') return;
+    fetch('/api/ping', { cache: 'no-store' }).then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && d.ok) this.setState({ cloud: true }); }).catch(() => {});
+  }
+  async cloudSync(){
+    if (!this.db || this.state.cloudBusy) return;
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const accById = {}; this.db.houses.forEach(h => { accById[h.id] = h.account; });
+      const push = this.db.readings.filter(r => r.src === 'field' && !r.synced)
+        .map(r => { const o = { ...r, account: accById[r.houseId] || '' }; delete o.houseId; return o; });
+      const payload = { role: this.state.role, by: this.state.me || '', baseSig: this._baseSig(), readings: push };
+      if (this.state.role === 'lead') payload.assignments = this.state.assignments || {};
+      const resp = await fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const data = await resp.json();
+      const res = this._mergeReadings(data.readings || []);
+      this.db.readings.forEach(r => { if (r.src === 'field') r.synced = true; });
+      if (this.state.role !== 'lead' && data.assignments) this.state.assignments = data.assignments;
+      this._persist();
+      this._saveSettings({ lastSyncAt: Date.now(), assignments: this.state.assignments });
+      this.setState({ cloudBusy: false, settingsOpen: false, importOpen: true, importName: 'Синхронізація з сервером',
+        importMeta: 'надіслано ' + push.length + ' · отримано +' + res.added + ' нових' + (data.warnBase ? ' · ⚠ інша база' : ''), rev: this.state.rev + 1 });
+    } catch (err) {
+      this.setState({ cloudBusy: false, importError: 'Синхронізація не вдалася: ' + (err && err.message ? err.message : err) });
+    }
+  }
+  async cloudPublishBase(){
+    if (!this.db || this.state.cloudBusy) return;
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const resp = await fetch('/api/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ houses: this.db.houses, boilers: this.db.boilers, baseSig: this._baseSig(), savedAt: this.db.savedAt }) });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const d = await resp.json();
+      this.setState({ cloudBusy: false, settingsOpen: false, importOpen: true, importName: 'Публікація бази', importMeta: 'на сервері: ' + d.houses + ' будинків' });
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося опублікувати базу: ' + (err && err.message ? err.message : err) }); }
+  }
+  async cloudLoadBase(){
+    if (this.state.cloudBusy) return;
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const resp = await fetch('/api/base', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const d = await resp.json();
+      if (!d.hasBase) throw new Error('на сервері ще немає бази — старший має її опублікувати');
+      this.db = { houses: d.houses, readings: [], boilers: d.boilers || [], baseSig: d.baseSig, baseDate: this._todayISO(), savedAt: Date.now() };
+      this._persist();
+      if (d.assignments) this._saveSettings({ assignments: d.assignments });
+      this.setState({ cloudBusy: false, hasData: true, booting: false, tab: 'overview', settingsOpen: false,
+        importOpen: true, importName: 'База з сервера', importMeta: d.houses.length + ' будинків' });
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + (err && err.message ? err.message : err) }); }
   }
   _saveSettings(patch){
     const s = this.state;
@@ -2016,6 +2094,9 @@ class Component extends DCLogic {
       pendingBadge: this._pendingCount() > 99 ? '99+' : String(this._pendingCount()),
       pendingDot: this._pendingCount() > 0 ? '#D4A017' : 'var(--over)',
       lastSyncTxt: s.lastSyncAt ? this._agoTxt(s.lastSyncAt) : '',
+      cloud: !!s.cloud, cloudBusy: !!s.cloudBusy,
+      cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(),
+      cloudSyncLabel: s.cloudBusy ? 'Синхронізація…' : ('☁ Синхронізувати з сервером (' + this._pendingCount() + ')'),
       syncStatus: (() => { const n = this._pendingCount();
         if (n > 0) return 'Очікують вигрузки: ' + n + ' показань' + (s.lastSyncAt ? ' · востаннє ' + this._agoTxt(s.lastSyncAt) : '');
         return s.lastSyncAt ? ('Усе вигружено · востаннє ' + this._agoTxt(s.lastSyncAt)) : 'Ще нічого не вигружено'; })(),
