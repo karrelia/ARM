@@ -99,6 +99,9 @@ if ('serviceWorker' in navigator) {
         <div style="display:flex;align-items:center;gap:10px;margin-top:12px;background:var(--overTint);border:1px solid var(--over);border-radius:13px;padding:10px 12px">
           <span style="flex-shrink:0;width:24px;height:24px;border-radius:50%;background:var(--over);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800">✓</span>
           <div style="flex:1;min-width:0;font-size:var(--t120);font-weight:600;color:var(--ink)">Базу «<b class="tnum">{{ importName }}</b>» завантажено · {{ importMeta }}</div>
+          <sc-if value="{{ importActionLabel }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ importAction }}" style="flex-shrink:0;height:32px;padding:0 13px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:var(--t115);font-weight:800;cursor:pointer">{{ importActionLabel }}</button>
+          </sc-if>
           <button onClick="{{ dismissImport }}" style="flex-shrink:0;width:28px;height:28px;border-radius:9px;border:none;background:none;color:var(--muted);font-size:var(--t150);cursor:pointer;padding:0">✕</button>
         </div>
       </sc-if>
@@ -585,6 +588,8 @@ if ('serviceWorker' in navigator) {
         </div><div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Показання і розрахунок</div>
 
+          <!-- контрольне вимірювання не належить до звітного місяця — селектор ховаємо -->
+          <sc-if value="{{ eShowDate }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex;gap:11px;margin-bottom:12px">
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Звітний місяць</span>
@@ -599,6 +604,7 @@ if ('serviceWorker' in navigator) {
               </div>
             </label>
           </div>
+          </sc-if>
 
           <label style="display:flex;align-items:center;gap:9px;margin-bottom:10px;cursor:pointer">
             <input type="checkbox" checked="{{ eControl }}" onChange="{{ onEControl }}" style="width:18px;height:18px">
@@ -779,9 +785,15 @@ if ('serviceWorker' in navigator) {
           <div style="display:flex;flex-direction:column;gap:7px">
             <sc-for list="{{ entryArchive }}" as="a" hint-placeholder-count="3">
               <div style="background:var(--chipBg);border-radius:10px;padding:8px 12px">
-                <div style="display:flex;justify-content:space-between">
+                <div style="display:flex;align-items:center;gap:8px">
                   <span class="tnum" style="font-size:var(--t120);font-weight:600;color:var(--ink)">{{ a.date }}</span>
-                  <span class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ a.gcal }} Гкал</span>
+                  <sc-if value="{{ a.by }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:var(--t100);font-weight:600;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">· {{ a.by }}</span>
+                  </sc-if>
+                  <span class="tnum" style="margin-left:auto;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ a.gcal }} Гкал</span>
+                  <sc-if value="{{ a.canDel }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ a.del }}" title="Видалити показання" style="flex-shrink:0;width:26px;height:26px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:13px;font-weight:800;cursor:pointer;padding:0;line-height:1">✕</button>
+                  </sc-if>
                 </div>
                 <sc-if value="{{ a.hasPhotos }}" hint-placeholder-val="{{ false }}">
                 <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px">
@@ -792,6 +804,9 @@ if ('serviceWorker' in navigator) {
                 </sc-if>
               </div>
             </sc-for>
+            <sc-if value="{{ entryArchMoreN }}" hint-placeholder-val="{{ false }}">
+              <button onClick="{{ toggleArchAll }}" style="width:100%;height:38px;border-radius:10px;border:1px dashed var(--line2);background:none;color:var(--primary);font-size:var(--t115);font-weight:700;cursor:pointer">Показати всі (ще {{ entryArchMoreN }}) ▾</button>
+            </sc-if>
             <sc-if value="{{ entryArchiveEmpty }}" hint-placeholder-val="{{ false }}">
               <div style="text-align:center;color:var(--muted);font-size:var(--t120);font-weight:600;padding:10px 0">Показань ще немає</div>
             </sc-if>
@@ -1134,10 +1149,10 @@ class Component extends DCLogic {
     tab: 'overview', theme: 'light', fontScale: 1,
     booting: true, hasData: false, rev: 0,
     ovMonth: null, ovShowUnsub: false, ovShowPov: false,
-    importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '',
+    importBusy: false, importError: '', importOpen: false, importName: '', importMeta: '', importActionLabel: '',
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
-    entrySearchOpen: false, entrySearchQ: '',
+    entrySearchOpen: false, entrySearchQ: '', entryArchAll: false,
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
@@ -1160,6 +1175,19 @@ class Component extends DCLogic {
     sVytraty: '', sPotuzhnist: '', sTempVhid: '', sTempVyhid: '',
     tblVod2Prev: '', tblVod2Cur: '', sVidхRuchne: ''
   };
+
+  // Перехоплення setState: успішні тости (importOpen) ховаються самі — без
+  // сотень зайвих тапів по ✕ за день. Помилки (importError) лишаються до
+  // закриття. Тост із кнопкою дії («Наступний ›») живе довше.
+  setState(patch, cb){
+    if (patch && typeof patch === 'object' && patch.importOpen === true) {
+      if (!patch.importActionLabel) patch.importActionLabel = '';   // не тягнемо стару кнопку в новий тост
+      clearTimeout(this._toastT);
+      const ms = patch.importActionLabel ? 8000 : 4000;
+      this._toastT = setTimeout(() => { if (this.state.importOpen) super.setState({ importOpen: false, importActionLabel: '' }); }, ms);
+    }
+    super.setState(patch, cb);
+  }
 
   // ---------- generic stub-field binding (UI only, не бере участі у формулах) ----------
   setField(key){
@@ -1321,7 +1349,10 @@ class Component extends DCLogic {
     }
     const uid = this._session();
     const authUser = uid ? (users || []).find(u => u.id === uid) || null : null;
-    this.setState({ users: users || [], authChecked: true, authUser });
+    // на екрані входу одразу підставляємо останнього користувача цього пристрою
+    let lastSel = '';
+    try { const lu = localStorage.getItem('armLastUser'); if (lu && (users || []).some(u => u.id === lu)) lastSel = lu; } catch(e){}
+    this.setState({ users: users || [], authChecked: true, authUser, ...(lastSel && !this.state.loginSel ? { loginSel: lastSel } : {}) });
     if (authUser) this._applyIdentity(authUser);
   }
   // логін визначає особу: ім'я → підпис показань, роль (адмін = Старший)
@@ -1350,10 +1381,16 @@ class Component extends DCLogic {
     if (!pin) { this.setState({ authError: 'Введіть PIN' }); return; }
     if (this._hashPin(u.salt, pin) !== u.pinHash) { this.setState({ authError: 'Невірний PIN' }); return; }
     this._session(u.id);
+    try { localStorage.setItem('armLastUser', u.id); } catch(e){}   // щоранку той самий робітник — той самий вибір
     this.setState({ authUser: u, loginPin: '', authError: '' });
     this._applyIdentity(u);
   }
-  logout(){ this._session(null); this.setState({ authUser: null, adminOpen: false, settingsOpen: false, loginPin: '', loginSel: '', authError: '' }); }
+  logout(){
+    const uid = this.state.authUser ? this.state.authUser.id : '';
+    this._session(null);
+    // залишаємо щойно-вийшлого обраним у списку входу — зазвичай входить та сама людина
+    this.setState({ authUser: null, adminOpen: false, settingsOpen: false, loginPin: '', loginSel: uid, authError: '' });
+  }
   async createFirstAdmin(){
     const name = (this.state.foName || '').trim();
     const pin = (this.state.foPin || '').trim();
@@ -1462,6 +1499,15 @@ class Component extends DCLogic {
   }
   async cloudLoadBase(){
     if (this.state.cloudBusy) return;
+    // ЗАПОБІЖНИК: заміна бази стирає локальні показання. Якщо є незвигружена
+    // черга — вимагаємо явного підтвердження, інакше один хибний тап знищить
+    // день роботи (введене в підвалі ще не на сервері!).
+    const pend = this._pendingCount();
+    if (pend > 0 && !(typeof window !== 'undefined' && window.confirm
+      && window.confirm('У вас ' + pend + ' незвигружених показань — заміна бази їх ВИДАЛИТЬ назавжди.\n\nСпочатку зробіть «Синхронізувати з сервером»!\n\nВсе одно замінити базу і втратити ' + pend + ' показань?'))) {
+      this.setState({ importError: 'Заміну бази скасовано: спочатку синхронізуйте ' + pend + ' незвигружених показань.' });
+      return;
+    }
     this.setState({ cloudBusy: true, importError: '' });
     try {
       const resp = await fetch(this._apiBase + '/base', { cache: 'no-store' });
@@ -1709,7 +1755,7 @@ class Component extends DCLogic {
     });
     return this._xlsxPromise;
   }
-  dismissImport(){ this.setState({ importOpen: false, importError: '' }); }
+  dismissImport(){ this.setState({ importOpen: false, importError: '', importActionLabel: '' }); }
 
   // ---------- import: база (.xlsx/.xlsm) або файл синхронізації (.json) ----------
   onImportFile(e){
@@ -1724,6 +1770,14 @@ class Component extends DCLogic {
       const isZip = buf.length > 1 && buf[0] === 0x50 && buf[1] === 0x4B;
       if (isZip) {
         try {
+          // ЗАПОБІЖНИК: імпорт книги повністю замінює базу разом із локальними
+          // показаннями — не даємо мовчки знищити незвигружену чергу
+          const pend = this._pendingCount();
+          if (pend > 0 && !(typeof window !== 'undefined' && window.confirm
+            && window.confirm('У вас ' + pend + ' незвигружених показань — імпорт нової бази їх ВИДАЛИТЬ назавжди.\n\nСпочатку синхронізуйте або вигрузіть чергу файлом!\n\nВсе одно імпортувати і втратити ' + pend + ' показань?'))) {
+            this.setState({ importBusy: false, importError: 'Імпорт скасовано: спочатку вигрузіть ' + pend + ' незвигружених показань.' });
+            return;
+          }
           await this._ensureXlsx();   // підвантажуємо SheetJS на вимогу
           const wb = window.XLSX.read(buf, { type: 'array' });
           const db = this._parseWorkbook(wb);
@@ -2388,6 +2442,20 @@ class Component extends DCLogic {
     }
   }
   removeEntryPhoto(id){ this.setState(st => ({ entryPhotos: st.entryPhotos.filter(p => p.id !== id) })); }
+  // Видалення помилкового ПОЛЬОВОГО показання (записи з книги — недоторканні).
+  // Робітник видаляє лише свої; старший — будь-які польові.
+  deleteReading(id){
+    const r = (this.db && this.db.readings || []).find(x => x.id === id);
+    if (!r || r.src !== 'field') return;
+    const s = this.state;
+    if (s.role !== 'lead' && r.by && s.me && r.by !== s.me) return;
+    let msg = 'Видалити показання за ' + (r.date || 'без дати') + ' (' + this.fmt(r.cur, 3) + ')?';
+    if (r.synced) msg += '\n\nВоно ВЖЕ на сервері — там воно залишиться, доки ви не введете нове показання за цей самий місяць (нове перезапише старе).';
+    if (typeof window !== 'undefined' && window.confirm && !window.confirm(msg)) return;
+    this.db.readings = this.db.readings.filter(x => x.id !== id);
+    this._persist();
+    this.setState({ rev: this.state.rev + 1, importOpen: true, importName: 'показання', importMeta: 'видалено' });
+  }
   viewPhoto(url){ this.setState({ photoView: url }); }
   closePhoto(){ this.setState({ photoView: null }); }
   // Джерело для <img>: локальне фото — це data:URL (показуємо як є, працює офлайн);
@@ -2450,9 +2518,16 @@ class Component extends DCLogic {
       if (has(s.tblVod2Cur)) h.prevVodomir = this.num(s.tblVod2Cur);
     }
     this._persist();
+    // робітник іде по підвалу прилад за приладом — одразу пропонуємо наступний
+    const key = this._houseBuildingKey(h);
+    const meters = this.db.houses.filter(x => this._houseBuildingKey(x) === key).sort((a,b) => a.code.localeCompare(b.code, 'uk'));
+    const mIdx = meters.findIndex(x => x.id === h.id);
+    const hasNext = mIdx !== -1 && mIdx < meters.length - 1;
+    this._importAction = hasNext ? (() => this.entryStep(1)) : null;
     // t середньодобова і t приміщення НЕ скидаємо (вводяться один раз, за потреби коригуються)
     this.setState({ ...this._entryPatchFor(h), entryPhotos: [], eDate: this._todayISO(), eTime: this._nowHM(),
-      eControl: false, importOpen: true, importName: h.code, importMeta: 'показання збережено', rev: this.state.rev + 1 });
+      eControl: false, importOpen: true, importName: h.code, importMeta: 'показання збережено',
+      importActionLabel: hasNext ? 'Наступний ›' : '', rev: this.state.rev + 1 });
   }
 
   // ---------- analytics ----------
@@ -2629,6 +2704,9 @@ class Component extends DCLogic {
       toggleTheme: () => this.toggleTheme(),
       cycleFont: () => this.cycleFont(),
       dismissImport: () => this.dismissImport(),
+      importActionLabel: s.importActionLabel || '',
+      importAction: () => { const f = this._importAction; this._importAction = null;
+        this.setState({ importOpen: false, importActionLabel: '' }); if (f) f(); },
       goEntry: () => this.goEntry(),
       goHouses: () => this.goHouses(),
       isOverview: false, isHouses: false, isAnalytics: false, isEntry: false, isDetail: false,
@@ -2845,12 +2923,23 @@ class Component extends DCLogic {
           vodDevFg: within ? CECON : COVER,
           vodDevBg: within ? tintEcon : tintOver
         };
-      })(),      entryArchive: eh ? this._houseReadings(eh.id).filter(r => !r.isControl)
-        .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)))
-        .slice(0, 6).map(r => { const g = this._rowGcal(r); return { date: r.date || '—',
-          gcal: g == null ? '—' : this.fmt(g, 2),
-          hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
-          photos: (r.photos || []).map(u => { const su = this._photoUrl(u); return { url: su, view: () => this.viewPhoto(su) }; }) }; }) : [],
+      })(),      ...((() => {
+        const arch = eh ? this._houseReadings(eh.id).filter(r => !r.isControl)
+          .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id))) : [];
+        const shown = s.entryArchAll ? arch : arch.slice(0, 6);
+        return {
+          entryArchive: shown.map(r => { const g = this._rowGcal(r);
+            const canDel = r.src === 'field' && (s.role === 'lead' || !r.by || !s.me || r.by === s.me);
+            return { date: r.date || '—',
+              gcal: g == null ? '—' : this.fmt(g, 2),
+              by: r.src === 'field' ? (r.by || '') : '',
+              canDel, del: () => this.deleteReading(r.id),
+              hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
+              photos: (r.photos || []).map(u => { const su = this._photoUrl(u); return { url: su, view: () => this.viewPhoto(su) }; }) }; }),
+          entryArchMoreN: (!s.entryArchAll && arch.length > 6) ? (arch.length - 6) : 0,
+          toggleArchAll: () => this.setState(st => ({ entryArchAll: !st.entryArchAll }))
+        };
+      })()),
       entryArchiveEmpty: !eh || !this.db.readings.some(r => r.houseId === eh.id && !r.isControl)
     });
     {
