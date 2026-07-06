@@ -47,7 +47,7 @@
           <button onClick="{{ importBase }}" title="Імпорт бази (.xlsx / .xlsm)" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;color:var(--ink)">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="7" ry="2.6"></ellipse><path d="M5 5v6c0 1.4 3.1 2.6 7 2.6"></path><path d="M19 5v4"></path><path d="M16 16l3 3 3-3"></path><path d="M19 19v-7"></path></svg>
           </button>
-          <input id="dbImportInput" type="file" accept=".xlsx,.xlsm,.xls" onChange="{{ onImportFile }}" style="display:none">
+          <input id="dbImportInput" type="file" accept=".xlsx,.xlsm,.xls,.json" onChange="{{ onImportFile }}" style="display:none">
           <button onClick="{{ toggleTheme }}" title="Тема" style="width:38px;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0">
             <span style="width:17px;height:17px;border-radius:50%;border:1.5px solid var(--ink);background:linear-gradient(90deg,var(--ink) 50%,transparent 50%);display:block"></span>
           </button>
@@ -803,7 +803,7 @@
     <sc-if value="{{ settingsOpen }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;z-index:42;display:flex;align-items:flex-end;justify-content:center">
       <div onClick="{{ closeSettings }}" style="position:absolute;inset:0;background:rgba(0,0,0,.45)"></div>
-      <div style="position:relative;width:100%;max-width:520px;background:var(--bg);border-radius:20px 20px 0 0;padding:20px 18px 28px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)">
+      <div style="position:relative;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;background:var(--bg);border-radius:20px 20px 0 0;padding:20px 18px 28px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <div style="font-size:var(--t150);font-weight:800;color:var(--ink)">Виконавець</div>
           <button onClick="{{ closeSettings }}" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t140);font-weight:800;cursor:pointer">✕</button>
@@ -816,6 +816,31 @@
         <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:8px">Ім'я (для підпису показань)</div>
         <input value="{{ meName }}" onInput="{{ onMeName }}" placeholder="напр. Іван Коваль" style="width:100%;height:48px;padding:0 14px;border:1px solid var(--inputBd);border-radius:13px;background:var(--inputBg);color:var(--ink);font-size:var(--t135);font-weight:600">
         <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:10px">Кожне зняте показання підписується цим ім'ям і часом — так старший бачить, хто що зібрав.</div>
+
+        <!-- синхронізація (обмін файлами) -->
+        <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:15px">
+          <div style="font-size:var(--t120);font-weight:700;color:var(--muted);margin-bottom:10px">Синхронізація (обмін файлами)</div>
+          <button onClick="{{ importSyncFile }}" style="width:100%;height:46px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:700;cursor:pointer;margin-bottom:9px">↥ Імпорт файлу (завдання / пакет)</button>
+
+          <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ exportPackage }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer">↧ Вигрузити пакет за день ({{ fieldCount }})</button>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Експортує ваші зняті показання (з фото) одним файлом — надішліть його старшому в месенджер.</div>
+          </sc-if>
+
+          <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:var(--t115);font-weight:700;color:var(--muted);margin:6px 0 8px">Розподіл котелень між робітниками</div>
+          <div class="scrl" style="max-height:230px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;margin-bottom:11px">
+            <sc-for list="{{ assignRows }}" as="a" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="flex:1;min-width:0;font-size:var(--t120);font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ a.boiler }}</span>
+                <input value="{{ a.worker }}" onInput="{{ a.onInput }}" placeholder="робітник" style="width:130px;flex-shrink:0;height:38px;padding:0 11px;border:1px solid var(--inputBd);border-radius:10px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);font-weight:600">
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ exportAssignment }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer">↧ Експорт завдання</button>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Роздайте цей файл робітникам. Пакети, що вони надішлють, імпортуйте кнопкою вище — показання зіллються у вашу базу.</div>
+          </sc-if>
+        </div>
       </div>
     </div>
     </sc-if>
@@ -1033,29 +1058,122 @@ class Component extends DCLogic {
   importBase(){ const el = document.getElementById('dbImportInput'); if (el) { el.value=''; el.click(); } }
   dismissImport(){ this.setState({ importOpen: false, importError: '' }); }
 
-  // ---------- import .xlsx / .xlsm ----------
+  // ---------- import: база (.xlsx/.xlsm) або файл синхронізації (.json) ----------
   onImportFile(e){
     const f = e.target && e.target.files && e.target.files[0];
     if (!f) return;
     this.setState({ importBusy: true, importError: '', importOpen: false, importName: f.name });
     const reader = new FileReader();
+    reader.onerror = () => this.setState({ importBusy: false, importError: 'Не вдалося прочитати файл' });
     reader.onload = () => {
-      try {
-        const buf = new Uint8Array(reader.result);
-        if (!window.XLSX) throw new Error('xlsx-бібліотека не завантажилась');
-        const wb = window.XLSX.read(buf, { type: 'array' });
-        const db = this._parseWorkbook(wb);
-        if (!db.houses.length) throw new Error('Не знайдено будинків (аркуш «Довідники», таблиця TabAbon)');
-        this.db = db; this._persist();
-        this.setState({ importBusy: false, importOpen: true, hasData: true, tab: 'overview',
-          importMeta: db.houses.length + ' будинків · ' + db.readings.length + ' показань' });
-      } catch (err) {
-        this.setState({ importBusy: false, importError: 'Помилка імпорту: ' + (err && err.message ? err.message : err) });
+      const buf = new Uint8Array(reader.result);
+      // визначаємо тип за вмістом: xlsx/xlsm — це ZIP («PK»); інакше — JSON синхронізації
+      const isZip = buf.length > 1 && buf[0] === 0x50 && buf[1] === 0x4B;
+      if (isZip) {
+        try {
+          if (!window.XLSX) throw new Error('xlsx-бібліотека не завантажилась');
+          const wb = window.XLSX.read(buf, { type: 'array' });
+          const db = this._parseWorkbook(wb);
+          if (!db.houses.length) throw new Error('Не знайдено будинків (аркуш «Довідники», таблиця TabAbon)');
+          this.db = db; this._persist();
+          this.setState({ importBusy: false, importOpen: true, hasData: true, tab: 'overview',
+            importMeta: db.houses.length + ' будинків · ' + db.readings.length + ' показань' });
+        } catch (err) {
+          this.setState({ importBusy: false, importError: 'Помилка імпорту: ' + (err && err.message ? err.message : err) });
+        }
+      } else {
+        try { this._applySync(JSON.parse(new TextDecoder('utf-8').decode(buf))); }
+        catch (err) { this.setState({ importBusy: false, importError: 'Помилка файлу синхронізації: ' + (err && err.message ? err.message : err) }); }
       }
     };
-    reader.onerror = () => this.setState({ importBusy: false, importError: 'Не вдалося прочитати файл' });
     reader.readAsArrayBuffer(f);
   }
+  // ---------- обмін файлами між пристроями (Фаза 2) ----------
+  // Підпис бази — щоб не змішати різні книги. Залежить від складу абонентів.
+  _baseSig(){
+    if (!this.db || !this.db.houses) return '';
+    const accs = this.db.houses.map(h => this._normAddr(h.account)).filter(Boolean).sort();
+    let hash = 0; const s = accs.join('|');
+    for (let i = 0; i < s.length; i++) hash = (Math.imul(hash, 31) + s.charCodeAt(i)) | 0;
+    return this.db.houses.length + '·' + (hash >>> 0).toString(36);
+  }
+  _applySync(obj){
+    if (!obj || typeof obj !== 'object') throw new Error('невідомий формат');
+    if (obj.type === 'arm-assign') return this._applyAssignment(obj);
+    if (obj.type === 'arm-package') return this._applyPackage(obj);
+    throw new Error('невідомий тип файлу');
+  }
+  _applyAssignment(obj){
+    const a = obj.assignments || {};
+    this._saveSettings({ assignments: a });
+    const n = Object.keys(a).filter(k => k[0] !== '#').length;
+    this.setState({ importBusy: false, importOpen: true, importName: 'Завдання',
+      importMeta: 'розподіл прийнято · котелень: ' + n + (obj.by ? ' · від ' + obj.by : '') });
+  }
+  _applyPackage(obj){
+    if (!this.db) throw new Error('спершу завантажте базу');
+    const warnBase = obj.baseSig && obj.baseSig !== this._baseSig();
+    const res = this._mergeReadings(obj.readings || []);
+    this._persist();
+    const parts = ['від ' + (obj.by || '?'), '+' + res.added + ' нових', res.updated + ' оновлено', res.conflicts + ' конфл.'];
+    if (warnBase) parts.push('⚠ інша база');
+    this.setState({ importBusy: false, importOpen: true, importName: 'Пакет показань',
+      importMeta: parts.join(' · '), rev: this.state.rev + 1 });
+  }
+  // Ідемпотентне зведення: ключ особовий+дата+контрольне; перемагає пізніше зняте.
+  _mergeReadings(incoming){
+    const byAcc = {}; this.db.houses.forEach(h => { const k = this._normAddr(h.account); if (k) byAcc[k] = h; });
+    let added = 0, updated = 0, conflicts = 0, skipped = 0;
+    const keyOf = (acc, date, ctrl) => this._normAddr(acc) + '|' + (date || '') + '|' + (ctrl ? 'k' : '');
+    const index = {};
+    this.db.readings.forEach(r => { const h = this.db.houses.find(x => x.id === r.houseId);
+      const acc = h ? h.account : ''; index[keyOf(acc, r.date, r.isControl)] = r; });
+    incoming.forEach(inc => {
+      const h = byAcc[this._normAddr(inc.account)];
+      if (!h) { skipped++; return; }                                  // абонента немає в базі
+      const k = keyOf(inc.account, inc.date, inc.isControl);
+      const ex = index[k];
+      const rec = { ...inc, houseId: h.id }; delete rec.account;
+      if (!ex) {
+        rec.id = (this.db.readings.reduce((m, r) => Math.max(m, r.id), 0) || 0) + 1;
+        this.db.readings.push(rec); index[k] = rec; added++;
+      } else {
+        const incAt = inc.at || 0, exAt = ex.at || 0;
+        const differ = ex.cur !== inc.cur || ex.prev !== inc.prev;
+        if (incAt > exAt) { Object.keys(rec).forEach(kk => { if (kk !== 'id') ex[kk] = rec[kk]; }); updated++; if (differ) conflicts++; }
+        else if (differ) conflicts++;
+      }
+    });
+    return { added, updated, conflicts, skipped };
+  }
+  exportPackage(){
+    if (!this.db) return;
+    const accById = {}; this.db.houses.forEach(h => { accById[h.id] = h.account; });
+    const readings = this.db.readings.filter(r => r.src === 'field')
+      .map(r => { const o = { ...r, account: accById[r.houseId] || '' }; delete o.houseId; return o; });
+    if (!readings.length) { this.setState({ importOpen: true, importName: 'Пакет', importMeta: 'немає польових показань для вигрузки' }); return; }
+    const pkg = { type: 'arm-package', baseSig: this._baseSig(), by: this.state.me || '', createdAt: new Date().toISOString(), count: readings.length, readings };
+    this._downloadText(JSON.stringify(pkg), 'paket-' + this._todayISO() + '.json');
+    this.setState({ settingsOpen: false, importOpen: true, importName: 'Пакет за день', importMeta: 'вигружено ' + readings.length + ' показань — надішліть старшому' });
+  }
+  exportAssignment(){
+    const pkg = { type: 'arm-assign', baseSig: this._baseSig(), by: this.state.me || '', createdAt: new Date().toISOString(), assignments: this.state.assignments || {} };
+    this._downloadText(JSON.stringify(pkg), 'zavdannia-' + this._todayISO() + '.json');
+    this.setState({ importOpen: true, importName: 'Завдання', importMeta: 'вигружено — надішліть робітникам' });
+  }
+  _downloadText(text, name){
+    try {
+      const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8;' }));
+      const a = document.createElement('a'); a.href = url; a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 500);
+    } catch (e) {}
+  }
+  setAssign(boiler, worker){
+    const a = { ...(this.state.assignments || {}) };
+    if (worker && worker.trim()) a[boiler] = worker.trim(); else delete a[boiler];
+    this._saveSettings({ assignments: a });
+  }
+  onAssignInput(boiler, e){ this.setAssign(boiler, e.target.value); }
 
   _sheetAOA(wb, name){
     let ws = wb.Sheets[name];
@@ -1819,6 +1937,12 @@ class Component extends DCLogic {
       onMeName: (e) => this.onMeName(e),
       roleLeadBg: s.role === 'lead' ? 'var(--primary)' : 'var(--surface)', roleLeadFg: s.role === 'lead' ? '#fff' : 'var(--ink)',
       roleWorkerBg: s.role === 'worker' ? 'var(--primary)' : 'var(--surface)', roleWorkerFg: s.role === 'worker' ? '#fff' : 'var(--ink)',
+      // синхронізація (Фаза 2)
+      importSyncFile: () => this.importBase(),
+      exportPackage: () => this.exportPackage(), exportAssignment: () => this.exportAssignment(),
+      fieldCount: this.db ? this.db.readings.filter(r => r.src === 'field').length : 0,
+      assignRows: (this.db && this.db.boilers ? this.db.boilers : []).map(bl => ({
+        boiler: bl, worker: (s.assignments || {})[bl] || '', onInput: (e) => this.onAssignInput(bl, e) })),
       showNav: !s.booting && s.hasData && !s.detailId,
       tabs: [['overview','📊','Огляд'],['houses','🏢','Будинки'],['analytics','📈','Аналітика'],['entry','✎','Ввід']]
         .map(t => ({ icon: t[1], label: t[2], tap: () => this.setTab(t[0]),
