@@ -14,11 +14,17 @@
 // реєстрація service worker — офлайн-оболонка й встановлюваність.
 // Працює лише на https:// або http://localhost (вимога браузерів). У локальній
 // мережі по http:// SW не активується — застосунок працює як раніше (без офлайн-кешу).
+// __swReg фіксує підсумок реєстрації, щоб застосунок міг показати стан
+// офлайн-режиму (напр. самопідписаний сертифікат Chrome блокує — реєстрація
+// падає з SSL-помилкою, а користувач інакше нічого не бачить).
+window.__swReg = 'pending';
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js').catch(function () {});
+    navigator.serviceWorker.register('./sw.js')
+      .then(function () { window.__swReg = 'ok'; })
+      .catch(function (e) { window.__swReg = 'fail:' + ((e && e.name) || 'err'); });
   });
-}
+} else { window.__swReg = 'unsupported'; }
 </script>
 <script src="./vendor/react.production.min.js"></script>
 <script src="./vendor/react-dom.production.min.js"></script>
@@ -1008,6 +1014,14 @@ if ('serviceWorker' in navigator) {
         </div>
         <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Кожне зняте показання підписується вашим ім'ям і часом — так старший бачить, хто що зібрав.</div>
 
+        <!-- офлайн-готовність (service worker) -->
+        <sc-if value="{{ swShow }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:flex-start;gap:9px;margin-top:14px;background:{{ swBg }};border:1px solid {{ swBd }};border-radius:12px;padding:10px 12px">
+          <span style="flex-shrink:0;font-size:16px;line-height:1.3;color:{{ swColor }}">{{ swIcon }}</span>
+          <span style="flex:1;min-width:0;font-size:var(--t110);font-weight:600;color:var(--ink)">{{ swText }}</span>
+        </div>
+        </sc-if>
+
         <!-- синхронізація з власним сервером (Фаза B) -->
         <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
         <div style="border-top:1px solid var(--line);margin-top:16px;padding-top:15px">
@@ -1156,7 +1170,7 @@ class Component extends DCLogic {
     eNoConsumption: false, entryPhotos: [], photoView: null,
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
-    cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '',
+    cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '', swReady: null,
     // авторизація (PIN, спільний список користувачів на сервері)
     users: [], authUser: null, authChecked: false, authError: '',
     foName: '', foPin: '', loginSel: '', loginPin: '',
@@ -1264,6 +1278,26 @@ class Component extends DCLogic {
     // /api.php для «голого» Apache), і лише тоді читаємо користувачів
     this._cloudCheck().then(() => this._loadUsers());
     this._startAutoSync();
+    this._checkOfflineReady();
+  }
+  // ---------- офлайн-готовність (service worker) ----------
+  // Визначає, чи застосунок реально відкриється без інтернету, і ЧОМУ ні —
+  // щоб адмін бачив причину (найчастіше: самопідписаний сертифікат, який
+  // Chrome не довіряє і тому блокує реєстрацію service worker).
+  _checkOfflineReady(){
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) { this.setState({ swReady: 'unsupported' }); return; }
+    const host = (location.hostname || '');
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '[::1]';
+    if (location.protocol !== 'https:' && !isLocal) { this.setState({ swReady: 'http' }); return; }
+    const evalState = () => {
+      if (navigator.serviceWorker.controller) { this.setState({ swReady: 'ready' }); return; }
+      const reg = String(window.__swReg || 'pending');
+      if (reg.indexOf('fail') === 0) this.setState({ swReady: 'cert' });     // https є, але реєстрація впала — найімовірніше недовірений сертифікат
+      else this.setState({ swReady: 'pending' });
+    };
+    evalState();
+    try { navigator.serviceWorker.addEventListener('controllerchange', evalState); } catch(e){}
+    setTimeout(evalState, 3000);   // дати першій активації час
   }
   // ---------- власний сервер (Фаза B): офлайн-перший, синхронізація по команді ----------
   // Базовий шлях API. Визначається під час _cloudCheck: '/api' (Node server.js
@@ -2713,6 +2747,23 @@ class Component extends DCLogic {
       photoView: s.photoView || '', hasPhotoView: !!s.photoView, closePhoto: () => this.closePhoto(),
       // роль / ім'я виконавця (Фаза 1 бригадного збору)
       roleSet: !!s.role, roleIsLead: s.role === 'lead', roleIsWorker: s.role === 'worker',
+      ...(() => {
+        const st = s.swReady;
+        const m = {
+          ready:       { show: true,  ic: '✓', c: 'var(--over)',  bg: 'var(--overTint)', bd: 'var(--over)',
+            t: 'Офлайн-режим готовий — застосунок відкриється навіть без інтернету.' },
+          pending:     { show: true,  ic: '⏳', c: '#8a6d00',      bg: '#FBF3DC',         bd: '#E7C35C',
+            t: 'Офлайн-режим готується. Відкрийте застосунок раз онлайн і оновіть сторінку — оболонка закешується.' },
+          cert:        { show: true,  ic: '⚠', c: 'var(--debt)',  bg: 'var(--debtTint)', bd: 'var(--debt)',
+            t: 'Офлайн-режим НЕ активний: сертифікат сервера не довірений, тому браузер блокує кешування. Встановіть сертифікат сервера як довірений на кожному пристрої (Налаштування → Безпека → Сертифікати → встановити CA), і офлайн запрацює.' },
+          http:        { show: true,  ic: '⚠', c: 'var(--debt)',  bg: 'var(--debtTint)', bd: 'var(--debt)',
+            t: 'Офлайн-режим НЕ активний: сайт відкрито по http://. Потрібен https:// (з довіреним сертифікатом) — інакше браузер не дозволяє офлайн-кеш.' },
+          unsupported: { show: true,  ic: '•', c: 'var(--muted)', bg: 'var(--chipBg)',   bd: 'var(--line2)',
+            t: 'Цей браузер не підтримує офлайн-режим. Спробуйте Chrome.' }
+        };
+        const v = m[st] || { show: false };
+        return { swShow: v.show, swIcon: v.ic || '', swColor: v.c || '', swBg: v.bg || '', swBd: v.bd || '', swText: v.t || '' };
+      })(),
       // робітник у полі: паспортні поля довідника та попередні показники — лише
       // для читання (їх веде старший); робітник вводить контакти й поточні показники
       dovLock: s.role === 'worker', prevLock: s.role === 'worker',
