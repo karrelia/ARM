@@ -808,6 +808,12 @@ if ('serviceWorker' in navigator) {
                   </sc-for>
                 </div>
                 </sc-if>
+                <sc-if value="{{ a.canOcr }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ a.ocrVerify }}" disabled="{{ a.ocrBusy }}" style="margin-top:8px;height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t108);font-weight:700;cursor:pointer">🔎 Звірити з фото</button>
+                </sc-if>
+                <sc-if value="{{ a.hasOcr }}" hint-placeholder-val="{{ false }}">
+                <div class="tnum" style="margin-top:7px;background:{{ a.ocrBg }};border-radius:9px;padding:7px 10px;font-size:var(--t108);font-weight:700;color:{{ a.ocrColor }}">{{ a.ocrTxt }}</div>
+                </sc-if>
               </div>
             </sc-for>
             <sc-if value="{{ entryArchMoreN }}" hint-placeholder-val="{{ false }}">
@@ -1172,6 +1178,7 @@ class Component extends DCLogic {
     role: '', me: '', assignments: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
     cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '', swReady: null,
+    ocrReady: false, ocrModel: '', ocrBusyId: null,
     // авторизація (PIN, спільний список користувачів на сервері)
     users: [], authUser: null, authChecked: false, authError: '',
     foName: '', foPin: '', loginSel: '', loginPin: '',
@@ -1310,11 +1317,35 @@ class Component extends DCLogic {
       try {
         const r = await fetch(base + '/ping', { cache: 'no-store' });
         if (r.ok) { const d = await r.json(); if (d && d.ok) {
-          this._apiBase = base; this.setState({ cloud: true }); this._reconcileUsers(); return true;
+          this._apiBase = base; this.setState({ cloud: true }); this._reconcileUsers(); this._ocrCheck(); return true;
         } }
       } catch(e){}
     }
     return false;
+  }
+  // чи налаштований OCR-контроль на сервері (кнопка звірки з'являється лише тоді)
+  _ocrCheck(){
+    fetch(this._apiBase + '/ocr', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+      if (j) this.setState({ ocrReady: !!j.configured, ocrModel: j.model || '' });
+    }).catch(() => {});
+  }
+  // старший звіряє введений показник із розпізнаним на фото; розбіжність підсвічується
+  async verifyPhoto(id){
+    const r = (this.db && this.db.readings || []).find(x => x.id === id);
+    if (!r) return;
+    const ph = (r.photos || [])[0];
+    if (!ph) return;
+    this.setState({ ocrBusyId: id, importError: '' });
+    try {
+      const body = String(ph).indexOf('data:') === 0 ? { dataUrl: ph } : { id: String(ph).replace(/^srv:/, '') };
+      const resp = await fetch(this._apiBase + '/ocr', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const d = await resp.json();
+      if (!resp.ok) throw new Error(d && d.error ? d.error : ('сервер ' + resp.status));
+      r.ocrValue = (d.value === null || d.value === undefined) ? null : Number(d.value);
+      r.ocrRaw = d.raw || ''; r.ocrAt = Date.now();
+      this._persist();
+      this.setState({ ocrBusyId: null, rev: this.state.rev + 1 });
+    } catch (err) { this.setState({ ocrBusyId: null, importError: 'Розпізнавання: ' + (err && err.message ? err.message : err) }); }
   }
   // якщо сервер щойно з'явився, а на ньому ще немає користувачів (перший адмін
   // створився до того, як підтвердилась мережа) — виштовхуємо локальних
@@ -2985,11 +3016,28 @@ class Component extends DCLogic {
         return {
           entryArchive: shown.map(r => { const g = this._rowGcal(r);
             const canDel = r.src === 'field' && (s.role === 'lead' || !r.by || !s.me || r.by === s.me);
+            const hasPh = !!(r.photos && r.photos.length);
+            // OCR-звірка (лише старший, лише коли модель налаштована й є фото)
+            const canOcr = s.role === 'lead' && s.ocrReady && hasPh;
+            const hasOcr = (r.ocrAt || 0) > 0;
+            let ocrTxt = '', ocrColor = '', ocrBg = '';
+            if (hasOcr) {
+              if (r.ocrValue == null) { ocrTxt = 'OCR: не розпізнав показник'; ocrColor = 'var(--muted)'; ocrBg = 'var(--chipBg)'; }
+              else {
+                const match = Math.abs(this.r3(r.ocrValue - r.cur)) < 0.05;
+                ocrTxt = match ? ('OCR ✓ збігається: ' + this.fmt(r.ocrValue, 3))
+                  : ('OCR ⚠ розбіжність: на фото ' + this.fmt(r.ocrValue, 3) + ', введено ' + this.fmt(r.cur, 3));
+                ocrColor = match ? 'var(--over)' : 'var(--debt)';
+                ocrBg = match ? 'var(--overTint)' : 'var(--debtTint)';
+              }
+            }
             return { date: r.date || '—',
               gcal: g == null ? '—' : this.fmt(g, 2),
               by: r.src === 'field' ? (r.by || '') : '',
               canDel, del: () => this.deleteReading(r.id),
-              hasPhotos: !!(r.photos && r.photos.length), photoCount: (r.photos || []).length,
+              canOcr, ocrBusy: s.ocrBusyId === r.id, ocrVerify: () => this.verifyPhoto(r.id),
+              hasOcr, ocrTxt, ocrColor, ocrBg,
+              hasPhotos: hasPh, photoCount: (r.photos || []).length,
               photos: (r.photos || []).map(u => { const su = this._photoUrl(u); return { url: su, view: () => this.viewPhoto(su) }; }) }; }),
           entryArchMoreN: (!s.entryArchAll && arch.length > 6) ? (arch.length - 6) : 0,
           toggleArchAll: () => this.setState(st => ({ entryArchAll: !st.entryArchAll }))

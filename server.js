@@ -70,6 +70,43 @@ function externalizePhotos(rec){
   rec.photos = rec.photos.map(storePhoto);
 }
 
+// ---------- OCR-контроль: розпізнавання показника з фото хмарною моделлю ----------
+const https = require('https');
+const OCR_PROMPT = 'На фото — дисплей лічильника теплової енергії. Розпізнай головне числове показання (наростаюче значення на табло). Поверни ЛИШЕ це число: цифри, десятковий роздільник — крапка, без пробілів, одиниць та будь-якого іншого тексту. Якщо число не читається — поверни одне слово: null';
+function ocrConfig(){
+  let key = process.env.ARM_ANTHROPIC_KEY || process.env.ANTHROPIC_API_KEY || '';
+  let model = process.env.ARM_OCR_MODEL || '';
+  let base = process.env.ARM_ANTHROPIC_URL || '';
+  try {
+    const c = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'config.json'), 'utf8'));
+    if (!key && c.anthropicKey) key = c.anthropicKey;
+    if (!model && c.ocrModel) model = c.ocrModel;
+    if (!base && c.anthropicUrl) base = c.anthropicUrl;
+  } catch (e) {}
+  return { key, model: model || 'claude-opus-4-8', base: (base || 'https://api.anthropic.com').replace(/\/+$/, '') };
+}
+function ocrParseNumber(t){
+  const m = String(t == null ? "" : t).match(/-?\d[\d \u00a0]*(?:[.,]\d+)?/);
+  if (!m) return null;
+  const v = parseFloat(m[0].replace(/[ \u00a0]/g, '').replace(',', '.'));
+  return isNaN(v) ? null : v;
+}
+function anthropicCall(cfg, b64){
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({ model: cfg.model, max_tokens: 64, messages: [{ role: 'user', content: [
+      { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+      { type: 'text', text: OCR_PROMPT } ] }] });
+    let u; try { u = new URL(cfg.base + '/v1/messages'); } catch(e){ return reject(new Error('некоректний ARM_ANTHROPIC_URL')); }
+    const lib = u.protocol === 'http:' ? http : https;
+    const rq = lib.request(u, { method: 'POST', headers: { 'x-api-key': cfg.key, 'anthropic-version': '2023-06-01',
+      'content-type': 'application/json', 'content-length': Buffer.byteLength(payload) } }, r => {
+      let d = ''; r.on('data', c => d += c); r.on('end', () => resolve({ code: r.statusCode, body: d }));
+    });
+    rq.on('error', reject); rq.setTimeout(45000, () => rq.destroy(new Error('таймаут запиту до моделі')));
+    rq.write(payload); rq.end();
+  });
+}
+
 // ---------- зведення показань (дзеркалить клієнтський _mergeReadings) ----------
 const norm = s => String(s == null ? '' : s).trim().toLowerCase();
 function keyOf(r){ return norm(r.account) + '|' + (r.date || '') + '|' + (r.isControl ? 'k' : ''); }
@@ -142,6 +179,27 @@ async function handleApi(req, res, url){
     return;
   }
 
+  // GET /api/ocr — чи налаштоване розпізнавання
+  if (p === '/api/ocr' && req.method === 'GET') { const c = ocrConfig(); return sendJson(res, 200, { configured: !!c.key, model: c.model }); }
+  // POST /api/ocr — розпізнати показник з фото (для звірки старшим)
+  if (p === '/api/ocr' && req.method === 'POST') {
+    const cfg = ocrConfig();
+    if (!cfg.key) return sendJson(res, 501, { error: 'OCR не налаштовано: додайте ключ у arm-data/config.json ({"anthropicKey":"sk-..."})' });
+    const body = await readBody(req);
+    let b64 = null;
+    if (body.dataUrl && String(body.dataUrl).indexOf('data:') === 0) { const c = String(body.dataUrl).indexOf(','); b64 = c === -1 ? null : String(body.dataUrl).slice(c + 1); }
+    else if (body.id) { const id = String(body.id).replace(/^srv:/, ''); if (!/^p_[a-f0-9]{40}$/.test(id)) return sendJson(res, 400, { error: 'некоректний id фото' });
+      const f = path.join(PHOTOS_DIR, id + '.jpg'); if (!fs.existsSync(f)) return sendJson(res, 404, { error: 'фото не знайдено на сервері' }); b64 = fs.readFileSync(f).toString('base64'); }
+    if (!b64) return sendJson(res, 400, { error: 'немає фото для розпізнавання' });
+    try {
+      const { code, body: raw } = await anthropicCall(cfg, b64);
+      let j = {}; try { j = JSON.parse(raw); } catch (e) {}
+      if (code !== 200) return sendJson(res, 502, { error: 'модель: ' + ((j.error && j.error.message) || ('HTTP ' + code)) });
+      let text = ''; (j.content || []).forEach(b => { if (b.type === 'text') text += b.text; });
+      return sendJson(res, 200, { value: ocrParseNumber(text), raw: text.trim(), model: cfg.model });
+    } catch (err) { return sendJson(res, 502, { error: 'запит до моделі не вдався: ' + (err && err.message || err) }); }
+  }
+
   // GET /api/base — довідник для завантаження робітником (без показань)
   if (p === '/api/base' && req.method === 'GET') {
     const db = loadDb();
@@ -180,6 +238,9 @@ async function handleApi(req, res, url){
 function serveStatic(req, res, url){
   let rel = decodeURIComponent(url.pathname);
   if (rel === '/' || rel === '') rel = '/index.html';
+  // тека даних (db.json, users.json, config.json з ключем API, фото з
+  // персональними даними) НЕ віддається напряму — лише через /api
+  if (/^\/+arm-data(\/|$)/.test(rel)) { res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' }); return res.end('403'); }
   // захист від виходу за межі теки
   const filePath = path.normalize(path.join(ROOT, rel));
   if (!filePath.startsWith(ROOT)) { res.writeHead(403); return res.end('403'); }

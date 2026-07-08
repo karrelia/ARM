@@ -123,6 +123,36 @@ function externalize_photos(&$rec) {
     $rec['photos'] = $out;
 }
 
+// ---------- OCR-контроль: розпізнавання показника з фото хмарною моделлю ----------
+// Ключ/модель беруться з env (ARM_ANTHROPIC_KEY / ARM_OCR_MODEL) або з файлу
+// arm-data/config.json {"anthropicKey":"...","ocrModel":"..."} — щоб працювало й
+// на Apache, де задати env для PHP незручно. Файл у arm-data/ (не в репозиторії).
+define('OCR_PROMPT', "На фото — дисплей лічильника теплової енергії. Розпізнай головне числове показання (наростаюче значення на табло). Поверни ЛИШЕ це число: цифри, десятковий роздільник — крапка, без пробілів, одиниць та будь-якого іншого тексту. Якщо число не читається — поверни одне слово: null");
+function ocr_config() {
+    global $DATA_DIR;
+    $key = getenv('ARM_ANTHROPIC_KEY') ?: (getenv('ANTHROPIC_API_KEY') ?: '');
+    $model = getenv('ARM_OCR_MODEL') ?: '';
+    $base = getenv('ARM_ANTHROPIC_URL') ?: '';
+    $cfgFile = $DATA_DIR . '/config.json';
+    if (is_file($cfgFile)) {
+        $c = json_decode(@file_get_contents($cfgFile), true);
+        if (is_array($c)) {
+            if ($key === '' && !empty($c['anthropicKey'])) $key = $c['anthropicKey'];
+            if ($model === '' && !empty($c['ocrModel'])) $model = $c['ocrModel'];
+            if ($base === '' && !empty($c['anthropicUrl'])) $base = $c['anthropicUrl'];
+        }
+    }
+    if ($model === '') $model = 'claude-opus-4-8';
+    if ($base === '') $base = 'https://api.anthropic.com';
+    return array('key' => $key, 'model' => $model, 'base' => rtrim($base, '/'));
+}
+function ocr_parse_number($t) {
+    if (!preg_match('/-?\d[\d \x{00a0}]*(?:[.,]\d+)?/u', (string)$t, $m)) return null;
+    $n = preg_replace('/[ \x{00a0}]/u', '', $m[0]);
+    $n = str_replace(',', '.', $n);
+    return is_numeric($n) ? (float)$n : null;
+}
+
 // ---------- зведення показань (дзеркалить server.js / клієнтський _mergeReadings) ----------
 function norm_s($s) { return strtolower(trim((string)($s === null ? '' : $s))); }
 function key_of($r) {
@@ -242,6 +272,50 @@ if (strpos($path, 'photo/') === 0 && $method === 'GET') {
     header('Cache-Control: private, max-age=31536000, immutable'); // вміст-адресоване — незмінне
     readfile($file);
     exit;
+}
+
+// GET /ocr — чи налаштоване розпізнавання (клієнт показує кнопку лише якщо так)
+if ($path === 'ocr' && $method === 'GET') {
+    $c = ocr_config();
+    send_json(200, array('configured' => $c['key'] !== '', 'model' => $c['model']));
+}
+// POST /ocr — розпізнати показник з фото й повернути число (для звірки старшим)
+if ($path === 'ocr' && $method === 'POST') {
+    $c = ocr_config();
+    if ($c['key'] === '') send_json(501, array('error' => 'OCR не налаштовано: додайте ключ у arm-data/config.json ({"anthropicKey":"sk-..."})'));
+    if (!function_exists('curl_init')) send_json(501, array('error' => 'на сервері немає розширення PHP cURL'));
+    $body = read_body();
+    $b64 = null;
+    if (!empty($body['dataUrl']) && strpos($body['dataUrl'], 'data:') === 0) {
+        $comma = strpos($body['dataUrl'], ','); $b64 = $comma === false ? null : substr($body['dataUrl'], $comma + 1);
+    } elseif (!empty($body['id'])) {
+        $id = preg_replace('/^srv:/', '', $body['id']);
+        if (!preg_match('/^p_[a-f0-9]{40}$/', $id)) send_json(400, array('error' => 'некоректний id фото'));
+        $f = $PHOTOS_DIR . '/' . $id . '.jpg';
+        if (!is_file($f)) send_json(404, array('error' => 'фото не знайдено на сервері'));
+        $b64 = base64_encode(file_get_contents($f));
+    }
+    if (!$b64) send_json(400, array('error' => 'немає фото для розпізнавання'));
+    $payload = json_encode(array(
+        'model' => $c['model'], 'max_tokens' => 64,
+        'messages' => array(array('role' => 'user', 'content' => array(
+            array('type' => 'image', 'source' => array('type' => 'base64', 'media_type' => 'image/jpeg', 'data' => $b64)),
+            array('type' => 'text', 'text' => OCR_PROMPT),
+        ))),
+    ), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $ch = curl_init($c['base'] . '/v1/messages');
+    curl_setopt_array($ch, array(
+        CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 45,
+        CURLOPT_HTTPHEADER => array('x-api-key: ' . $c['key'], 'anthropic-version: 2023-06-01', 'content-type: application/json'),
+        CURLOPT_POSTFIELDS => $payload,
+    ));
+    $resp = curl_exec($ch); $code = curl_getinfo($ch, CURLINFO_HTTP_CODE); $cerr = curl_error($ch); curl_close($ch);
+    if ($resp === false) send_json(502, array('error' => 'запит до моделі не вдався: ' . $cerr));
+    $j = json_decode($resp, true);
+    if ($code !== 200) { $msg = isset($j['error']['message']) ? $j['error']['message'] : ('HTTP ' . $code); send_json(502, array('error' => 'модель: ' . $msg)); }
+    $text = '';
+    if (isset($j['content']) && is_array($j['content'])) foreach ($j['content'] as $blk) if (($blk['type'] ?? '') === 'text') $text .= $blk['text'];
+    send_json(200, array('value' => ocr_parse_number($text), 'raw' => trim($text), 'model' => $c['model']));
 }
 
 send_json(404, array('error' => 'невідомий маршрут'));
