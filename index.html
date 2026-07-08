@@ -25,6 +25,20 @@ if ('serviceWorker' in navigator) {
       .catch(function (e) { window.__swReg = 'fail:' + ((e && e.name) || 'err'); });
   });
 } else { window.__swReg = 'unsupported'; }
+
+// Пропозиція встановити застосунок. Chrome більше не показує банер сам —
+// перехоплюємо beforeinstallprompt, зберігаємо подію й показуємо власну кнопку
+// (див. _initInstall / installApp у застосунку).
+window.__deferredInstall = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  window.__deferredInstall = e;
+  window.dispatchEvent(new Event('arm-install-ready'));
+});
+window.addEventListener('appinstalled', function () {
+  window.__deferredInstall = null;
+  window.dispatchEvent(new Event('arm-install-done'));
+});
 </script>
 <script src="./vendor/react.production.min.js"></script>
 <script src="./vendor/react-dom.production.min.js"></script>
@@ -55,6 +69,23 @@ if ('serviceWorker' in navigator) {
 
 <div style="{{ themeVars }}">
   <div style="width:100%;max-width:520px;height:100vh;height:100dvh;background:var(--bg);overflow:hidden;position:relative;display:flex;flex-direction:column">
+
+    <!-- ============ БАНЕР ВСТАНОВЛЕННЯ (PWA) ============ -->
+    <sc-if value="{{ showInstall }}" hint-placeholder-val="{{ false }}">
+    <div style="flex-shrink:0;z-index:60;display:flex;align-items:center;gap:11px;background:linear-gradient(150deg,#5566d6,#2c3884);color:#fff;padding:10px 14px">
+      <div style="width:36px;height:36px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M5 21h14"></path></svg>
+      </div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:var(--t122);font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Встановити застосунок</div>
+        <div style="font-size:var(--t102);font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ installSub }}</div>
+      </div>
+      <sc-if value="{{ installHasBtn }}" hint-placeholder-val="{{ true }}">
+      <button onClick="{{ installApp }}" style="flex-shrink:0;height:36px;padding:0 16px;border-radius:10px;border:none;background:#fff;color:#2c3884;font-size:var(--t115);font-weight:800;cursor:pointer">Встановити</button>
+      </sc-if>
+      <button onClick="{{ dismissInstall }}" title="Приховати" style="flex-shrink:0;width:30px;height:30px;border-radius:9px;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:16px;font-weight:800;line-height:1;cursor:pointer;padding:0">✕</button>
+    </div>
+    </sc-if>
 
     <!-- ============ HEADER ============ -->
     <div style="flex-shrink:0;background:var(--headerBg);padding:6px 16px 14px;border-bottom:1px solid var(--headerBd)">
@@ -1179,6 +1210,7 @@ class Component extends DCLogic {
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
     cloud: false, cloudBusy: false, autoSync: true, asgExpand: null, asgSel: {}, asgSelW: '', swReady: null,
     ocrReady: false, ocrModel: '', ocrBusyId: null,
+    canInstall: false, installHintIOS: false, installDismissed: false,
     // авторизація (PIN, спільний список користувачів на сервері)
     users: [], authUser: null, authChecked: false, authError: '',
     foName: '', foPin: '', loginSel: '', loginPin: '',
@@ -1287,6 +1319,7 @@ class Component extends DCLogic {
     this._cloudCheck().then(() => this._loadUsers());
     this._startAutoSync();
     this._checkOfflineReady();
+    this._initInstall();
   }
   // ---------- офлайн-готовність (service worker) ----------
   // Визначає, чи застосунок реально відкриється без інтернету, і ЧОМУ ні —
@@ -1306,6 +1339,36 @@ class Component extends DCLogic {
     evalState();
     try { navigator.serviceWorker.addEventListener('controllerchange', evalState); } catch(e){}
     setTimeout(evalState, 3000);   // дати першій активації час
+  }
+  // ---------- пропозиція встановити застосунок (PWA) ----------
+  _isStandalone(){
+    try { return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true; }
+    catch(e){ return false; }
+  }
+  _initInstall(){
+    if (typeof window === 'undefined') return;
+    if (this._isStandalone()) return;                 // вже встановлено — не пропонуємо
+    try { if (localStorage.getItem('armInstallDismissed')) this.state.installDismissed = true; } catch(e){}
+    const sync = () => this.setState({ canInstall: !!window.__deferredInstall });
+    sync();                                            // подія могла спрацювати до монтування
+    window.addEventListener('arm-install-ready', sync);
+    window.addEventListener('arm-install-done', () => this.setState({ canInstall: false, installHintIOS: false }));
+    // iOS Safari не підтримує beforeinstallprompt — показуємо коротку підказку
+    const ua = navigator.userAgent || '';
+    const iOS = /iPhone|iPad|iPod/.test(ua) && !window.MSStream;
+    const iosSafari = iOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    if (iosSafari) this.setState({ installHintIOS: true });
+  }
+  async installApp(){
+    const d = window.__deferredInstall;
+    if (!d) return;
+    try { d.prompt(); await d.userChoice; } catch(e){}
+    window.__deferredInstall = null;
+    this.setState({ canInstall: false });
+  }
+  dismissInstall(){
+    try { localStorage.setItem('armInstallDismissed', '1'); } catch(e){}
+    this.setState({ canInstall: false, installHintIOS: false, installDismissed: true });
   }
   // ---------- власний сервер (Фаза B): офлайн-перший, синхронізація по команді ----------
   // Базовий шлях API. Визначається під час _cloudCheck: '/api' (Node server.js
@@ -2799,6 +2862,13 @@ class Component extends DCLogic {
         const v = m[st] || { show: false };
         return { swShow: v.show, swIcon: v.ic || '', swColor: v.c || '', swBg: v.bg || '', swBd: v.bd || '', swText: v.t || '' };
       })(),
+      // банер «Встановити застосунок»
+      showInstall: (s.canInstall || s.installHintIOS) && !s.installDismissed,
+      installHasBtn: !!s.canInstall,
+      installSub: s.canInstall ? 'Швидкий доступ з екрана «Домашній» і офлайн-режим'
+        : 'Меню Safari (⎋ Поділитися) → «На екран «Домашній»»',
+      installApp: () => this.installApp(),
+      dismissInstall: () => this.dismissInstall(),
       // робітник у полі: паспортні поля довідника та попередні показники — лише
       // для читання (їх веде старший); робітник вводить контакти й поточні показники
       dovLock: s.role === 'worker', prevLock: s.role === 'worker',
