@@ -1124,6 +1124,7 @@ if ('serviceWorker' in navigator) {
           </div>
           <sc-if value="{{ cloud }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ cloudPublishAssign }}" disabled="{{ cloudBusy }}" style="width:100%;height:46px;border-radius:13px;border:none;background:var(--primary);color:#fff;font-size:var(--t125);font-weight:800;cursor:pointer;margin-bottom:9px">⤴ Зберегти завдання на сервер</button>
+          <button onClick="{{ cloudLoadAssign }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити завдання з сервера</button>
           </sc-if>
           <button onClick="{{ exportAssignment }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">↧ Експорт завдання файлом</button>
           <div style="font-size:var(--t110);font-weight:600;color:var(--muted2);margin-top:8px">Оберіть робітника для котельні; для великих котелень — «по будинках», щоб розподілити окремі будинки. Завдання зберігається на сервері й доходить робітникам автоматично.</div>
@@ -1689,11 +1690,14 @@ class Component extends DCLogic {
     let gcal = 0, hasAny = false;
     b.meters.forEach(h => { const l = this._lastReading(h.id); if (l) { gcal += l.gcal; hasAny = true; } });
     const stColor = { done: 'var(--over)', partial: '#D4A017', none: 'var(--muted2)', na: 'var(--line2)' }[st.state];
-    const parts = [b.settlement, b.boiler].filter(Boolean).join(' · ');
-    const cnt = b.meters.length + (b.meters.length === 1 ? ' прилад' : ' прил.');
+    // у формуванні завдання населений пункт і котельня зайві (розподіл уже в
+    // межах однієї котельні) — показуємо лише кількість приладів і статус збору
+    const n = b.meters.length;
+    const cnt = n + ' ' + (n % 10 === 1 && n % 100 !== 11 ? 'прилад'
+      : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'прилади' : 'приладів'));
     const stText = st.state === 'na' ? '' : (st.done + '/' + st.total + ' знято');
     return {
-      info: [parts, cnt, stText].filter(Boolean).join(' · '),
+      info: [cnt, stText].filter(Boolean).join(' · '),
       gcalTxt: hasAny ? (this.fmt(gcal, 2) + ' Гкал') : '',
       stColor
     };
