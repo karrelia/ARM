@@ -1,0 +1,22 @@
+# CI: юніт-тести merge-логіки сервера + статична перевірка index.html + лінт PHP.
+# Страховка на кожен пуш — монолітний index.html легко зламати непомітно.
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Синтаксис server.js / sw.js
+        run: node --check server.js && node --check sw.js
+      - name: Юніт-тести merge-логіки
+        run: node --test tests/*.test.js
+      - name: Статична перевірка index.html
+        run: node tests/check-app.js
+      - name: Лінт api.php
+        run: php -l api.php

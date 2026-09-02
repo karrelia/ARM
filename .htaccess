@@ -14,10 +14,19 @@
   RewriteRule ^api$      api.php    [L,QSA]
 </IfModule>
 
-# Правильний MIME для маніфесту PWA (деякі складання Apache його не знають)
+# Правильний MIME для файлів PWA. Критично для ВСТАНОВЛЮВАНОСТІ: якщо sw.js
+# віддається не як JavaScript (напр. text/plain), браузер відхиляє реєстрацію
+# service worker — і Chrome пропонує лише «ярлик» замість «Встановити застосунок».
 <IfModule mod_mime.c>
   AddType application/manifest+json .webmanifest
+  AddType text/javascript .js
+  AddType text/javascript .mjs
+  AddType application/json .json
   AddType image/png .png
+  AddType image/svg+xml .svg
+  AddType image/x-icon .ico
+  # UTF-8 для текстових ресурсів (щоб кирилиця в JS/HTML не «ламалась»)
+  AddCharset utf-8 .js .mjs .css .json .webmanifest .html
 </IfModule>
 
 # Service worker має бути з максимальною областю дії — не кешувати сам sw.js надовго

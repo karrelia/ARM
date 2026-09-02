@@ -12,24 +12,31 @@
  * Версію кешу міняти при зміні набору оболонки, щоб старі файли підчистились.
  */
 'use strict';
-const CACHE = 'arm-shell-v1';
-// критична оболонка — кешується атомарно під час install
+const CACHE = 'arm-teplo-shell-v1';
+// оболонка застосунку для офлайн-кешу
 const CORE = [
   './', './index.html', './support.js',
   './vendor/react.production.min.js', './vendor/react-dom.production.min.js',
-  './manifest.webmanifest',
+  './manifest.webmanifest', './favicon.ico',
   './icons/icon-192.png', './icons/icon-512.png',
-  './icons/icon-maskable-512.png', './icons/apple-touch-icon.png'
+  './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
+  './icons/favicon.svg', './icons/favicon-32.png'
 ];
 // важке й необов'язкове для першого екрана (імпорт/експорт) — best-effort
 const EXTRA = ['./vendor/xlsx.full.min.js'];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE)
-      .then((c) => c.addAll(CORE).then(() => { c.addAll(EXTRA).catch(() => {}); }))
-      .then(() => self.skipWaiting())
-  );
+  // Кешуємо кожен файл ОКРЕМО й НЕ валимо встановлення, якщо якийсь недоступний.
+  // Раніше атомарний addAll(CORE) через один 404 валив увесь service worker —
+  // він не активувався, лишався «на паузі», і Chrome пропонував лише «ярлик»
+  // замість «Встановити застосунок». Головне тут — гарантовано активуватись.
+  e.waitUntil((async () => {
+    try {
+      const c = await caches.open(CACHE);
+      await Promise.allSettled([...CORE, ...EXTRA].map((u) => c.add(new Request(u, { cache: 'reload' }))));
+    } catch (err) { /* навіть без кешу активуємось — щоб працювала встановлюваність */ }
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (e) => {
@@ -44,20 +51,48 @@ function isApi(url) {
   return url.pathname.indexOf('/api/') !== -1 || url.pathname.indexOf('/api.php') !== -1;
 }
 
+// тап по нагадуванню про зняття — відкрити (або сфокусувати) застосунок
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) { if ('focus' in c) return c.focus(); }
+    if (self.clients.openWindow) return self.clients.openWindow('./index.html');
+  })());
+});
+
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;                       // POST тощо — напряму в мережу
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;        // сторонні хости — напряму
   if (isApi(url)) return;                                 // API — тільки мережа, без кешу
+  // перевірка версії (?vprobe): застосунок тягне живий index.html повз кеш, щоб
+  // прочитати APP_VERSION — віддаємо лише з мережі й НЕ кешуємо (інакше кеш би
+  // роздувався окремим записом на кожну перевірку)
+  if (url.searchParams.has('vprobe')) return;
 
-  // навігація: мережа-перше з відкатом на кеш
+  // навігація: мережа-перше, але з ТАЙМАУТОМ 3 с — у підвалі з «однією паличкою»
+  // fetch не падає, а висить хвилинами; без таймаута робітник бачить білий екран,
+  // хоча робоча копія лежить у кеші. Мережа встигла — беремо свіже (і оновлюємо
+  // кеш у фоні); не встигла — миттєво віддаємо кешовану оболонку.
   if (req.mode === 'navigate') {
-    e.respondWith(
-      fetch(req)
-        .then((r) => { const cp = r.clone(); caches.open(CACHE).then((c) => c.put('./index.html', cp)); return r; })
-        .catch(() => caches.match('./index.html').then((m) => m || caches.match('./')))
-    );
+    e.respondWith((async () => {
+      const net = fetch(req).then((r) => {
+        const cp = r.clone(); caches.open(CACHE).then((c) => c.put('./index.html', cp));
+        return r;
+      });
+      try {
+        return await Promise.race([
+          net,
+          new Promise((_, rej) => setTimeout(() => rej(new Error('nav-timeout')), 3000))
+        ]);
+      } catch (err) {
+        const m = await caches.match('./index.html') || await caches.match('./');
+        // кеш порожній (найперший візит) — нічого не вдієш, чекаємо мережу
+        return m || net;
+      }
+    })());
     return;
   }
 

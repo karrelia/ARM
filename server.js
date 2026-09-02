@@ -32,13 +32,77 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
-function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, baseSig: '', savedAt: 0 }; }
+function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0 }; }
+// Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
+// мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
+// Міграція: наявним призначенням без мітки даємо базову «1» (живуть, але програють
+// будь-якій свіжій правці). Порожній виконавець у assignments — тумбстоун.
+function ensureAsgStamps(db){
+  if (!db.assignmentsAt || typeof db.assignmentsAt !== 'object') db.assignmentsAt = {};
+  for (const k in (db.assignments || {})) if (!db.assignmentsAt[k]) db.assignmentsAt[k] = 1;
+}
+function mergeAssignments(db, incAssign, incAt){
+  ensureAsgStamps(db);
+  if (!incAt || typeof incAt !== 'object') return;   // без міток (старий клієнт) — не чіпаємо, щоб не затер
+  incAssign = incAssign || {};
+  for (const k in incAt) {
+    const iAt = Number(incAt[k]) || 0;
+    if (iAt >= (Number(db.assignmentsAt[k]) || 0)) {
+      const w = incAssign[k] || '';
+      if (w) db.assignments[k] = w; else delete db.assignments[k];
+      db.assignmentsAt[k] = iAt;
+    }
+  }
+}
+// Спільні мапи бригади «будинок → запис із міткою часу»: contacts (контактна
+// особа; одна адреса — один контакт для ХВ і ГВ) та routes (домовленості про
+// день/час). Будь-хто виправляє в полі — решта бачать після синхронізації.
+// Правила зведення: новіший at перемагає (паралельні правки не затирають одна
+// одну); «порожній» запис — це ТУМБСТОУН видалення, він ЗБЕРІГАЄТЬСЯ і теж
+// розповсюджується (якщо запис просто стерти, інші пристрої повернуть його назад).
+function mergeStampedMap(target, incoming, fields){
+  const out = target || {};
+  if (!incoming || typeof incoming !== 'object') return out;
+  for (const k in incoming) {
+    if (!Object.prototype.hasOwnProperty.call(incoming, k)) continue;
+    const inc = incoming[k]; if (!inc || typeof inc !== 'object') continue;
+    const ex = out[k];
+    if (!ex || (Number(inc.at) || 0) >= (Number(ex.at) || 0)) {
+      const rec = { at: Number(inc.at) || Date.now() };
+      fields.forEach(f => { rec[f] = String(inc[f] == null ? '' : inc[f]); });
+      out[k] = rec;
+    }
+  }
+  return out;
+}
+function mergeContacts(db, incoming){ db.contacts = mergeStampedMap(db.contacts, incoming, ['name', 'phone']); }
+function mergeRoutes(db, incoming){ db.routes = mergeStampedMap(db.routes, incoming, ['mode', 'date', 'time', 'note']); }
 function loadDb(){
   try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
   catch (e) { return emptyDb(); }
 }
+// Щоденна резервна копія db.json (перша зміна за день робить знімок ПОПЕРЕДНЬОГО
+// стану). Захищає історію показань від збою диска чи помилкового POST. Тримаємо
+// 30 днів, старші чистяться самі. Тека: arm-data/backup/db-РРРР-ММ-ДД.json
+function backupDb(){
+  try {
+    if (!fs.existsSync(DB_FILE)) return;
+    const dir = path.join(DATA_DIR, 'backup');
+    fs.mkdirSync(dir, { recursive: true });
+    const today = new Date().toISOString().slice(0, 10);
+    const file = path.join(dir, 'db-' + today + '.json');
+    if (fs.existsSync(file)) return;                       // сьогоднішня вже є
+    fs.copyFileSync(DB_FILE, file);
+    const keep = Date.now() - 30 * 24 * 3600 * 1000;
+    fs.readdirSync(dir).forEach(f => {
+      const m = f.match(/^db-(\d{4}-\d{2}-\d{2})\.json$/);
+      if (m && new Date(m[1] + 'T00:00:00Z').getTime() < keep) { try { fs.unlinkSync(path.join(dir, f)); } catch (e) {} }
+    });
+  } catch (e) { /* бекап — best-effort, роботу не блокує */ }
+}
 function saveDb(db){
   fs.mkdirSync(DATA_DIR, { recursive: true });
+  backupDb();
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
   fs.renameSync(tmp, DB_FILE); // атомарна заміна
@@ -85,6 +149,37 @@ function ocrConfig(){
   } catch (e) {}
   return { key, model: model || 'claude-opus-4-8', base: (base || 'https://api.anthropic.com').replace(/\/+$/, '') };
 }
+// ---------- ключ бригади (захист API на публічному хостингу) ----------
+// Сервер тепер дивиться в інтернет, тож «довіри локальної мережі» замало:
+// без захисту будь-хто міг скачати користувачів (і за секунди підібрати
+// 4-значні PIN), витягти адреси/телефони з бази або залити фейкові показання.
+// Ключ генерується один раз у arm-data/config.json ("brigadeKey") — старший
+// вводить його на кожному телефоні (розділ «Виконавець»). Клієнт шле його
+// заголовком X-Brigade-Key. Ключ 128-бітний — перебір неможливий, тож
+// додаткові rate-limit'и не потрібні.
+// Без ключа лишаються: /api/ping (перевірка живості) і /api/photo/<sha1>
+// (адреса фото сама є 160-бітним секретом-перепусткою).
+let _brigadeKey = null;
+function brigadeKey(){
+  if (_brigadeKey) return _brigadeKey;
+  const cfgFile = path.join(DATA_DIR, 'config.json');
+  let cfg = {};
+  try { cfg = JSON.parse(fs.readFileSync(cfgFile, 'utf8')) || {}; } catch (e) {}
+  if (!cfg.brigadeKey) {
+    cfg.brigadeKey = crypto.randomBytes(16).toString('hex');
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
+      console.log('Згенеровано ключ бригади (введіть його на пристроях у «Виконавець»): ' + cfg.brigadeKey);
+    } catch (e) { console.error('Не вдалося зберегти ключ бригади: ' + e.message); }
+  }
+  _brigadeKey = String(cfg.brigadeKey);
+  return _brigadeKey;
+}
+function keyOk(req){
+  return String(req.headers['x-brigade-key'] || '') === brigadeKey();
+}
+
 function ocrParseNumber(t){
   const m = String(t == null ? "" : t).match(/-?\d[\d \u00a0]*(?:[.,]\d+)?/);
   if (!m) return null;
@@ -108,19 +203,34 @@ function anthropicCall(cfg, b64){
 }
 
 // ---------- зведення показань (дзеркалить клієнтський _mergeReadings) ----------
-const norm = s => String(s == null ? '' : s).trim().toLowerCase();
-function keyOf(r){ return norm(r.account) + '|' + (r.date || '') + '|' + (r.isControl ? 'k' : ''); }
+// нормалізація ключа має ТОЧНО збігатися з клієнтським _normAddr (та api.php),
+// інакше ключ показання (тумбстоуна) на сервері не збіжиться з клієнтським і
+// видалення не рознесеться. Клієнт стискає внутрішні пробіли — робимо так само.
+const norm = s => String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+// wt (тип води) у ключі — щоб ХВ і ГВ одного особового рахунку за одну дату не
+// злипались в одне показання (інакше історія одного з приладів втрачається).
+// № лічильника — ОБОВ'ЯЗКОВА частина ключа: у будинку буває два прилади з
+// ОДНАКОВИМ особовим і типом води; без нього друге показання затирало перше.
+function keyOf(r){ return legacyKeyOf(r) + '|' + norm(r.meterNo); }
+function legacyKeyOf(r){ return norm(r.account) + '|' + (r.date || '') + '|' + (r.wt || '') + '|' + (r.isControl ? 'k' : ''); }
 function mergeReadings(db, incoming){
   const now = Date.now();
-  const index = {};
-  db.readings.forEach(r => { index[keyOf(r)] = r; });
+  const index = {}, legacyIndex = {};
+  db.readings.forEach(r => { index[keyOf(r)] = r; const lk = legacyKeyOf(r); if (!legacyIndex[lk]) legacyIndex[lk] = r; });
   let added = 0, updated = 0, conflicts = 0, skipped = 0;
   (incoming || []).forEach(inc => {
     if (!inc || !inc.account) { skipped++; return; }
     const rec = Object.assign({}, inc); delete rec.houseId; delete rec.srvAt; // srvAt/houseId — серверні/локальні
     rec.synced = true;
     externalizePhotos(rec); // base64 → файли, у db.json лише посилання
-    const k = keyOf(rec), ex = index[k];
+    const k = keyOf(rec);
+    // запис, збережений ДО появи № у ключі, підхоплюємо за старим ключем і
+    // «всиновлюємо» (доповнюємо номером) — інакше вийшов би дубль тієї самої дати
+    let ex = index[k];
+    if (!ex && rec.meterNo) {
+      const cand = legacyIndex[legacyKeyOf(rec)];
+      if (cand && !cand.meterNo) ex = cand;
+    }
     if (!ex) { rec.srvAt = now; db.readings.push(rec); index[k] = rec; added++; }
     else {
       const differ = ex.cur !== rec.cur || ex.prev !== rec.prev;
@@ -149,8 +259,11 @@ function readBody(req){
 
 async function handleApi(req, res, url){
   const p = url.pathname;
-  // GET /api/ping — перевірка наявності сервера
+  // GET /api/ping — перевірка наявності сервера (єдиний маршрут без ключа,
+  // фото — окремо нижче: їх адреса сама є секретом)
   if (p === '/api/ping' && req.method === 'GET') return sendJson(res, 200, { ok: true, ts: Date.now() });
+  if (!keyOk(req) && !(p.indexOf('/api/photo/') === 0 && req.method === 'GET'))
+    return sendJson(res, 403, { error: 'потрібен ключ бригади', needKey: true });
 
   // GET /api/users — спільний список користувачів (клієнт перевіряє PIN локально,
   // тож вхід працює й офлайн з кешованого списку)
@@ -203,17 +316,25 @@ async function handleApi(req, res, url){
   // GET /api/base — довідник для завантаження робітником (без показань)
   if (p === '/api/base' && req.method === 'GET') {
     const db = loadDb();
+    ensureAsgStamps(db);
     return sendJson(res, 200, { hasBase: db.houses.length > 0, houses: db.houses, boilers: db.boilers,
-      assignments: db.assignments, baseSig: db.baseSig, savedAt: db.savedAt });
+      assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig, savedAt: db.savedAt });
   }
   // POST /api/base — старший публікує довідник (показання й розподіл зберігаються)
   if (p === '/api/base' && req.method === 'POST') {
     const body = await readBody(req);
     if (!body.houses || !body.houses.length) return sendJson(res, 400, { error: 'порожня база' });
     const db = loadDb();
-    db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || ''; db.savedAt = Date.now();
+    db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || '';
+    // базові (архівні/імпортовані) показання — щоб робітник, який завантажить
+    // базу, одразу бачив попередню історію (ідемпотентно, без дублювання)
+    let baseAdded = 0;
+    if (Array.isArray(body.readings) && body.readings.length) baseAdded = mergeReadings(db, body.readings).added;
+    mergeContacts(db, body.contacts);
+    mergeRoutes(db, body.routes);
+    db.savedAt = Date.now();
     saveDb(db);
-    return sendJson(res, 200, { ok: true, houses: db.houses.length, readings: db.readings.length });
+    return sendJson(res, 200, { ok: true, houses: db.houses.length, readings: db.readings.length, baseAdded, contacts: db.contacts || {}, routes: db.routes || {} });
   }
   // POST /api/sync — push черги + опційно розподіл; повертає ЛИШЕ показання,
   // змінені після body.since (інкрементально — щоб автосинхронізація не тягала
@@ -223,14 +344,44 @@ async function handleApi(req, res, url){
     const db = loadDb();
     const warnBase = body.baseSig && db.baseSig && body.baseSig !== db.baseSig;
     const stats = mergeReadings(db, body.readings || []);
-    if (body.assignments && typeof body.assignments === 'object') db.assignments = body.assignments;
+    mergeAssignments(db, body.assignments, body.assignmentsAt);
+    // «закриття місяця» — бригадна мітка часу; перемагає новіша
+    if (body.closedAt) db.closedAt = Math.max(Number(db.closedAt) || 0, Number(body.closedAt) || 0);
+    // відкритий звітний період — бригадний; перемагає новіша мітка
+    if (Number(body.periodAt) > (Number(db.periodAt) || 0) && /^\d{4}-\d{2}$/.test(String(body.periodKey || ''))) {
+      db.periodKey = String(body.periodKey); db.periodAt = Number(body.periodAt);
+    }
+    // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
+    if (!db.deletes || typeof db.deletes !== 'object') db.deletes = {};
+    if (body.deletes && typeof body.deletes === 'object') {
+      Object.keys(body.deletes).forEach(k => { const at = Number(body.deletes[k]) || 0; if (at > (Number(db.deletes[k]) || 0)) db.deletes[k] = at; });
+    }
+    if (Object.keys(db.deletes).length) {
+      db.readings = db.readings.filter(r => { const at = Number(db.deletes[keyOf(r)]) || 0; return !(at && at >= (r.at || r.srvAt || 0)); });
+    }
+    // заміни приладів — бригадні; на кожен ключ перемагає новіша мітка
+    if (!db.swaps || typeof db.swaps !== 'object') db.swaps = {};
+    if (body.swaps && typeof body.swaps === 'object') {
+      for (const k in body.swaps) {
+        const inc = body.swaps[k]; if (!inc || typeof inc !== 'object') continue;
+        const ex = db.swaps[k];
+        if (!ex || (Number(inc.at) || 0) > (Number(ex.at) || 0)) db.swaps[k] = inc;
+      }
+    }
+    mergeContacts(db, body.contacts);
+    mergeRoutes(db, body.routes);
     db.savedAt = Date.now();
     saveDb(db);
     const since = Number(body.since) || 0;
     const out = since > 0 ? db.readings.filter(r => (r.srvAt || 0) > since) : db.readings;
+    // keys — ПОВНИЙ набір ключів усіх показань на сервері (сервер = єдине джерело
+    // правди). Клієнт звіряє свої польові показання: чого тут нема (видалили
+    // будь-де) — прибирає й у себе. Легкий (лише ключі), тож іде щоразу навіть при
+    // інкрементальному since; так видалення «зникає в усіх» без крихких тумбстоунів.
     return sendJson(res, 200, { ok: true, warnBase: !!warnBase, stats,
-      readings: out, maxSrvAt: maxSrvAt(db), assignments: db.assignments, baseSig: db.baseSig,
-      hasBase: db.houses.length > 0 });
+      readings: out, keys: db.readings.map(keyOf), maxSrvAt: maxSrvAt(db), assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig,
+      closedAt: db.closedAt || 0, periodKey: db.periodKey || '', periodAt: db.periodAt || 0, swaps: db.swaps || {},
+      deletes: db.deletes || {}, hasBase: db.houses.length > 0 });
   }
   return sendJson(res, 404, { error: 'невідомий маршрут' });
 }
@@ -254,10 +405,9 @@ function serveStatic(req, res, url){
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://' + (req.headers.host || 'localhost'));
-  // однакове походження — CORS не потрібен; але дозволимо на випадок іншого порту
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // Застосунок і API живуть на одному походженні — CORS-заголовків свідомо НЕМАЄ
+  // (раніше стояло Access-Control-Allow-Origin: *, що дозволяло чужим сайтам
+  // звертатись до API з браузера відвідувача).
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   if (url.pathname.startsWith('/api/')) {
     handleApi(req, res, url).catch(err => sendJson(res, 500, { error: String(err && err.message || err) }));
@@ -266,7 +416,13 @@ const server = http.createServer((req, res) => {
   serveStatic(req, res, url);
 });
 
-server.listen(PORT, () => {
-  console.log('АРМ Теплооблік — сервер запущено на http://0.0.0.0:' + PORT + '/');
-  console.log('Дані: ' + DB_FILE);
-});
+// Запускаємось лише коли файл виконано напряму (node server.js). При require
+// (юніт-тести merge-логіки в tests/) сервер не стартує і нічого не пише на диск.
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log('АРМ Теплооблік — сервер запущено на http://0.0.0.0:' + PORT + '/');
+    console.log('Дані: ' + DB_FILE);
+    console.log('Ключ бригади: ' + brigadeKey());
+  });
+}
+module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb };

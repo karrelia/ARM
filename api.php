@@ -22,9 +22,9 @@
  * не обрізались, у php.ini бажано  post_max_size = 64M  (і  upload_max_filesize).
  */
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+// Застосунок і API живуть на одному походженні — CORS-заголовків свідомо немає
+// (раніше стояло Access-Control-Allow-Origin: *, що дозволяло чужим сайтам
+// звертатись до API з браузера будь-якого відвідувача).
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
 
 $DATA_DIR   = __DIR__ . '/arm-data';
@@ -62,7 +62,54 @@ function read_body() {
 // ---------- сховище ----------
 function empty_db() {
     return array('houses' => array(), 'boilers' => array(), 'readings' => array(),
-                 'assignments' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
+                 'assignments' => new stdClass(), 'assignmentsAt' => new stdClass(), 'contacts' => new stdClass(), 'routes' => new stdClass(),
+                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0,
+                 'deletes' => new stdClass(), 'swaps' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
+}
+// Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
+// мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
+// Наявним призначенням без мітки даємо базову «1». Порожній виконавець — тумбстоун.
+function ensure_asg_stamps(&$db) {
+    if (!isset($db['assignmentsAt']) || !is_array($db['assignmentsAt'])) $db['assignmentsAt'] = array();
+    if (isset($db['assignments']) && is_array($db['assignments']))
+        foreach ($db['assignments'] as $k => $v) if (empty($db['assignmentsAt'][$k])) $db['assignmentsAt'][$k] = 1;
+}
+function merge_assignments(&$db, $incAssign, $incAt) {
+    ensure_asg_stamps($db);
+    if (!is_array($incAt)) return;   // без міток (старий клієнт) — не чіпаємо, щоб не затер
+    if (!is_array($incAssign)) $incAssign = array();
+    if (!is_array($db['assignments'])) $db['assignments'] = array();
+    foreach ($incAt as $k => $at) {
+        $at = (float)$at;
+        if ($at >= (float)($db['assignmentsAt'][$k] ?? 0)) {
+            $w = isset($incAssign[$k]) ? $incAssign[$k] : '';
+            if ($w !== '' && $w !== null) $db['assignments'][$k] = $w; else unset($db['assignments'][$k]);
+            $db['assignmentsAt'][$k] = $at;
+        }
+    }
+}
+// ---------- ключ бригади (захист API на публічному хостингу) ----------
+// Без нього будь-хто в інтернеті міг скачати користувачів (PIN — 4 цифри,
+// підбирається миттєво), адреси/телефони з бази чи залити фейкові показання.
+// Ключ генерується один раз у arm-data/config.json ("brigadeKey"); старший
+// вводить його на пристроях (розділ «Виконавець»), клієнт шле заголовком
+// X-Brigade-Key. Без ключа доступні лише /ping і фото (їх sha1-адреса — секрет).
+function brigade_key() {
+    global $DATA_DIR;
+    $file = $DATA_DIR . '/config.json';
+    $cfg = array();
+    $s = @file_get_contents($file);
+    if ($s !== false) { $j = json_decode($s, true); if (is_array($j)) $cfg = $j; }
+    if (empty($cfg['brigadeKey'])) {
+        $cfg['brigadeKey'] = bin2hex(random_bytes(16));
+        if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+        @file_put_contents($file, json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
+    }
+    return (string)$cfg['brigadeKey'];
+}
+function key_ok() {
+    $got = $_SERVER['HTTP_X_BRIGADE_KEY'] ?? '';
+    return hash_equals(brigade_key(), (string)$got);
 }
 function load_db() {
     global $DB_FILE;
@@ -75,11 +122,62 @@ function load_db() {
     foreach (array('houses','boilers','readings','baseSig','savedAt') as $k)
         if (isset($j[$k])) $d[$k] = $j[$k];
     if (isset($j['assignments'])) $d['assignments'] = $j['assignments'];
+    if (isset($j['assignmentsAt'])) $d['assignmentsAt'] = $j['assignmentsAt'];
+    if (isset($j['contacts'])) $d['contacts'] = $j['contacts'];
+    if (isset($j['routes'])) $d['routes'] = $j['routes'];
+    // closedAt/deletes теж мусять переживати перезавантаження (раніше не читались —
+    // «закриття місяця» скидалось, а тумбстоуни видалення не трималися між запитами)
+    if (isset($j['closedAt'])) $d['closedAt'] = $j['closedAt'];
+    if (isset($j['periodKey'])) $d['periodKey'] = $j['periodKey'];
+    if (isset($j['periodAt'])) $d['periodAt'] = $j['periodAt'];
+    if (isset($j['deletes'])) $d['deletes'] = $j['deletes'];
+    if (isset($j['swaps'])) $d['swaps'] = $j['swaps'];
     return $d;
+}
+// Спільні мапи бригади «будинок → запис із міткою часу»: contacts (контактна
+// особа; одна адреса — один контакт для ХВ і ГВ) та routes (домовленості).
+// Новіший at перемагає; «порожній» запис — ТУМБСТОУН видалення, він зберігається
+// й розповсюджується (інакше інші пристрої повернуть стертий запис назад).
+function merge_stamped_map($target, $incoming, $fields) {
+    $out = is_array($target) ? $target : array();
+    if (!is_array($incoming)) return $out;
+    foreach ($incoming as $k => $inc) {
+        if (!is_array($inc)) continue;
+        $exAt = isset($out[$k]['at']) ? (float)$out[$k]['at'] : -1;
+        $incAt = isset($inc['at']) ? (float)$inc['at'] : 0;
+        if (!isset($out[$k]) || $incAt >= $exAt) {
+            $rec = array('at' => $incAt ?: round(microtime(true) * 1000));
+            foreach ($fields as $f) $rec[$f] = isset($inc[$f]) ? (string)$inc[$f] : '';
+            $out[$k] = $rec;
+        }
+    }
+    return $out;
+}
+function merge_contacts(&$db, $incoming) {
+    $db['contacts'] = merge_stamped_map($db['contacts'] ?? array(), $incoming, array('name', 'phone'));
+}
+function merge_routes(&$db, $incoming) {
+    $db['routes'] = merge_stamped_map($db['routes'] ?? array(), $incoming, array('mode', 'date', 'time', 'note'));
+}
+// Щоденна резервна копія db.json (знімок попереднього стану при першій зміні
+// за день; тримаємо 30 днів) — захист історії показань від збою чи помилки.
+function backup_db() {
+    global $DATA_DIR, $DB_FILE;
+    if (!is_file($DB_FILE)) return;
+    $dir = $DATA_DIR . '/backup';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $file = $dir . '/db-' . gmdate('Y-m-d') . '.json';
+    if (is_file($file)) return;
+    @copy($DB_FILE, $file);
+    $keep = time() - 30 * 24 * 3600;
+    foreach (glob($dir . '/db-*.json') ?: array() as $f) {
+        if (preg_match('#/db-(\d{4}-\d{2}-\d{2})\.json$#', $f, $m) && strtotime($m[1]) < $keep) @unlink($f);
+    }
 }
 function save_db($db) {
     global $DATA_DIR, $DB_FILE;
     if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+    backup_db();
     $tmp = $DB_FILE . '.tmp';
     file_put_contents($tmp, json_encode($db, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
     @rename($tmp, $DB_FILE);
@@ -154,15 +252,32 @@ function ocr_parse_number($t) {
 }
 
 // ---------- зведення показань (дзеркалить server.js / клієнтський _mergeReadings) ----------
-function norm_s($s) { return strtolower(trim((string)($s === null ? '' : $s))); }
+// нормалізація ключа — ТОЧНО як клієнтський _normAddr (JS .toLowerCase()) і
+// server.js. КРИТИЧНО: strtolower НЕ переводить кирилицю в нижній регістр, тож
+// «КАРБАНА20» лишалося б у верхньому — і ключ тумбстоуна видалення (клієнт дає
+// «карбана20») не збігався б із показанням → видалення не розносилось. Тому
+// mb_strtolower (UTF-8), як у JS. Плюс стискаємо внутрішні пробіли.
+function norm_s($s) {
+    $s = trim((string)($s === null ? '' : $s));
+    $s = function_exists('mb_strtolower') ? mb_strtolower($s, 'UTF-8') : strtolower($s);
+    return preg_replace('/\s+/', ' ', $s);
+}
+// wt (тип води) у ключі — щоб ХВ і ГВ одного особового рахунку за одну дату не
+// злипались в одне показання (інакше історія одного з приладів втрачається).
+// № лічильника — ОБОВ'ЯЗКОВА частина ключа: у будинку буває два прилади з
+// ОДНАКОВИМ особовим і типом води; без нього друге показання затирало перше.
 function key_of($r) {
+    return legacy_key_of($r) . '|' . norm_s($r['meterNo'] ?? '');
+}
+function legacy_key_of($r) {
     $ctrl = !empty($r['isControl']) ? 'k' : '';
-    return norm_s($r['account'] ?? '') . '|' . ($r['date'] ?? '') . '|' . $ctrl;
+    return norm_s($r['account'] ?? '') . '|' . ($r['date'] ?? '') . '|' . ($r['wt'] ?? '') . '|' . $ctrl;
 }
 function merge_readings(&$db, $incoming) {
     $now = round(microtime(true) * 1000); // мс, як Date.now()
-    $index = array();
-    foreach ($db['readings'] as $i => $r) $index[key_of($r)] = $i;
+    $index = array(); $legacyIndex = array();
+    foreach ($db['readings'] as $i => $r) { $index[key_of($r)] = $i;
+        $lk = legacy_key_of($r); if (!isset($legacyIndex[$lk])) $legacyIndex[$lk] = $i; }
     $added = 0; $updated = 0; $conflicts = 0; $skipped = 0;
     foreach (($incoming ?: array()) as $inc) {
         if (!is_array($inc) || empty($inc['account'])) { $skipped++; continue; }
@@ -171,13 +286,20 @@ function merge_readings(&$db, $incoming) {
         $rec['synced'] = true;
         externalize_photos($rec);   // base64 → файли, у db.json лише посилання
         $k = key_of($rec);
-        if (!isset($index[$k])) {
+        // запис, збережений ДО появи № у ключі, підхоплюємо за старим ключем і
+        // «всиновлюємо» (доповнюємо номером) — інакше вийшов би дубль тієї самої дати
+        $slot = isset($index[$k]) ? $index[$k] : null;
+        if ($slot === null && !empty($rec['meterNo'])) {
+            $lk = legacy_key_of($rec);
+            if (isset($legacyIndex[$lk]) && empty($db['readings'][$legacyIndex[$lk]]['meterNo'])) $slot = $legacyIndex[$lk];
+        }
+        if ($slot === null) {
             $rec['srvAt'] = $now;
             $db['readings'][] = $rec;
             $index[$k] = count($db['readings']) - 1;
             $added++;
         } else {
-            $ex =& $db['readings'][$index[$k]];
+            $ex =& $db['readings'][$slot];
             $differ = (($ex['cur'] ?? null) !== ($rec['cur'] ?? null)) || (($ex['prev'] ?? null) !== ($rec['prev'] ?? null));
             if ((($rec['at'] ?? 0) > ($ex['at'] ?? 0))) {
                 foreach ($rec as $kk => $vv) $ex[$kk] = $vv;
@@ -195,7 +317,7 @@ function max_srv_at($db) {
     foreach ($db['readings'] as $r) if (($r['srvAt'] ?? 0) > $m) $m = $r['srvAt'];
     return $m;
 }
-// assignments має завжди серіалізуватись як об'єкт (не порожній масив)
+// assignments/contacts мають завжди серіалізуватись як об'єкт (не порожній масив)
 function assign_out($a) {
     if (is_array($a) && count($a) === 0) return new stdClass();
     return $a;
@@ -205,8 +327,11 @@ function assign_out($a) {
 $path   = route();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
-// GET /ping — перевірка наявності сервера
+// GET /ping — перевірка наявності сервера (єдиний маршрут без ключа; фото —
+// окремо: їх sha1-адреса сама є секретом-перепусткою)
 if ($path === 'ping' && $method === 'GET') send_json(200, array('ok' => true, 'ts' => round(microtime(true) * 1000)));
+if (!key_ok() && !(strpos($path, 'photo/') === 0 && $method === 'GET'))
+    send_json(403, array('error' => 'потрібен ключ бригади', 'needKey' => true));
 
 // GET /users — спільний список користувачів (PIN перевіряється на клієнті)
 if ($path === 'users' && $method === 'GET') send_json(200, array('users' => load_users()));
@@ -224,8 +349,11 @@ if ($path === 'users' && $method === 'POST') {
 // GET /base — довідник для завантаження робітником (без показань)
 if ($path === 'base' && $method === 'GET') {
     $db = load_db();
+    ensure_asg_stamps($db);
     send_json(200, array('hasBase' => count($db['houses']) > 0, 'houses' => $db['houses'],
-        'boilers' => $db['boilers'], 'assignments' => assign_out($db['assignments']),
+        'boilers' => $db['boilers'], 'assignments' => assign_out($db['assignments']), 'assignmentsAt' => assign_out($db['assignmentsAt'] ?? array()),
+        'contacts' => assign_out($db['contacts'] ?? array()),
+        'routes' => assign_out($db['routes'] ?? array()),
         'baseSig' => $db['baseSig'], 'savedAt' => $db['savedAt']));
 }
 // POST /base — старший публікує довідник (показання й розподіл зберігаються)
@@ -236,9 +364,20 @@ if ($path === 'base' && $method === 'POST') {
     $db['houses']  = $body['houses'];
     $db['boilers'] = $body['boilers'] ?? array();
     $db['baseSig'] = $body['baseSig'] ?? '';
+    // Базові (архівні/імпортовані) показання — щоб робітник, який завантажить
+    // базу, одразу бачив попередню історію споживання. Зливаємо у db.readings
+    // (ідемпотентно: повторна публікація не дублює наявні показання).
+    $baseAdded = 0;
+    if (isset($body['readings']) && is_array($body['readings']) && count($body['readings']) > 0) {
+        $st = merge_readings($db, $body['readings']);
+        $baseAdded = $st['added'];
+    }
+    if (isset($body['contacts'])) merge_contacts($db, $body['contacts']);
+    if (isset($body['routes'])) merge_routes($db, $body['routes']);
     $db['savedAt'] = round(microtime(true) * 1000);
     save_db($db);
-    send_json(200, array('ok' => true, 'houses' => count($db['houses']), 'readings' => count($db['readings'])));
+    send_json(200, array('ok' => true, 'houses' => count($db['houses']), 'readings' => count($db['readings']), 'baseAdded' => $baseAdded,
+        'contacts' => assign_out($db['contacts'] ?? array()), 'routes' => assign_out($db['routes'] ?? array())));
 }
 // POST /sync — push черги + опційно розподіл; повертає ЛИШЕ показання новіші за since
 if ($path === 'sync' && $method === 'POST') {
@@ -246,7 +385,35 @@ if ($path === 'sync' && $method === 'POST') {
     $db = load_db();
     $warnBase = !empty($body['baseSig']) && !empty($db['baseSig']) && $body['baseSig'] !== $db['baseSig'];
     $stats = merge_readings($db, $body['readings'] ?? array());
-    if (isset($body['assignments']) && is_array($body['assignments'])) $db['assignments'] = $body['assignments'];
+    merge_assignments($db, $body['assignments'] ?? null, $body['assignmentsAt'] ?? null);
+    // «закриття місяця» — бригадна мітка часу; перемагає новіша
+    if (isset($body['closedAt'])) $db['closedAt'] = max((float)($db['closedAt'] ?? 0), (float)$body['closedAt']);
+    // відкритий звітний період — бригадний; перемагає новіша мітка
+    if (isset($body['periodAt']) && (float)$body['periodAt'] > (float)($db['periodAt'] ?? 0)
+        && preg_match('/^\d{4}-\d{2}$/', (string)($body['periodKey'] ?? ''))) {
+        $db['periodKey'] = (string)$body['periodKey']; $db['periodAt'] = (float)$body['periodAt'];
+    }
+    // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
+    if (!isset($db['deletes']) || !is_array($db['deletes'])) $db['deletes'] = array();
+    if (isset($body['deletes']) && is_array($body['deletes'])) {
+        foreach ($body['deletes'] as $k => $at) { $at = (float)$at; if ($at > (float)($db['deletes'][$k] ?? 0)) $db['deletes'][$k] = $at; }
+    }
+    if (count($db['deletes'])) {
+        $kept = array();
+        foreach ($db['readings'] as $r) { $at = (float)($db['deletes'][key_of($r)] ?? 0); if (!($at && $at >= (float)($r['at'] ?? ($r['srvAt'] ?? 0)))) $kept[] = $r; }
+        $db['readings'] = array_values($kept);
+    }
+    // заміни приладів — бригадні; на кожен ключ перемагає новіша мітка
+    if (!isset($db['swaps']) || !is_array($db['swaps'])) $db['swaps'] = array();
+    if (isset($body['swaps']) && is_array($body['swaps'])) {
+        foreach ($body['swaps'] as $k => $inc) {
+            if (!is_array($inc)) continue;
+            $exAt = isset($db['swaps'][$k]['at']) ? (float)$db['swaps'][$k]['at'] : -1;
+            if ((float)($inc['at'] ?? 0) > $exAt) $db['swaps'][$k] = $inc;
+        }
+    }
+    if (isset($body['contacts'])) merge_contacts($db, $body['contacts']);
+    if (isset($body['routes'])) merge_routes($db, $body['routes']);
     $db['savedAt'] = round(microtime(true) * 1000);
     save_db($db);
     $since = isset($body['since']) ? (float)$body['since'] : 0;
@@ -257,8 +424,21 @@ if ($path === 'sync' && $method === 'POST') {
     } else {
         $out = $db['readings'];
     }
+    // keys — ПОВНИЙ набір ключів усіх показань на сервері (сервер = єдине джерело
+    // правди). Клієнт звіряє свої польові показання: чого тут нема (видалили
+    // будь-де) — прибирає й у себе. Легкий (лише ключі), тож іде щоразу навіть
+    // при інкрементальному since; так видалення «зникає в усіх» без крихких
+    // тумбстоунів на кожному пристрої.
+    $keys = array();
+    foreach ($db['readings'] as $r) $keys[] = key_of($r);
     send_json(200, array('ok' => true, 'warnBase' => (bool)$warnBase, 'stats' => $stats,
-        'readings' => $out, 'maxSrvAt' => max_srv_at($db), 'assignments' => assign_out($db['assignments']),
+        'readings' => $out, 'keys' => $keys, 'maxSrvAt' => max_srv_at($db), 'assignments' => assign_out($db['assignments']), 'assignmentsAt' => assign_out($db['assignmentsAt'] ?? array()),
+        'contacts' => assign_out($db['contacts'] ?? array()),
+        'routes' => assign_out($db['routes'] ?? array()),
+        'closedAt' => (float)($db['closedAt'] ?? 0),
+        'periodKey' => (string)($db['periodKey'] ?? ''), 'periodAt' => (float)($db['periodAt'] ?? 0),
+        'swaps' => assign_out($db['swaps'] ?? array()),
+        'deletes' => assign_out($db['deletes'] ?? array()),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));
 }
 
