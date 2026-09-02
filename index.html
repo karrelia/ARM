@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="./manifest.webmanifest">
-<meta name="theme-color" content="#2c3884">
+<meta name="theme-color" content="#C2410C">
 <!-- Іконки для вкладки браузера та ярлика на робочому столі/головному екрані.
      favicon.ico (мультирозмір, у корені) — універсальний резерв для Chrome/Android,
      коли сайт додають як «ярлик», а не встановлюють як застосунок. Великі PNG
@@ -107,7 +107,7 @@ window.addEventListener('appinstalled', function () {
 
     <!-- ============ БАНЕР ВСТАНОВЛЕННЯ (PWA) ============ -->
     <sc-if value="{{ showInstall }}" hint-placeholder-val="{{ false }}">
-    <div class="installBanner" style="flex-shrink:0;z-index:60;display:flex;align-items:center;gap:11px;background:linear-gradient(150deg,#5566d6,#2c3884);color:#fff;padding:10px 14px">
+    <div class="installBanner" style="flex-shrink:0;z-index:60;display:flex;align-items:center;gap:11px;background:linear-gradient(150deg,#F97316,#B4400A);color:#fff;padding:10px 14px">
       <div style="width:36px;height:36px;flex-shrink:0;border-radius:10px;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M5 21h14"></path></svg>
       </div>
@@ -116,7 +116,7 @@ window.addEventListener('appinstalled', function () {
         <div style="font-size:var(--t102);font-weight:600;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ installSub }}</div>
       </div>
       <sc-if value="{{ installHasBtn }}" hint-placeholder-val="{{ true }}">
-      <button onClick="{{ installApp }}" style="flex-shrink:0;height:36px;padding:0 16px;border-radius:10px;border:none;background:#fff;color:#2c3884;font-size:var(--t115);font-weight:800;cursor:pointer">Встановити</button>
+      <button onClick="{{ installApp }}" style="flex-shrink:0;height:36px;padding:0 16px;border-radius:10px;border:none;background:#fff;color:#B4400A;font-size:var(--t115);font-weight:800;cursor:pointer">Встановити</button>
       </sc-if>
       <button onClick="{{ dismissInstall }}" title="Приховати" style="flex-shrink:0;width:30px;height:30px;border-radius:9px;border:none;background:rgba(255,255,255,.14);color:#fff;font-size:16px;font-weight:800;line-height:1;cursor:pointer;padding:0">✕</button>
     </div>
@@ -127,7 +127,7 @@ window.addEventListener('appinstalled', function () {
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="display:flex;align-items:center;gap:10px;min-width:0">
           <div style="width:38px;height:38px;flex-shrink:0;border-radius:11px;background:var(--brandGrad);box-shadow:inset 0 0 0 1.5px var(--brandRing);display:flex;align-items:center;justify-content:center;overflow:hidden">
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12 2.5C12 2.5 5.3 10.2 5.3 14.6A6.7 6.7 0 1 0 18.7 14.6C18.7 10.2 12 2.5 12 2.5Z" fill="#eaf1ff" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"></path><path d="M9.2 13.4A3.2 3.2 0 0 0 10.6 17" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".7"></path></svg>
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none"><path d="M12.5 2.3c.5 2.9-.9 4.3-2.4 5.8C8.4 9.7 6.7 11.5 6.7 14.4a5.3 5.3 0 0 0 10.6 0c0-1.5-.4-2.6-1.2-3.8-.3.9-.8 1.5-1.6 1.8.3-2.8-.8-5.7-2-10.1Z" fill="#FFF1E4" stroke="#fff" stroke-width="1" stroke-linejoin="round"></path><path d="M12 19.4c-1.3 0-2.4-1-2.4-2.3 0-1.4 1.2-2.2 2.4-3.6 1.2 1.4 2.4 2.2 2.4 3.6 0 1.3-1.1 2.3-2.4 2.3Z" fill="#EA580C" opacity=".5"></path></svg>
           </div>
           <div style="min-width:0">
             <div style="font-size:var(--t165);font-weight:800;color:var(--ink);letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Теплооблік</div>
@@ -249,22 +249,22 @@ window.addEventListener('appinstalled', function () {
         </sc-if>
 
         <!-- hero -->
-        <div style="border-radius:20px;padding:20px;background:linear-gradient(150deg,#3b4baa,#2c3884);box-shadow:0 14px 30px -16px rgba(46,58,140,.7);margin-bottom:14px">
-          <div style="font-size:var(--t120);font-weight:700;color:#aeb8ef;letter-spacing:.3px;text-transform:uppercase">Спожито ТЕ, Гкал · {{ ov.monthLabel }}</div>
+        <div style="border-radius:20px;padding:20px;background:linear-gradient(150deg,#D2500F,#8F3208);box-shadow:0 14px 30px -16px rgba(46,58,140,.7);margin-bottom:14px">
+          <div style="font-size:var(--t120);font-weight:700;color:#F6C9A6;letter-spacing:.3px;text-transform:uppercase">Спожито ТЕ, Гкал · {{ ov.monthLabel }}</div>
           <div class="tnum" style="font-size:var(--t300);font-weight:800;color:#fff;letter-spacing:-1px;margin-top:4px">{{ ov.totalGcal }}</div>
-          <div style="font-size:var(--t125);font-weight:600;color:#d9defa;margin-top:2px">{{ ov.subNote }}</div>
+          <div style="font-size:var(--t125);font-weight:600;color:#FBE3D2;margin-top:2px">{{ ov.subNote }}</div>
           <div style="display:flex;gap:22px;margin-top:16px">
             <div>
-              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">Наванта&shy;ження, Гкал/год</div>
+              <div style="font-size:var(--t110);font-weight:600;color:#F6C9A6">Наванта&shy;ження, Гкал/год</div>
               <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#fff">{{ ov.coldTxt }}</div>
             </div>
             <div>
-              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">Питомі, Гкал/од.</div>
-              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#ffd27a">{{ ov.hotTxt }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:#F6C9A6">Питомі, Гкал/од.</div>
+              <div class="tnum" style="font-size:var(--t170);font-weight:800;color:#FFE0A3">{{ ov.hotTxt }}</div>
             </div>
             <sc-if value="{{ ov.soShow }}" hint-placeholder-val="{{ false }}">
             <div>
-              <div style="font-size:var(--t110);font-weight:600;color:#aeb8ef">{{ ov.soLabel }}</div>
+              <div style="font-size:var(--t110);font-weight:600;color:#F6C9A6">{{ ov.soLabel }}</div>
               <div class="tnum" style="font-size:var(--t170);font-weight:800;color:{{ ov.soColor }}">{{ ov.soPct }}</div>
             </div>
             </sc-if>
@@ -1129,6 +1129,55 @@ window.addEventListener('appinstalled', function () {
             <input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
           </label>
 
+          <!-- паспорт вузла обліку ТЕ: обчислювач + витратомір + ТСП -->
+          <div style="display:flex;gap:10px;margin-bottom:12px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">обчислювач</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mObcPovirka }}" onInput="{{ onMObcPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mObcTip }}" onInput="{{ onMObcTip }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block">
+                <span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Розмірність</span>
+                <div style="position:relative">
+                  <select value="{{ mObcUnit }}" onChange="{{ onMObcUnit }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 22px 0 8px;border-radius:9px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t115);appearance:none;-webkit-appearance:none">
+                    <sc-for list="{{ unitOpts }}" as="u" hint-placeholder-count="4">
+                      <option value="{{ u }}">{{ u }}</option>
+                    </sc-for>
+                  </select>
+                  <span style="position:absolute;right:7px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none;font-size:var(--t100)">▾</span>
+                </div>
+              </label>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">витратомір</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mVodZavod }}" onInput="{{ onMVodZavod }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mVodPovirka }}" onInput="{{ onMVodPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Тип</span><input value="{{ mVodTip }}" onInput="{{ onMVodTip }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">DN</span><input inputmode="decimal" value="{{ mVodDN }}" onInput="{{ onMVodDN }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:var(--t110);font-weight:800;color:var(--ink);text-align:center;margin-bottom:8px;text-transform:uppercase;letter-spacing:.3px">ТСП</div>
+              <label style="display:block;margin-bottom:7px"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Завод. №</span><input value="{{ mTspZavod }}" onInput="{{ onMTspZavod }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+              <label style="display:block"><span style="display:block;font-size:var(--t100);font-weight:700;color:var(--muted);margin-bottom:3px">Повірка</span><input value="{{ mTspPovirka }}" onInput="{{ onMTspPovirka }}" disabled="{{ dovLock }}" style="width:100%;height:36px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115)"></label>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-bottom:6px">
+            <label style="flex:1.5;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Теплове навантаження будинку, Гкал/год</span>
+              <input inputmode="decimal" value="{{ mHeatLoad }}" onInput="{{ onMHeatLoad }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="flex:1;min-width:0">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Частка абонента</span>
+              <input inputmode="decimal" value="{{ mObcChastka }}" onInput="{{ onMObcChastka }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
+          <div style="font-size:var(--t110);font-weight:600;color:var(--muted);margin-bottom:12px">Розрахункове ТН абонента (навантаження × частка): <b class="tnum" style="color:var(--ink)">{{ mHeatLoadCalc }}</b> Гкал/год</div>
+
+          <div style="display:flex;gap:16px;margin-bottom:12px">
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mKomOblik }}" onChange="{{ onMKomOblik }}" disabled="{{ dovLock }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Ком. облік</span></label>
+            <label style="display:flex;align-items:center;gap:7px;cursor:pointer"><input type="checkbox" checked="{{ mFop }}" onChange="{{ onMFop }}" disabled="{{ dovLock }}" style="width:17px;height:17px"><span style="font-size:var(--t120);font-weight:600;color:var(--ink)">ФОП</span></label>
+          </div>
+
           <label style="display:block;margin-bottom:10px">
             <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Контактна особа</span>
             <input value="{{ mContact }}" onInput="{{ onMContact }}" placeholder="Хто надає доступ (напр. Голова ОСББ, Марія)" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
@@ -1233,6 +1282,93 @@ window.addEventListener('appinstalled', function () {
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Попередній показник</span><b class="tnum" style="color:var(--ink)">{{ pv.prev }}</b></div>
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Поточний показник</span><b class="tnum" style="color:var(--ink)">{{ pv.cur }}</b></div>
             <div style="display:flex;justify-content:space-between;padding:7px 0 3px;font-size:var(--t140);border-top:1px solid var(--line);margin-top:5px"><span style="color:var(--ink);font-weight:700">Спожито ТЕ, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }};font-weight:800">{{ pv.gcal }}</b></div>
+          </div>
+          </sc-if>
+
+          <!-- 3) Повні показники теплового приладу (розгортається за потреби) -->
+          <button onClick="{{ toggleEFull }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;height:42px;padding:0 13px;border-radius:12px;border:1px dashed var(--line2);background:var(--chipBg);color:var(--muted);font-size:var(--t118);font-weight:700;cursor:pointer;margin-bottom:12px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🌡 Повні показники приладу (вода, наробіток, норматив)</span><span style="flex-shrink:0">{{ eFullChevron }}</span></button>
+
+          <sc-if value="{{ eFull }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Показники теплового лічильника</div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:6px">
+            <div></div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Попередній</div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Поточний</div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Різниця</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
+            <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
+            <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ eCur }}" onInput="{{ onECur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
+            <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
+            <input inputmode="decimal" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod }}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
+            <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Наробіток, дні/год</span>
+            <input inputmode="decimal" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffNar }}</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
+            <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Простій, год</span>
+            <input inputmode="decimal" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffProst }}</div>
+          </div>
+
+          <div style="display:flex;gap:11px;margin-bottom:12px">
+            <label style="flex:1">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Витрати теплоносія</span>
+              <input inputmode="decimal" value="{{ sVytraty }}" onInput="{{ onSVytraty }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="flex:1">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Миттєва потужність</span>
+              <input inputmode="decimal" value="{{ sPotuzhnist }}" onInput="{{ onSPotuzhnist }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
+          <div style="display:flex;gap:11px;margin-bottom:14px">
+            <label style="flex:1">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вхід, °C</span>
+              <input inputmode="decimal" value="{{ sTempVhid }}" onInput="{{ onSTempVhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+            <label style="flex:1">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вихід, °C</span>
+              <input inputmode="decimal" value="{{ sTempVyhid }}" onInput="{{ onSTempVyhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+            </label>
+          </div>
+
+          <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Показники водоміра</div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:6px">
+            <div></div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Попередній</div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Поточний</div>
+            <div style="font-size:var(--t105);font-weight:700;color:var(--muted2);text-align:center">Різниця</div>
+          </div>
+          <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
+            <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
+            <input inputmode="decimal" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod2 }}</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:{{ vodDevBg }};border-radius:12px;padding:11px 13px;margin-bottom:14px">
+            <span style="font-size:var(--t120);font-weight:700;color:var(--ink)">Відхилення використання&nbsp;</span>
+            <span class="tnum" style="font-size:var(--t125);font-weight:800;color:{{ vodDevFg }}">{{ vodDevVal }}<sc-if value="{{ vodDevPct }}" hint-placeholder-val="{{ false }}"> м³ · {{ vodDevPct }}</sc-if></span>
+          </div>
+
+          <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Оцінка споживання</div>
+          <div style="background:var(--chipBg);border:1px dashed var(--line2);border-radius:14px;padding:13px 15px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">Тривалість, год</span><input inputmode="decimal" value="{{ eDur }}" onChange="{{ onEDur }}" onInput="{{ onEDur }}" style="width:90px;height:35px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t середньодоб., °C</span><input inputmode="decimal" value="{{ eTavg }}" onInput="{{ onETavg }}" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:3px 0;font-size:var(--t125);gap:10px"><span style="color:var(--muted);flex-shrink:0">t приміщення, °C</span><input inputmode="decimal" value="{{ mTPrim }}" onInput="{{ onMTPrim }}" placeholder="18" style="width:90px;height:32px;padding:0 8px;border:1px solid var(--inputBd);border-radius:8px;background:var(--surface);color:var(--ink);font-size:var(--t120);text-align:right"></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125);border-top:1px solid var(--line);margin-top:4px;padding-top:7px"><span style="color:var(--muted)">Спожито ТЕ (Q факт.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.gcal }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Норматив (Q розр.), Гкал</span><b class="tnum" style="color:var(--ink)">{{ pv.q }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Різниця, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.diff }}</b></div>
+            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Відхилення, %</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.pct }}</b></div>
           </div>
           </sc-if>
 
@@ -1599,7 +1735,7 @@ window.addEventListener('appinstalled', function () {
       <div style="width:100%;max-width:340px">
         <div style="text-align:center;margin-bottom:22px">
           <div style="width:64px;height:64px;margin:0 auto 12px;border-radius:18px;background:var(--brandGrad);box-shadow:inset 0 0 0 1.5px var(--brandRing);display:flex;align-items:center;justify-content:center">
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2.5C12 2.5 5.3 10.2 5.3 14.6A6.7 6.7 0 1 0 18.7 14.6C18.7 10.2 12 2.5 12 2.5Z" fill="#eaf1ff" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"></path><path d="M9.2 13.4A3.2 3.2 0 0 0 10.6 17" fill="none" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".7"></path></svg>
+            <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12.5 2.3c.5 2.9-.9 4.3-2.4 5.8C8.4 9.7 6.7 11.5 6.7 14.4a5.3 5.3 0 0 0 10.6 0c0-1.5-.4-2.6-1.2-3.8-.3.9-.8 1.5-1.6 1.8.3-2.8-.8-5.7-2-10.1Z" fill="#FFF1E4" stroke="#fff" stroke-width="1" stroke-linejoin="round"></path><path d="M12 19.4c-1.3 0-2.4-1-2.4-2.3 0-1.4 1.2-2.2 2.4-3.6 1.2 1.4 2.4 2.2 2.4 3.6 0 1.3-1.1 2.3-2.4 2.3Z" fill="#EA580C" opacity=".5"></path></svg>
           </div>
           <div style="font-size:var(--t190);font-weight:800;color:var(--ink)">АРМ Теплооблік</div>
           <div style="font-size:var(--t125);font-weight:600;color:var(--muted2);margin-top:2px">Вхід для співробітників</div>
@@ -1704,7 +1840,7 @@ window.addEventListener('appinstalled', function () {
         <div style="margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 14px">
           <div style="display:flex;align-items:center;gap:9px;margin-bottom:8px">
             <span style="flex-shrink:0;width:34px;height:34px;border-radius:10px;background:var(--brandGrad);box-shadow:inset 0 0 0 1.5px var(--brandRing);display:flex;align-items:center;justify-content:center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2.5C12 2.5 5.3 10.2 5.3 14.6A6.7 6.7 0 1 0 18.7 14.6C18.7 10.2 12 2.5 12 2.5Z" fill="#eaf1ff" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"></path></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12.5 2.3c.5 2.9-.9 4.3-2.4 5.8C8.4 9.7 6.7 11.5 6.7 14.4a5.3 5.3 0 0 0 10.6 0c0-1.5-.4-2.6-1.2-3.8-.3.9-.8 1.5-1.6 1.8.3-2.8-.8-5.7-2-10.1Z" fill="#FFF1E4" stroke="#fff" stroke-width="1" stroke-linejoin="round"></path></svg>
             </span>
             <div style="flex:1;min-width:0">
               <div style="font-size:var(--t128);font-weight:800;color:var(--ink)">Встановити застосунок</div>
@@ -1962,6 +2098,7 @@ class Component extends DCLogic {
     mVodZavod: '', mVodPovirka: '', mVodTip: '', mVodDN: '',
     mTspZavod: '', mTspPovirka: '', mKomOblik: false, mFop: false, mContact: '', mPhone: '',
     mMeterKind: 'kom', mKom: true,          // клас приладу: комерційний / розподільчий
+    eFull: false,                           // розгорнута панель повних показників приладу
     savedDovidnyk: false,
     // --- додаткові поля показань/розрахунку (заглушки) ---
     mTPrim: '',
@@ -2036,7 +2173,17 @@ class Component extends DCLogic {
         }
       }
       h.meterNo = newNo; h.act = s.mAkt || '';
-      h.komOblik = s.mKom !== false;   // комерційний / розподільчий прилад
+      h.komOblik = s.mKomOblik !== false;   // комерційний / розподільчий прилад
+      h.fop = !!s.mFop;
+      // паспорт вузла обліку ТЕ
+      h.unit = s.mObcUnit || h.unit || 'Гкал';
+      h.obcPovirka = s.mObcPovirka || '';
+      h.meterType = s.mObcTip || '';
+      h.vodZavod = s.mVodZavod || ''; h.vodPovirka = s.mVodPovirka || '';
+      h.vodTip = s.mVodTip || ''; h.dn = s.mVodDN || '';
+      h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
+      if (s.mHeatLoad !== '') h.heatLoad = this.num(s.mHeatLoad);
+      if (s.mObcChastka !== '') h.share = this.num(s.mObcChastka) || 1;
     }
     h.contact = s.mContact || ''; h.phone = s.mPhone || '';
     this._persist();
@@ -4046,12 +4193,27 @@ class Component extends DCLogic {
     // резервно база), щоб редактор і картка абонента показували те саме, що маршрут
     const b = this._buildings().find(x => x.meters.some(m => m.id === h.id));
     const c = this._routeContact(b);
+    const sv = (v) => (v === 0 || v == null || v === '') ? '' : String(v);
     return {
       mAddress: h.address || '', mOwner: h.owner || '', mAccount: h.account || '',
       mSettlement: h.settlement || '', mBoiler: h.boiler || '', mObcZavod: h.meterNo || '',
       mAkt: h.act || '', mMeterKind: this._meterKind(h), mKom: h.komOblik !== false,
       mContact: c.name || this._stripPhone(h.contact),
       mPhone: c.hasPhone ? c.phone : (h.phone ? this._formatPhoneUa(h.phone) : this._formatPhoneUa(this._extractPhone(h.contact))),
+      // --- паспорт приладів обліку ТЕ (обчислювач / витратомір / ТСП) ---
+      mObcUnit: h.unit || 'Гкал', mObcPovirka: h.obcPovirka || '', mObcTip: h.meterType || '',
+      mObcChastka: (h.share != null ? String(h.share) : ''),
+      mHeatLoad: (h.heatLoad != null && h.heatLoad !== '') ? String(h.heatLoad) : '',
+      mVodZavod: h.vodZavod || '', mVodPovirka: h.vodPovirka || '', mVodTip: h.vodTip || '', mVodDN: h.dn || '',
+      mTspZavod: h.tspZavod || '', mTspPovirka: h.tspPovirka || '',
+      mKomOblik: h.komOblik !== false, mFop: !!h.fop,
+      // --- попередні показники з довідника (стають «попередніми» у таблиці) ---
+      tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
+      tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
+      tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
+      sVytraty: '', sPotuzhnist: '', sTempVhid: '', sTempVyhid: '',
+      // тривалість рахується автоматично від попереднього до поточного вимірювання
+      eDur: this._autoDur(this.state.eDate, this.state.eTime || this._nowHM(), h),
       eCur: '', eNoConsumption: false, savedDovidnyk: false, ePrevSel: '', entryPhotos: [], dovExpanded: false, eDetails: false
     };
   }
@@ -4549,13 +4711,38 @@ class Component extends DCLogic {
     return d !== '' ? { eDur: d } : {};
   }
 
+  // Повні показники теплового приладу для запису показання. Пишемо ТІЛЬКИ
+  // заповнені поля: більшість зняттів — це одна цифра, і порожні ключі дарма
+  // роздували б базу та кожен пакет синхронізації.
+  _entryMeterFields(){
+    const s = this.state, o = {};
+    const put = (key, val) => { if (val !== '' && val != null) o[key] = this.num(val); };
+    put('voda', s.tblVodCur);       put('vodaPrev', s.tblVodPrev);
+    put('robota', s.tblNarCur);     put('robotaPrev', s.tblNarPrev);
+    put('prostiy', s.tblProstCur);  put('prostiyPrev', s.tblProstPrev);
+    put('vodomir', s.tblVod2Cur);   put('vodomirPrev', s.tblVod2Prev);
+    put('vytraty', s.sVytraty);     put('potuzhnist', s.sPotuzhnist);
+    put('tVhid', s.sTempVhid);      put('tVyhid', s.sTempVyhid);
+    return o;
+  }
   _entryPreview(){
     const h = this._entryHouse(); const s = this.state;
+    // Поточне показання — з великого поля «Новий показник» (eCur); якщо робітник
+    // працює з повною таблицею, «Кількість ТЕ» пише в те саме поле.
     if (!h || s.eCur === '' || s.eCur == null) return null;
-    const prev = this.num(this._prevEnergy(h.id));
+    // «Попередній» можна виправити в таблиці (tblKilkPrev), інакше — з довідника
+    const prev = this.num(s.tblKilkPrev !== '' && s.tblKilkPrev != null ? s.tblKilkPrev : this._prevEnergy(h.id));
     const cur = this.num(s.eCur);
-    const delta = this.r3(cur - prev);          // спожите за приладом (в одиницях приладу)
-    return { prev, cur, delta, gcal: delta, q: 0, diff: 0, pct: null, valid: cur >= prev };
+    const delta = this.r3(cur - prev);          // приріст в одиницях приладу
+    const gcal = this.toGcal(delta, h.unit);    // приведення до Гкал
+    // норматив (Q розрахункове) — від теплового навантаження, тривалості,
+    // частки будинку та середньодобової зовнішньої температури
+    const load = s.mHeatLoad !== '' ? this.num(s.mHeatLoad) : h.heatLoad;
+    const share = s.mObcChastka !== '' ? this.num(s.mObcChastka) : (h.share != null ? h.share : 1);
+    const q = this.qIdeal(load, this.num(s.eDur), share, this.num(s.eTavg), s.mTPrim);
+    const diff = this.r3(gcal - q);
+    const pct = q ? this.r2(diff / q * 100) : null;
+    return { prev, cur, delta, gcal, q, diff, pct, valid: cur >= prev };
   }
   // М'які, НЕблокуючі попередження — ловлять типові помилки набору (аномальний
   // стрибок, дублікат за місяць, нульовий приріст). Не заважають зберегти.
@@ -4956,12 +5143,24 @@ class Component extends DCLogic {
       time: s.eTime || '', isControl: s.eControl, period: s.ePeriod || this._openPeriod() || '',
       meterNo: h.meterNo || '',            // прилад, який стояв на момент зняття
       unit: h.unit || 'Гкал', cur: pv.cur, prev: pv.prev, delta: pv.delta, gcal: pv.gcal, gcalReal: true,
-      q: 0, diff: 0, pct: null,
+      // норматив і відхилення від нього (порожні, якщо не задано ТН/тривалість)
+      q: pv.q || 0, diff: pv.diff || 0, pct: pv.pct,
+      duration: this.num(s.eDur) || 0, tAvg: this.num(s.eTavg) || 0, tPrim: this.num(s.mTPrim) || null,
+      // повні показники приладу — зберігаємо лише заповнені, щоб не роздувати базу
+      ...this._entryMeterFields(),
       photos: (s.entryPhotos || []).map(p => p.url),
       src: 'field', by: s.me || '', at: Date.now(), synced: false   // підпис + локальна черга
     });
     // оновлюємо «останній показник» у довіднику → стане «попереднім» наступного разу
-    if (!s.eControl) h.prevObc = pv.cur;
+    if (!s.eControl) {
+      h.prevObc = pv.cur;
+      // «останні» значення довідника — щоб наступного разу підставились як попередні
+      const nz = (v) => v !== '' && v != null;
+      if (nz(s.tblVodCur)) h.prevVoda = this.num(s.tblVodCur);
+      if (nz(s.tblNarCur)) h.prevRobota = this.num(s.tblNarCur);
+      if (nz(s.tblProstCur)) h.prevProstiy = this.num(s.tblProstCur);
+      if (nz(s.tblVod2Cur)) h.prevVodomir = this.num(s.tblVod2Cur);
+    }
     this._persist();
     // робітник іде по підвалу лічильник за лічильником: якщо на цій адресі є ще
     // прилад — АВТОМАТИЧНО переходимо на нього; якщо це був останній — повертаємось
@@ -5433,31 +5632,31 @@ class Component extends DCLogic {
   buildThemeVars(){
     const dark = this.state.theme === 'dark';
     const pal = dark ? {
-      '--pageBg':'radial-gradient(circle at 50% 0%,#1b2336,#0a0d16)',
-      '--bg':'#0F1422','--surface':'#161C2B','--line':'#3A4560','--line2':'#4A5678',
-      '--ink':'#EAEDF5','--muted':'#8E97AE','--muted2':'#6B748C','--faint':'#A6AEC2',
-      '--primary':'#7c8bf5','--primTint':'rgba(124,139,245,.14)','--primBd':'#3a3f74',
-      '--debt':'#FB7185','--debtTint':'rgba(251,113,133,.14)',
-      '--hot':'#F0B54A','--hotTint':'rgba(240,181,74,.15)',
+      '--pageBg':'radial-gradient(circle at 50% 0%,#2A1F16,#0E0A07)',
+      '--bg':'#15110D','--surface':'#211A14','--line':'#463A2E','--line2':'#5A4B3C',
+      '--ink':'#F2EBE3','--muted':'#A99A8A','--muted2':'#877868','--faint':'#BFB3A5',
+      '--primary':'#FB923C','--primTint':'rgba(251,146,60,.14)','--primBd':'#7A4A22',
+      '--debt':'#F87171','--debtTint':'rgba(248,113,113,.14)',
+      '--hot':'#FBBF24','--hotTint':'rgba(251,191,36,.15)',
       '--over':'#34D399','--overTint':'rgba(52,211,153,.13)',
-      '--headerBg':'#0F1422','--headerBd':'#232B3D','--chipBg':'#161C2B',
-      '--inputBg':'#1B2333','--inputBd':'#4A5678','--barTrack':'#222A3D',
+      '--headerBg':'#15110D','--headerBd':'#2E251C','--chipBg':'#211A14',
+      '--inputBg':'#241C15','--inputBd':'#5A4B3C','--barTrack':'#2C2219',
       // бренд-плитка логотипа: яскравіша на темній, щоб не зливалась із майже
       // чорним хедером; світлий обідок відділяє її від фону
-      '--brandGrad':'linear-gradient(150deg,#8592f7,#4b59c9)','--brandRing':'rgba(255,255,255,.22)'
+      '--brandGrad':'linear-gradient(150deg,#FDBA74,#EA580C)','--brandRing':'rgba(255,255,255,.22)'
     } : {
       // світла тема: глибший блакитно-сірий фон, щоб білі картки не зливались,
       // і помітніші межі карток (раніше --line майже не було видно на білому)
-      '--pageBg':'radial-gradient(circle at 30% 0%,#e6eaf3,#c3cadd)',
-      '--bg':'#E9ECF3','--surface':'#ffffff','--line':'#DBE0EC','--line2':'#C8CFDE',
-      '--ink':'#1B2233','--muted':'#69707F','--muted2':'#8D94A5','--faint':'#6E7689',
-      '--primary':'#3E4FB0','--primTint':'#E7EAFB','--primBd':'#c3cbef',
-      '--debt':'#D8473F','--debtTint':'#FBEDEC',
-      '--hot':'#C77A0E','--hotTint':'#FBF1DF',
+      '--pageBg':'radial-gradient(circle at 30% 0%,#F5F0EA,#DDD3C7)',
+      '--bg':'#EFEBE6','--surface':'#ffffff','--line':'#E2DAD1','--line2':'#CFC5B9',
+      '--ink':'#2A2018','--muted':'#6E6459','--muted2':'#948A7E','--faint':'#7A7064',
+      '--primary':'#C2410C','--primTint':'#FDEDE3','--primBd':'#F2C4A6',
+      '--debt':'#B91C1C','--debtTint':'#FCEBEA',
+      '--hot':'#A16207','--hotTint':'#FBF3DC',
       '--over':'#1F9D6B','--overTint':'#E7F5EF',
-      '--headerBg':'#ffffff','--headerBd':'#D3D9E7','--chipBg':'#EEF1F8',
-      '--inputBg':'#ffffff','--inputBd':'#CDD4E2','--barTrack':'#E4E8F1',
-      '--brandGrad':'linear-gradient(150deg,#5566d6,#2c3884)','--brandRing':'rgba(255,255,255,.28)'
+      '--headerBg':'#ffffff','--headerBd':'#DED5CB','--chipBg':'#F5F1EC',
+      '--inputBg':'#ffffff','--inputBd':'#D6CCC1','--barTrack':'#EBE5DE',
+      '--brandGrad':'linear-gradient(150deg,#F97316,#B4400A)','--brandRing':'rgba(255,255,255,.28)'
     };
     const vars = {
       minHeight:'100dvh', display:'flex', alignItems:'stretch', justifyContent:'center',
@@ -5473,7 +5672,7 @@ class Component extends DCLogic {
   renderVals(){
     const s = this.state;
     const dark = s.theme === 'dark';
-    const cPrimary = dark ? '#7c8bf5' : '#3E4FB0';
+    const cPrimary = dark ? '#FB923C' : '#C2410C';
     const cMuted = dark ? '#6B748C' : '#9AA1B2';
     const COVER = dark ? '#FB7185' : '#D8473F';
     const CECON = dark ? '#34D399' : '#1F9D6B';
@@ -5772,9 +5971,39 @@ class Component extends DCLogic {
       eWarn: (pv && !pv.valid) ? ('Поточний показник менший за попередній (' + this.fmt(pv.prev, 0) + ')') : '',
       eSaveDisabled: !(pv && pv.valid),
       eSaveBg: (pv && pv.valid) ? 'var(--primary)' : 'var(--muted2)',
-      pv: pv ? { prev: this.fmt(pv.prev, 0), cur: this.fmt(pv.cur, 0), delta: this.fmt(pv.delta, 0),
-        gcal: this.fmt(pv.gcal, 0), diffColor: 'var(--ink)' }
-        : { prev: '—', cur: '—', delta: '—', gcal: '—', diffColor: 'var(--muted2)' },
+      pv: pv ? { prev: this.fmt(pv.prev, 3), cur: this.fmt(pv.cur, 3), delta: this.fmt(pv.delta, 3),
+        gcal: this.fmt(pv.gcal, 3), q: this.fmt(pv.q, 3), diff: this.fmt(pv.diff, 3),
+        pct: this.pctTxt(pv.pct), diffColor: pv.diff > 0 ? COVER : CECON }
+        : { prev: '—', cur: '—', delta: '—', gcal: '—', q: '—', diff: '—', pct: '—', diffColor: 'var(--muted2)' },
+      // --- повні показники теплового приладу: різниці по кожному лічильнику ---
+      ...(() => {
+        const dcalc = (prev, cur) => (cur === '' || cur == null) ? '—' : this.fmt(this.r3(this.num(cur) - this.num(prev)), 3);
+        const o = {
+          diffKilkTe: dcalc(s.tblKilkPrev, s.eCur),
+          diffVod: dcalc(s.tblVodPrev, s.tblVodCur),
+          diffNar: dcalc(s.tblNarPrev, s.tblNarCur),
+          diffProst: dcalc(s.tblProstPrev, s.tblProstCur),
+          diffVod2: dcalc(s.tblVod2Prev, s.tblVod2Cur)
+        };
+        // Відхилення обʼєму теплоносія: лічильник проти водоміра. Норма — ±3%;
+        // більше означає, що один із приладів бреше (або є витік/несанкц. відбір).
+        const haveLich = s.tblVodPrev !== '' && s.tblVodCur !== '';
+        const haveVod = s.tblVod2Prev !== '' && s.tblVod2Cur !== '';
+        if (!haveLich || !haveVod) {
+          return Object.assign(o, { vodDevVal: '—', vodDevPct: '', vodDevFg: 'var(--muted2)', vodDevBg: 'var(--chipBg)' });
+        }
+        const vLich = this.r3(this.num(s.tblVodCur) - this.num(s.tblVodPrev));
+        const vVod = this.r3(this.num(s.tblVod2Cur) - this.num(s.tblVod2Prev));
+        const dev = this.r3(vLich - vVod);
+        const pct2 = vVod ? this.r2(dev / vVod * 100) : null;
+        const within = pct2 == null ? true : Math.abs(pct2) <= 3;
+        return Object.assign(o, {
+          vodDevVal: (dev > 0 ? '+' : '') + this.fmt(dev, 3),
+          vodDevPct: pct2 == null ? '' : (this.pctTxt(pct2) + (within ? ' ✓' : ' ⚠')),
+          vodDevFg: within ? CECON : COVER,
+          vodDevBg: within ? tintEcon : tintOver
+        });
+      })(),
       entryAddr: eh ? eh.address : '', entryOwner: eh ? eh.owner : '',
       entryPrevEnergy: eh ? this.fmt(this._prevEnergy(eh.id), 0) : '—',
       entryPrevDate: eh ? ((this._prevReading(eh.id) || {}).date || 'немає даних') : '—',
@@ -5852,10 +6081,36 @@ class Component extends DCLogic {
       }
       out.entryNav = entryNav;
     }
-    ['mAddress','mOwner','mAccount','mSettlement','mBoiler','mObcZavod','mAkt','mContact'].forEach(k => {
+    ['mAddress','mOwner','mAccount','mSettlement','mBoiler','mObcZavod','mAkt','mContact',
+     // паспорт приладів обліку ТЕ: обчислювач / витратомір / ТСП
+     'mObcPovirka','mObcTip','mObcChastka','mObcUnit','mHeatLoad',
+     'mVodZavod','mVodPovirka','mVodTip','mVodDN','mTspZavod','mTspPovirka','mTPrim',
+     // миттєві параметри теплоносія
+     'sVytraty','sPotuzhnist','sTempVhid','sTempVyhid',
+     // таблиця показників приладу (попередній / поточний)
+     'tblKilkPrev','tblVodPrev','tblVodCur','tblNarPrev','tblNarCur',
+     'tblProstPrev','tblProstCur','tblVod2Prev','tblVod2Cur'].forEach(k => {
       out[k] = s[k] || '';
       out['on' + k[0].toUpperCase() + k.slice(1)] = this.setField(k);
     });
+    out.unitOpts = Object.keys(Component.UNITS);
+    // розрахункове ТН саме цього абонента = навантаження будинку × його частка
+    out.mHeatLoadCalc = (() => {
+      const load = s.mHeatLoad !== '' ? this.num(s.mHeatLoad) : 0;
+      const share = s.mObcChastka !== '' ? this.num(s.mObcChastka) : 1;
+      return this.fmt(this.r3(load * (share || 1)), 3);
+    })();
+    out.mKomOblik = !!s.mKomOblik; out.mFop = !!s.mFop;
+    out.onMKomOblik = (e) => this.setState({ mKomOblik: e.target.checked, mKom: e.target.checked, mMeterKind: e.target.checked ? 'kom' : 'rozp' });
+    out.onMFop = (e) => this.setState({ mFop: e.target.checked });
+    // повна панель показників приладу — розгортається лише за потреби, щоб не
+    // заважати швидкому вводу однієї цифри в підвалі
+    out.eFull = !!s.eFull;
+    out.eFullChevron = s.eFull ? '▴' : '▾';
+    out.toggleEFull = () => this.setState(st => ({ eFull: !st.eFull }));
+    // тривалість періоду й температури — основа нормативного розрахунку
+    out.eDur = s.eDur || ''; out.onEDur = (e) => this.onEDur(e);
+    out.eTavg = s.eTavg || ''; out.onETavg = (e) => this.onETavg(e);
     out.mMeterKind = s.mMeterKind || 'kom';
     out.onMMeterKind = (e) => this.setState({ mMeterKind: e.target.value, mKom: e.target.value !== 'rozp' });
     {
@@ -6050,7 +6305,7 @@ class Component extends DCLogic {
         houseCnt: total, readCnt: submitted,
         soShow: soPct != null, soLabel: soPct != null ? ('vs ' + this._monthShort(prevKey) + ' · ' + pairedN + ' буд.') : '',
         soPct: soPct != null ? this.pctTxt(soPct) : '—',
-        soColor: soPct != null ? (soPct > 0 ? '#ffc4b8' : '#a8f0c8') : '#d9defa',
+        soColor: soPct != null ? (soPct > 0 ? '#ffc4b8' : '#a8f0c8') : '#FBE3D2',
         submitted: String(submitted), total: String(total), notSub: String(notSub), controlCnt: String(controlCnt),
         subW: Math.round(submitted / Math.max(1, total) * 100) + '%',
         showUnsub: !!s.ovShowUnsub, toggleUnsub: () => this.toggleUnsub(),
