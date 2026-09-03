@@ -34,9 +34,17 @@ while ((m = re.exec(html))) {
 }
 check('скрипт Component знайдено', found === 1, 'знайдено ' + found);
 
-// версії кешу SW і застосунку мають рухатись разом (нагадування не забути bump)
+// Версії застосунку і кешу оболонки мають рухатись РАЗОМ. Раніше тут була лише
+// перевірка формату — тож index.html і sw.js спокійно розходились (2026.08.09
+// проти arm-teplo-shell-v1), і оновлений застосунок міг лишитись зі старим
+// кешем оболонки. Тепер звіряємо самі значення.
 const sw = fs.readFileSync(path.join(__dirname, '..', 'sw.js'), 'utf8');
-check('sw.js має версію кешу', /const CACHE = 'arm-teplo-shell-v\d+'/.test(sw));
-check('index.html має APP_VERSION', /APP_VERSION\(\)\{ return '[\d.]+'/.test(html));
+const swVer = (sw.match(/const APP_VERSION = '([\d.]+)'/) || [])[1];
+const appVer = (html.match(/APP_VERSION\(\)\{ return '([\d.]+)'/) || [])[1];
+check('index.html має APP_VERSION', !!appVer, appVer || 'не знайдено');
+check('sw.js має APP_VERSION', !!swVer, swVer || 'не знайдено');
+check('версії index.html і sw.js збігаються', !!appVer && appVer === swVer,
+  'index.html ' + (appVer || '—') + ' / sw.js ' + (swVer || '—'));
+check('ім\'я кешу SW похідне від версії', /const CACHE = 'arm-teplo-shell-' \+ APP_VERSION/.test(sw));
 
 process.exit(fail);

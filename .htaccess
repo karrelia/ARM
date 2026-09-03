@@ -7,11 +7,18 @@
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  # тека даних (ключ API у config.json, персональні дані, фото) — тільки через /api
-  RewriteRule ^arm-data/ - [F,L]
+  # тека даних (ключ API у config.json, персональні дані, фото, бекапи) —
+  # тільки через /api; (^|/) накриває і вкладені теки backup/ та photos/
+  RewriteRule (^|/)arm-data/ - [F,L]
   # /api/ping  ->  api.php  (PATH_INFO = /ping)
   RewriteRule ^api/(.*)$ api.php/$1 [L,QSA]
   RewriteRule ^api$      api.php    [L,QSA]
+</IfModule>
+
+# Друга (незалежна) лінія оборони теки даних: mod_alias вкомпільований у
+# більшість збірок Apache, тож правило спрацює навіть без mod_rewrite.
+<IfModule mod_alias.c>
+  RedirectMatch 403 /arm-data/
 </IfModule>
 
 # Правильний MIME для файлів PWA. Критично для ВСТАНОВЛЮВАНОСТІ: якщо sw.js
@@ -39,8 +46,13 @@
 
 # Захист теки з даними від прямого доступу через веб (на випадок, якщо
 # mod_rewrite вимкнено — блокуємо й за іменем файлу)
+# Третя лінія: заборона за ІМЕНЕМ файлу — діє в будь-якій теці й не залежить
+# ані від mod_rewrite, ані від mod_alias. Шаблон навмисно ширший за «db.json»:
+# треба накрити ще й бекапи (db-2026-09-03.json) та тимчасові файли
+# атомарного запису (db.json.tmp, users.json.tmp) — саме їх пропускала
+# попередня версія правила.
 <IfModule mod_authz_core.c>
-  <FilesMatch "^(db|users|config)\.json$">
+  <FilesMatch "^(db|users|config)[-.]">
     Require all denied
   </FilesMatch>
 </IfModule>

@@ -84,10 +84,39 @@ function loadDb(){
 // Щоденна резервна копія db.json (перша зміна за день робить знімок ПОПЕРЕДНЬОГО
 // стану). Захищає історію показань від збою диска чи помилкового POST. Тримаємо
 // 30 днів, старші чистяться самі. Тека: arm-data/backup/db-РРРР-ММ-ДД.json
+// ---------- тека даних: створення + самозахист від прямого доступу ----------
+// Node сам блокує /arm-data/ (див. serveStatic), але ті самі файли часто лежать
+// під Apache (api.php). Кореневий .htaccess закриває теку лише за наявності
+// mod_rewrite / mod_alias, тож кладемо ЩЕ ОДИН .htaccess у саму теку: правило
+// «Require all denied» діє через mod_authz_core, який в Apache 2.4 є завжди.
+// Інакше повна база з персональними даними (зокрема бекапи arm-data/backup/
+// db-РРРР-ММ-ДД.json) качається за прямим URL.
+const DATA_HTACCESS = [
+  '# Тека даних АРМ Теплооблік: db.json, users.json, config.json (ключ API),',
+  '# бекапи та фото. Створюється сервером автоматично — не редагуйте.',
+  '# Прямий доступ через веб заборонено: дані віддаються ЛИШЕ через api.php',
+  '# (з ключем бригади) або server.js.',
+  '<IfModule mod_authz_core.c>',   // Apache 2.4
+  '  Require all denied',
+  '</IfModule>',
+  '<IfModule !mod_authz_core.c>',  // Apache 2.2
+  '  Order allow,deny',
+  '  Deny from all',
+  '</IfModule>',
+  ''
+].join('\n');
+function ensureDataDir(){
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const f = path.join(DATA_DIR, '.htaccess');
+  // best-effort і самолікування: якщо теку створили руками (як радить README),
+  // захист доїде з першим же записом
+  try { if (!fs.existsSync(f)) fs.writeFileSync(f, DATA_HTACCESS); } catch (e) {}
+}
 function backupDb(){
   try {
     if (!fs.existsSync(DB_FILE)) return;
     const dir = path.join(DATA_DIR, 'backup');
+    ensureDataDir();
     fs.mkdirSync(dir, { recursive: true });
     const today = new Date().toISOString().slice(0, 10);
     const file = path.join(dir, 'db-' + today + '.json');
@@ -101,7 +130,7 @@ function backupDb(){
   } catch (e) { /* бекап — best-effort, роботу не блокує */ }
 }
 function saveDb(db){
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureDataDir();
   backupDb();
   const tmp = DB_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify(db));
@@ -109,7 +138,7 @@ function saveDb(db){
 }
 function loadUsers(){ try { const j = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); return Array.isArray(j.users) ? j.users : []; } catch (e) { return []; } }
 function saveUsers(users){
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+  ensureDataDir();
   const tmp = USERS_FILE + '.tmp';
   fs.writeFileSync(tmp, JSON.stringify({ version: 1, users: users }, null, 2));
   fs.renameSync(tmp, USERS_FILE);
@@ -124,6 +153,7 @@ function storePhoto(dataUrl){
   try { bin = Buffer.from(dataUrl.slice(comma + 1), 'base64'); } catch (e) { return dataUrl; }
   if (!bin || !bin.length) return dataUrl;
   const id = 'p_' + crypto.createHash('sha1').update(bin).digest('hex');
+  ensureDataDir();
   fs.mkdirSync(PHOTOS_DIR, { recursive: true });
   const file = path.join(PHOTOS_DIR, id + '.jpg');
   if (!fs.existsSync(file)) fs.writeFileSync(file, bin);
@@ -168,7 +198,7 @@ function brigadeKey(){
   if (!cfg.brigadeKey) {
     cfg.brigadeKey = crypto.randomBytes(16).toString('hex');
     try {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
+      ensureDataDir();
       fs.writeFileSync(cfgFile, JSON.stringify(cfg, null, 2));
       console.log('Згенеровано ключ бригади (введіть його на пристроях у «Виконавець»): ' + cfg.brigadeKey);
     } catch (e) { console.error('Не вдалося зберегти ключ бригади: ' + e.message); }
