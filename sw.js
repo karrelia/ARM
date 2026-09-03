@@ -9,10 +9,14 @@
  *   • статика (JS/іконки)   — stale-while-revalidate (миттєво з кешу, оновлення у фоні);
  *   • /api/… та /api.php/…  — НЕ кешуються, лише мережа (дані завжди свіжі/чесні).
  *
- * Версію кешу міняти при зміні набору оболонки, щоб старі файли підчистились.
  */
 'use strict';
-const CACHE = 'arm-teplo-shell-v1';
+// APP_VERSION мусить збігатися з Component.APP_VERSION в index.html: за нею
+// застосунок помічає оновлення (_checkForUpdate), а ім'я кешу робимо похідним,
+// щоб один bump версії і показував тост «є оновлення», і скидав старий кеш
+// оболонки. Розбіжність ловить tests/check-app.js.
+const APP_VERSION = '2026.09.03';
+const CACHE = 'arm-teplo-shell-' + APP_VERSION;
 // оболонка застосунку для офлайн-кешу
 const CORE = [
   './', './index.html', './support.js',

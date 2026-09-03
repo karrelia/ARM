@@ -94,6 +94,33 @@ function merge_assignments(&$db, $incAssign, $incAt) {
 // Ключ генерується один раз у arm-data/config.json ("brigadeKey"); старший
 // вводить його на пристроях (розділ «Виконавець»), клієнт шле заголовком
 // X-Brigade-Key. Без ключа доступні лише /ping і фото (їх sha1-адреса — секрет).
+// ---------- тека даних: створення + самозахист від прямого доступу ----------
+// Кореневий .htaccess закриває arm-data/ лише за наявності mod_rewrite чи
+// mod_alias, а README прямо дозволяє розгортання без них. Тому кладемо ЩЕ ОДИН
+// .htaccess у саму теку: «Require all denied» діє через mod_authz_core, який в
+// Apache 2.4 присутній завжди. Інакше повна база з персональними даними
+// (зокрема бекапи arm-data/backup/db-РРРР-ММ-ДД.json, яких немає в переліку
+// кореневого FilesMatch) качається за прямим URL.
+define('DATA_HTACCESS',
+    "# Тека даних АРМ Теплооблік: db.json, users.json, config.json (ключ API),\n" .
+    "# бекапи та фото. Створюється сервером автоматично — не редагуйте.\n" .
+    "# Прямий доступ через веб заборонено: дані віддаються ЛИШЕ через api.php\n" .
+    "# (з ключем бригади) або server.js.\n" .
+    "<IfModule mod_authz_core.c>\n" .      // Apache 2.4
+    "  Require all denied\n" .
+    "</IfModule>\n" .
+    "<IfModule !mod_authz_core.c>\n" .     // Apache 2.2
+    "  Order allow,deny\n" .
+    "  Deny from all\n" .
+    "</IfModule>\n");
+function ensure_data_dir() {
+    global $DATA_DIR;
+    if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+    // best-effort і самолікування: якщо теку створили руками (як радить README),
+    // захист доїде з першим же записом
+    $f = $DATA_DIR . '/.htaccess';
+    if (!is_file($f)) @file_put_contents($f, DATA_HTACCESS);
+}
 function brigade_key() {
     global $DATA_DIR;
     $file = $DATA_DIR . '/config.json';
@@ -102,7 +129,7 @@ function brigade_key() {
     if ($s !== false) { $j = json_decode($s, true); if (is_array($j)) $cfg = $j; }
     if (empty($cfg['brigadeKey'])) {
         $cfg['brigadeKey'] = bin2hex(random_bytes(16));
-        if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+        ensure_data_dir();
         @file_put_contents($file, json_encode($cfg, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
     }
     return (string)$cfg['brigadeKey'];
@@ -165,6 +192,7 @@ function backup_db() {
     global $DATA_DIR, $DB_FILE;
     if (!is_file($DB_FILE)) return;
     $dir = $DATA_DIR . '/backup';
+    ensure_data_dir();
     if (!is_dir($dir)) @mkdir($dir, 0775, true);
     $file = $dir . '/db-' . gmdate('Y-m-d') . '.json';
     if (is_file($file)) return;
@@ -176,7 +204,7 @@ function backup_db() {
 }
 function save_db($db) {
     global $DATA_DIR, $DB_FILE;
-    if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+    ensure_data_dir();
     backup_db();
     $tmp = $DB_FILE . '.tmp';
     file_put_contents($tmp, json_encode($db, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), LOCK_EX);
@@ -191,7 +219,7 @@ function load_users() {
 }
 function save_users($users) {
     global $DATA_DIR, $USERS_FILE;
-    if (!is_dir($DATA_DIR)) @mkdir($DATA_DIR, 0775, true);
+    ensure_data_dir();
     $tmp = $USERS_FILE . '.tmp';
     file_put_contents($tmp, json_encode(array('version' => 1, 'users' => $users),
         JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), LOCK_EX);
@@ -209,6 +237,7 @@ function store_photo($dataUrl) {
     $bin = base64_decode($b64, true);
     if ($bin === false || strlen($bin) === 0) return $dataUrl;
     $id = 'p_' . sha1($bin);
+    ensure_data_dir();
     if (!is_dir($PHOTOS_DIR)) @mkdir($PHOTOS_DIR, 0775, true);
     $path = $PHOTOS_DIR . '/' . $id . '.jpg';
     if (!is_file($path)) file_put_contents($path, $bin, LOCK_EX);
