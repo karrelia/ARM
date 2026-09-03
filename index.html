@@ -1280,20 +1280,10 @@ window.addEventListener('appinstalled', function () {
             </div>
           </div>
 
-          <!-- 2) Живий підрахунок -->
-          <sc-if value="{{ ePreview }}" hint-placeholder-val="{{ false }}">
-          <div style="background:var(--chipBg);border:1px dashed var(--line2);border-radius:14px;padding:13px 15px;margin-bottom:14px">
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Попередній показник</span><b class="tnum" style="color:var(--ink)">{{ pv.prev }}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Поточний показник</span><b class="tnum" style="color:var(--ink)">{{ pv.cur }}</b></div>
-            <div style="display:flex;justify-content:space-between;padding:7px 0 3px;font-size:var(--t140);border-top:1px solid var(--line);margin-top:5px"><span style="color:var(--ink);font-weight:700">Спожито ТЕ, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }};font-weight:800">{{ pv.gcal }}</b></div>
-          </div>
-          </sc-if>
-
-          <!-- 3) Повні показники теплового приладу. НЕ згортаються: саме тут
-               робітник вводить показник («Кількість ТЕ» → «Поточний»), з якого
-               рахується споживання вгорі, тож панель мусить бути на видноті. -->
-          <div style="display:flex;align-items:center;gap:8px;min-height:42px;padding:9px 13px;border-radius:12px;border:1px dashed var(--line2);background:var(--chipBg);color:var(--muted);font-size:var(--t118);font-weight:700;margin-bottom:12px"><span>🌡 Повні показники приладу</span></div>
-
+          <!-- 2) Повні показники теплового приладу. Ні згортання, ні окремої
+               плашки-заголовка: саме тут робітник вводить показник
+               («Кількість ТЕ» → «Поточний»), а підсумок уже стоїть вище —
+               проміжний блок із тими самими цифрами лише додавав прокрутки. -->
           <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Показники теплового лічильника</div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:6px">
             <div></div>
@@ -1303,47 +1293,47 @@ window.addEventListener('appinstalled', function () {
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
-            <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" placeholder="0" style="width:100%;height:38px;padding:0 8px;border:2px solid var(--primary);border-radius:9px;background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
+            <input inputmode="decimal" tabindex="-1" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" placeholder="0" style="width:100%;height:38px;padding:0 8px;border:2px solid var(--primary);border-radius:9px;background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input inputmode="decimal" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" tabindex="-1" value="{{ tblVodPrev }}" onInput="{{ onTblVodPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ tblVodCur }}" onInput="{{ onTblVodCur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Наробіток, дні/год</span>
-            <input inputmode="decimal" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" tabindex="-1" value="{{ tblNarPrev }}" onInput="{{ onTblNarPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ tblNarCur }}" onInput="{{ onTblNarCur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffNar }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Простій, год</span>
-            <input inputmode="decimal" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" tabindex="-1" value="{{ tblProstPrev }}" onInput="{{ onTblProstPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ tblProstCur }}" onInput="{{ onTblProstCur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffProst }}</div>
           </div>
 
           <div style="display:flex;gap:11px;margin-bottom:12px">
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Витрати теплоносія</span>
-              <input inputmode="decimal" value="{{ sVytraty }}" onInput="{{ onSVytraty }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ sVytraty }}" onInput="{{ onSVytraty }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Миттєва потужність</span>
-              <input inputmode="decimal" value="{{ sPotuzhnist }}" onInput="{{ onSPotuzhnist }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ sPotuzhnist }}" onInput="{{ onSPotuzhnist }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
           </div>
           <div style="display:flex;gap:11px;margin-bottom:14px">
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вхід, °C</span>
-              <input inputmode="decimal" value="{{ sTempVhid }}" onInput="{{ onSTempVhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ sTempVhid }}" onInput="{{ onSTempVhid }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
             <label style="flex:1">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Температура вихід, °C</span>
-              <input inputmode="decimal" value="{{ sTempVyhid }}" onInput="{{ onSTempVyhid }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+              <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ sTempVyhid }}" onInput="{{ onSTempVyhid }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
           </div>
 
@@ -1356,8 +1346,8 @@ window.addEventListener('appinstalled', function () {
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:14px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Об'єм води, м³</span>
-            <input inputmode="decimal" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" tabindex="-1" value="{{ tblVod2Prev }}" onInput="{{ onTblVod2Prev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ tblVod2Cur }}" onInput="{{ onTblVod2Cur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffVod2 }}</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:{{ vodDevBg }};border-radius:12px;padding:11px 13px;margin-bottom:14px">
@@ -2283,7 +2273,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.09.04'; }
+  static get APP_VERSION(){ return '2026.09.05'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -4678,25 +4668,40 @@ class Component extends DCLogic {
   onEDur(e){ this.setState({ eDur: e.target.value }); }
   onETavg(e){ this.setState({ eTavg: e.target.value }); }
   onECur(e){ this.setState({ eCur: e.target.value }); }
-  // Мобільна клавіатура перекриває кнопку «Зберегти у архів». Коли поле показника
-  // у фокусі, чекаємо ~320 мс (клавіатура відкривається) і підкручуємо контейнер
-  // рівно настільки, щоб кнопка вийшла з-під клавіатури. Точну висоту клавіатури
-  // даає visualViewport; де його нема — просто прокручуємо кнопку в зону видимості.
-  onECurFocus(){
-    if (typeof document === 'undefined') return;
+  // Мобільна клавіатура перекриває поле вводу. Підкручуємо рівно настільки, щоб
+  // з-під неї вийшло САМЕ ПОЛЕ, і ні пікселем більше.
+  // Раніше сюди тягнули кнопку «Зберегти»: поки поле показника стояло вгорі, а
+  // кнопка одразу під ним, це збігалось. Відколи повні показники не згортаються,
+  // кнопка опинилась далеко внизу — і форма стрибала через пів екрана. На ПК
+  // клавіатури немає взагалі, тож там не рухаємо нічого.
+  onECurFocus(e){
+    if (typeof document === 'undefined' || typeof window === 'undefined') return;
+    if (this.state.wide) return;
+    const el = e && e.target;
+    if (!el || !el.getBoundingClientRect) return;
     setTimeout(() => {
-      const btn = document.getElementById('entrySaveBtn');
       const sc = document.getElementById('scrollMain');
-      if (!btn) return;
-      const vv = (typeof window !== 'undefined') ? window.visualViewport : null;
-      if (sc && vv) {
-        const visBottom = vv.offsetTop + vv.height;            // низ видимої області над клавіатурою
-        const overshoot = btn.getBoundingClientRect().bottom - visBottom + 14;
-        if (overshoot > 0) { try { sc.scrollBy({ top: overshoot, behavior: 'smooth' }); } catch(e){ sc.scrollTop += overshoot; } }
-      } else {
-        try { btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){ btn.scrollIntoView(); }
-      }
+      if (!sc) return;
+      const vv = window.visualViewport;
+      const visBottom = vv ? (vv.offsetTop + vv.height) : window.innerHeight;
+      const over = el.getBoundingClientRect().bottom - visBottom + 10;   // 10 px запасу під полем
+      if (over > 0) { try { sc.scrollBy({ top: over, behavior: 'smooth' }); } catch(err){ sc.scrollTop += over; } }
     }, 320);
+  }
+  // Enter (і кнопка «Далі» на мобільній клавіатурі) веде ЛИШЕ по колонці
+  // «Поточний». Раніше фокус ішов у природному порядку DOM і падав у сусіднє
+  // «Попередній» — поле, якого робітник не заповнює: показник легко було
+  // вписати не в ту клітинку й зіпсувати базу. Колонку «Попередній» додатково
+  // прибрано з обходу через tabindex="-1" (клікнути в неї старший так само може).
+  onCurKey(e){
+    if (!e || e.key !== 'Enter' || typeof document === 'undefined') return;
+    e.preventDefault();
+    const list = Array.from(document.querySelectorAll('.curFld'))
+      .filter(el => !el.disabled && el.offsetParent !== null);   // лише видимі й доступні
+    const i = list.indexOf(e.target);
+    const next = (i >= 0 && i + 1 < list.length) ? list[i + 1] : null;
+    if (next) { next.focus(); if (next.select) next.select(); }
+    else if (e.target && e.target.blur) e.target.blur();          // останнє поле — ховаємо клавіатуру
   }
   _entryHouse(){ return this.db ? this.db.houses.find(h => String(h.id) === String(this.state.eHouse)) : null; }
 
@@ -5973,14 +5978,14 @@ class Component extends DCLogic {
       eNoConsumption: !!s.eNoConsumption, onENoConsumption: (e) => this.onENoConsumption(e),
       addNewHouse: () => this.addNewHouse(),
       onECur: (e) => this.onECur(e),
-      onECurFocus: () => this.onECurFocus(),
+      onECurFocus: (e) => this.onECurFocus(e),
+      onCurKey: (e) => this.onCurKey(e),
       saveReading: () => this.saveReading(),
       onEntryPhotos: (e) => this.onEntryPhotos(e), openEntryPhotos: () => this.openEntryPhotos(), openEntryCamera: () => this.openEntryCamera(),
       hasEntryPhotos: (s.entryPhotos || []).length > 0,
       entryPhotoHint: (s.entryPhotos || []).length ? ((s.entryPhotos.length) + ' з 8 · торкніться, щоб переглянути') : 'до 8 фото · камера або галерея',
       entryPhotos: (s.entryPhotos || []).map(p => ({ id: p.id, url: p.url,
         remove: () => this.removeEntryPhoto(p.id), view: () => this.viewPhoto(p.url) })),
-      ePreview: !!pv,
       entryWarnings: eWarnings.map((t, i) => ({ id: i, text: t })),
       hasEntryWarnings: eWarnings.length > 0,
       eWarn: (pv && !pv.valid) ? ('Поточний показник менший за попередній (' + this.fmt(pv.prev, 0) + ')') : '',

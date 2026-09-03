@@ -167,6 +167,47 @@ async function domErrors(page) {
     check('телефон · картка будинку', errs.length === 0, errs.join(' | '));
   }
 
+  // --- «Ввід»: Enter має вести ЛИШЕ по колонці «Поточний» ---
+  // Ланцюг тримається на класі .curFld: варто додати нове поле й забути клас —
+  // фокус знову почне падати в «Попередній», куди робітник вписує показник і
+  // псує базу. Мовчазна поломка, тож перевіряємо явно.
+  await page.locator('.tabBar button', { hasText: 'Ввід' }).first().click({ force: true });
+  await page.waitForTimeout(700);
+  await page.locator('input[placeholder*="Адреса"]').first().click();
+  await page.waitForTimeout(500);
+  const firstHouse = page.locator('div.scrl button').first();
+  if (await firstHouse.count()) {
+    await firstHouse.click();
+    await page.waitForTimeout(900);
+    const curField = page.locator('input.curFld').first();
+    check('ввід · поле показника на місці', await curField.count() > 0);
+    if (await curField.count()) {
+      await curField.click();
+      // Стежимо і за ТИМ, КУДИ веде фокус, і за ТИМ, ЧИ ВЕДЕ ВЗАГАЛІ: якщо
+      // обробник відвалиться, фокус просто застрягне на місці — перевірка
+      // «завжди curFld» цього сама по собі не помітила б.
+      const hops = [];
+      for (let i = 0; i < 4; i++) {
+        hops.push(await page.evaluate(() => {
+          const a = document.activeElement;
+          if (!a || a.tagName !== 'INPUT') return { тип: 'не поле', i: -1 };
+          const all = Array.from(document.querySelectorAll('input'));
+          return { тип: a.classList.contains('curFld') ? 'curFld' : 'ІНШЕ', i: all.indexOf(a) };
+        }));
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(220);
+      }
+      const шлях = hops.map(h => h.тип + '#' + h.i).join(' → ');
+      check('ввід · Enter не виходить за колонку «Поточний»',
+        hops.every(h => h.тип === 'curFld'), шлях);
+      const рухається = hops.every((h, i) => i === 0 || h.i > hops[i - 1].i);
+      check('ввід · Enter справді переводить фокус далі', рухається, шлях);
+    }
+    const prevSkipped = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('input')).filter(e => e.getAttribute('tabindex') === '-1').length);
+    check('ввід · колонку «Попередній» прибрано з обходу', prevSkipped >= 5, prevSkipped + ' полів');
+  }
+
   // --- ПК-верстка: ліва рейка + вкладка «Акти», яких немає на телефоні ---
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.reload({ waitUntil: 'domcontentloaded' });
