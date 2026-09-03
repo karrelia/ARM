@@ -1,4 +1,5 @@
-# CI: юніт-тести merge-логіки сервера + статична перевірка index.html + лінт PHP.
+# CI: юніт-тести merge-логіки сервера, статична перевірка index.html, рендер-тест
+# у справжньому браузері та лінт PHP.
 # Страховка на кожен пуш — монолітний index.html легко зламати непомітно.
 name: CI
 on:
@@ -18,5 +19,14 @@ jobs:
         run: node --test tests/*.test.js
       - name: Статична перевірка index.html
         run: node tests/check-app.js
+      # Рендер-тест: статичні перевірки не бачать розриву між шаблоном і
+      # renderVals — невирішений {{ плейсхолдер }} рантайм малює порожнім місцем
+      # і лише пише в консоль. Тут застосунок реально бутиться в Chromium.
+      - name: Встановити Chromium для рендер-тесту
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Рендер-тест застосунку
+        run: node tests/render-check.js
       - name: Лінт api.php
         run: php -l api.php
