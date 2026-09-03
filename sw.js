@@ -15,7 +15,7 @@
 // застосунок помічає оновлення (_checkForUpdate), а ім'я кешу робимо похідним,
 // щоб один bump версії і показував тост «є оновлення», і скидав старий кеш
 // оболонки. Розбіжність ловить tests/check-app.js.
-const APP_VERSION = '2026.09.04';
+const APP_VERSION = '2026.09.05';
 const CACHE = 'arm-teplo-shell-' + APP_VERSION;
 // оболонка застосунку для офлайн-кешу
 const CORE = [
