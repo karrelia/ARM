@@ -1260,13 +1260,17 @@ window.addEventListener('appinstalled', function () {
         </div><div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:12px">Показання приладу</div>
 
-          <!-- 1) ГОЛОВНЕ: поточний показник -->
+          <!-- 1) ГОЛОВНЕ: розрахункове споживання. Не поле вводу, а ПІДСУМОК —
+               рахується з різниці «Кількість ТЕ» (попередній/поточний) нижче.
+               Поряд — скільки цей прилад спожив за попередній місяць, щоб
+               аномалію було видно одразу на місці, а не потім у звіті. -->
           <div style="border:1px solid var(--primBd);border-radius:14px;padding:13px;margin-bottom:12px;background:var(--primTint)">
-            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:8px;flex-wrap:nowrap">
-              <div style="font-size:var(--t128);font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">Новий показник</div>
-              <span style="flex-shrink:0;font-size:var(--t112);font-weight:700;color:var(--muted);white-space:nowrap">було:&nbsp;<b class="tnum" style="color:var(--ink)">{{ entryPrevEnergy }}</b></span>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:4px 10px;margin-bottom:8px;flex-wrap:wrap">
+              <div style="font-size:var(--t126);font-weight:800;color:var(--ink)">Розрахункове споживання</div>
+              <span style="flex-shrink:0;font-size:var(--t112);font-weight:700;color:var(--muted);white-space:nowrap">{{ entryPrevMonthLabel }}:&nbsp;<b class="tnum" style="color:var(--ink)">{{ entryPrevMonthGcal }}</b></span>
             </div>
-            <input inputmode="numeric" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" placeholder="0" class="tnum" style="width:100%;height:58px;padding:0 14px;border:1px solid var(--inputBd);border-radius:12px;background:var(--surface);color:var(--ink);font-size:var(--t230);font-weight:800;text-align:center;letter-spacing:1px">
+            <div class="tnum" style="display:flex;align-items:center;justify-content:center;gap:9px;width:100%;height:58px;padding:0 14px;border:1px solid var(--inputBd);border-radius:12px;background:var(--surface);color:{{ entryCalcFg }};font-size:var(--t230);font-weight:800;letter-spacing:1px">{{ entryCalcGcal }}<span style="font-size:var(--t118);font-weight:700;color:var(--muted2);letter-spacing:0">Гкал</span></div>
+            <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);text-align:center;margin-top:7px">↓ вводиться нижче: «Кількість ТЕ» → «Поточний»</div>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px">
               <span class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2)">Попереднє зняття: <b style="color:var(--muted)">{{ entryPrevDate }}</b></span>
               <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex-shrink:0">
@@ -1285,10 +1289,11 @@ window.addEventListener('appinstalled', function () {
           </div>
           </sc-if>
 
-          <!-- 3) Повні показники теплового приладу (розгортається за потреби) -->
-          <button onClick="{{ toggleEFull }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;height:42px;padding:0 13px;border-radius:12px;border:1px dashed var(--line2);background:var(--chipBg);color:var(--muted);font-size:var(--t118);font-weight:700;cursor:pointer;margin-bottom:12px"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🌡 Повні показники приладу (вода, наробіток, норматив)</span><span style="flex-shrink:0">{{ eFullChevron }}</span></button>
+          <!-- 3) Повні показники теплового приладу. НЕ згортаються: саме тут
+               робітник вводить показник («Кількість ТЕ» → «Поточний»), з якого
+               рахується споживання вгорі, тож панель мусить бути на видноті. -->
+          <div style="display:flex;align-items:center;gap:8px;min-height:42px;padding:9px 13px;border-radius:12px;border:1px dashed var(--line2);background:var(--chipBg);color:var(--muted);font-size:var(--t118);font-weight:700;margin-bottom:12px"><span>🌡 Повні показники приладу</span></div>
 
-          <sc-if value="{{ eFull }}" hint-placeholder-val="{{ false }}">
           <div style="font-size:var(--t130);font-weight:800;color:var(--ink);margin-bottom:10px">Показники теплового лічильника</div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:6px">
             <div></div>
@@ -1299,7 +1304,7 @@ window.addEventListener('appinstalled', function () {
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
             <input inputmode="decimal" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" value="{{ eCur }}" onInput="{{ onECur }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
+            <input inputmode="decimal" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" placeholder="0" style="width:100%;height:38px;padding:0 8px;border:2px solid var(--primary);border-radius:9px;background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
@@ -1370,7 +1375,6 @@ window.addEventListener('appinstalled', function () {
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Різниця, Гкал</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.diff }}</b></div>
             <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--t125)"><span style="color:var(--muted)">Відхилення, %</span><b class="tnum" style="color:{{ pv.diffColor }}">{{ pv.pct }}</b></div>
           </div>
-          </sc-if>
 
           <sc-if value="{{ eWarn }}" hint-placeholder-val="{{ false }}">
             <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:12px;padding:10px 12px;margin-bottom:13px;font-size:var(--t120);font-weight:600;color:var(--debt)">{{ eWarn }}</div>
@@ -2098,7 +2102,6 @@ class Component extends DCLogic {
     mVodZavod: '', mVodPovirka: '', mVodTip: '', mVodDN: '',
     mTspZavod: '', mTspPovirka: '', mKomOblik: false, mFop: false, mContact: '', mPhone: '',
     mMeterKind: 'kom', mKom: true,          // клас приладу: комерційний / розподільчий
-    eFull: false,                           // розгорнута панель повних показників приладу
     savedDovidnyk: false,
     // --- додаткові поля показань/розрахунку (заглушки) ---
     mTPrim: '',
@@ -2280,7 +2283,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.09.03'; }
+  static get APP_VERSION(){ return '2026.09.04'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -4078,6 +4081,13 @@ class Component extends DCLogic {
   _openPeriod(){
     const p = this.state.periodKey;
     return /^\d{4}-\d{2}$/.test(p || '') ? p : this._monthKey(this._todayISO());
+  }
+  _prevMonthKey(k){
+    const m = /^(\d{4})-(\d{2})$/.exec(k || '');
+    if (!m) return '';
+    let y = +m[1], mo = +m[2] - 1;
+    if (mo < 1) { mo = 12; y--; }
+    return y + '-' + String(mo).padStart(2, '0');
   }
   _nextMonthKey(k){
     const m = /^(\d{4})-(\d{2})$/.exec(k || '');
@@ -6010,7 +6020,20 @@ class Component extends DCLogic {
         });
       })(),
       entryAddr: eh ? eh.address : '', entryOwner: eh ? eh.owner : '',
-      entryPrevEnergy: eh ? this.fmt(this._prevEnergy(eh.id), 0) : '—',
+      // Велике поле вгорі — ПІДСУМОК, а не ввід: споживання за різницею
+      // «Кількість ТЕ». Поки показник не введено — прочерк, а не «0»: нуль тут
+      // читався б як «спожито нічого», хоча насправді ще нічого не знято.
+      entryCalcGcal: pv ? this.fmt(pv.gcal, 3) : '—',
+      entryCalcFg: (pv && !pv.valid) ? COVER : 'var(--ink)',
+      // Поряд — скільки цей самий прилад спожив за ПОПЕРЕДНІЙ звітний місяць
+      // (не попереднє показання): у полі це єдиний орієнтир, чи введена цифра
+      // взагалі схожа на правду.
+      ...(() => {
+        const prevKey = this._prevMonthKey(s.ePeriod || this._openPeriod());
+        const mc = (eh && prevKey) ? this._monthConsumption(eh.id, prevKey) : null;
+        return { entryPrevMonthLabel: prevKey ? this._monthShort(prevKey) : 'мин. міс.',
+          entryPrevMonthGcal: mc ? this.fmt(mc.gcal, 3) : '—' };
+      })(),
       entryPrevDate: eh ? ((this._prevReading(eh.id) || {}).date || 'немає даних') : '—',
       entryPrevTime: eh ? ((this._prevReading(eh.id) || {}).time || '—') : '—',
       ePrevSel: s.ePrevSel || '',
@@ -6110,9 +6133,6 @@ class Component extends DCLogic {
     out.onMFop = (e) => this.setState({ mFop: e.target.checked });
     // повна панель показників приладу — розгортається лише за потреби, щоб не
     // заважати швидкому вводу однієї цифри в підвалі
-    out.eFull = !!s.eFull;
-    out.eFullChevron = s.eFull ? '▴' : '▾';
-    out.toggleEFull = () => this.setState(st => ({ eFull: !st.eFull }));
     // тривалість періоду й температури — основа нормативного розрахунку
     out.eDur = s.eDur || ''; out.onEDur = (e) => this.onEDur(e);
     out.eTavg = s.eTavg || ''; out.onETavg = (e) => this.onETavg(e);
