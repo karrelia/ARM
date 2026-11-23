@@ -463,9 +463,16 @@ window.addEventListener('appinstalled', function () {
       <sc-if value="{{ isHouses }}" hint-placeholder-val="{{ false }}">
       <div class="page" style="padding:14px 16px 28px">
         <div style="position:sticky;top:0;z-index:5;background:var(--bg);margin:-14px -16px 11px;padding:14px 16px 11px">
-          <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px;margin-bottom:11px">
-            <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-            <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Адреса, №, особовий, власник, телефон, акт 49" style="flex:1;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
+          <!-- пошук розділено: текст (адреса, кв., власник) і окремо номер -->
+          <div style="display:flex;gap:8px;margin-bottom:11px">
+            <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px">
+              <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
+              <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Адреса, кв., власник" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
+            </div>
+            <div style="width:36%;max-width:190px;flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 11px;height:46px">
+              <span style="color:var(--muted2);font-size:var(--t130);font-weight:800">№</span>
+              <input onInput="{{ onSearchNo }}" value="{{ searchNo }}" inputmode="text" placeholder="акт, ліч." title="№ акта, № лічильника, особовий рахунок або телефон" class="tnum" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t130);font-weight:700;color:var(--ink)">
+            </div>
           </div>
           <div style="display:flex;gap:8px">
             <div style="position:relative;flex:1">
@@ -644,9 +651,15 @@ window.addEventListener('appinstalled', function () {
       <!-- ============ МАРШРУТ (планування обходу) ============ -->
       <sc-if value="{{ isRoute }}" hint-placeholder-val="{{ false }}">
       <div class="page {{ routePageCls }}" style="padding:16px 16px 28px">
-        <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px;margin-bottom:10px">
-          <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-          <input onInput="{{ onRouteSearch }}" value="{{ routeSearch }}" placeholder="Адреса, власник, телефон, особовий, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px">
+            <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
+            <input onInput="{{ onRouteSearch }}" value="{{ routeSearch }}" placeholder="Адреса, кв., власник" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+          </div>
+          <div style="width:36%;max-width:190px;flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 11px;height:46px">
+              <span style="color:var(--muted2);font-size:var(--t130);font-weight:800">№</span>
+              <input onInput="{{ onRouteNo }}" value="{{ routeNo }}" inputmode="text" placeholder="акт, ліч." title="№ акта, № лічильника, особовий рахунок або телефон" class="tnum" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t130);font-weight:700;color:var(--ink)">
+            </div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
           <sc-if value="{{ routeShowMy }}" hint-placeholder-val="{{ false }}">
@@ -966,7 +979,7 @@ window.addEventListener('appinstalled', function () {
             <div style="font-size:var(--t108);font-weight:700;color:var(--muted2);margin-bottom:5px">Пошук будинку</div>
             <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 12px;height:44px">
               <span style="color:var(--muted2);font-size:var(--t140)">⌕</span>
-              <input onInput="{{ onActSearch }}" value="{{ actSearch }}" placeholder="Адреса, власник, №, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t128);font-weight:600;color:var(--ink)">
+              <input onInput="{{ onActSearch }}" value="{{ actSearch }}" placeholder="Адреса, кв., власник або №" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t128);font-weight:600;color:var(--ink)">
             </div>
           </div>
         </div>
@@ -1057,7 +1070,7 @@ window.addEventListener('appinstalled', function () {
             <div style="position:relative">
               <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
                 <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, №, особовий, власник, телефон, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, кв., власник — або № (акт, лічильник, ос. рах.)" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
               </div>
               <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ closeEntrySearch }}" style="position:fixed;inset:0;z-index:14"></div>
@@ -2250,7 +2263,7 @@ class Component extends DCLogic {
     nmOpen: false, nmAddress: '', nmOwner: '', nmAccount: '', nmMeterNo: '', nmUnit: 'Гкал', nmKind: 'kom',
     nmBoiler: '', nmSettlement: '', nmPrev: '', nmErr: '',
     // пошук: значення поля (миттєво) і дебаунсне значення для фільтра
-    searchQd: '', entrySearchQd: '',
+    searchQd: '', entrySearchQd: '', searchNo: '', searchNoD: '', routeNo: '', routeNoD: '',
     role: '', me: '', assignments: {}, assignmentsAt: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
     cloud: false, cloudBusy: false, autoSync: true, notify: false, closedAt: 0, deletes: {}, asgExpand: null, asgSel: {}, asgSelW: '', swReady: null,
@@ -4948,12 +4961,43 @@ class Component extends DCLogic {
     const a = String(addr || '');
     if (!this._akCache) this._akCache = new Map();
     let k = this._akCache.get(a);
-    if (!k) { k = { st: this._streetName(a), n: this._addrNum(a) }; this._akCache.set(a, k); }
+    if (!k) {
+      // літера / дріб після номера будинку: «26а», «26/1» (без «(к1)» і «(2)»)
+      const seg = a.replace(/\([^)]*\)/g, ' ').replace(/[,\s]+$/, '');
+      const tail = seg.includes(',') ? seg.slice(seg.lastIndexOf(',') + 1) : seg;
+      const sm = tail.match(/\d+\s*([^\d\s,()][^\s,()]*)?/);
+      // «вул.Кашинського, дом № 26» ≡ «вул. Кашинського, 26»: слова «дом/буд./будинок №»
+      // перед номером не входять у назву вулиці
+      const a2 = a.replace(/,?\s*(?:дом|д\.|буд(?:инок)?\.?)\s*№?\s*(?=\d)/i, ', ');
+      k = { st: this._streetName(a2).toLowerCase().replace(/[\s.]+/g, ' ').trim(), n: this._addrNum(a2), suf: sm && sm[1] ? sm[1].toLowerCase() : '' };
+      this._akCache.set(a, k);
+    }
     return k;
   }
-  _cmpAddr(a, b){
+  // № квартири / офісу / приміщення з імені споживача чи адреси
+  // («Полозов Я.В.,кв 9», «…, кв. 12», «оф. 1»); null — номера немає
+  _aptNo(text){
+    const m = String(text || '').match(/(?:^|[\s,.(])(?:кв|квартира|оф|офіс|прим|приміщення)\.?\s*№?\s*(\d+)/i);
+    return m ? parseInt(m[1], 10) : null;
+  }
+  // адреса, а за однакової адреси — квартира (без номера — першим: це сам будинок)
+  _cmpAddr(a, b, ownerA, ownerB){
     const x = this._addrKey(a), y = this._addrKey(b), c = this._coll();
-    return c.compare(x.st, y.st) || (x.n - y.n) || c.compare(String(a || ''), String(b || ''));
+    const r = c.compare(x.st, y.st) || (x.n - y.n) || c.compare(x.suf, y.suf);
+    if (r) return r;
+    const qa = this._aptNo(ownerA) ?? this._aptNo(a), qb = this._aptNo(ownerB) ?? this._aptNo(b);
+    return ((qa == null ? -1 : qa) - (qb == null ? -1 : qb)) || c.compare(String(a || ''), String(b || ''));
+  }
+  // порівняння позицій списку будинків: адреса → квартира → № приладу в будинку
+  _cmpBld(a, b){
+    const apt = (x) => { if (x._apt !== undefined) return x._apt; let v = null;
+      (x.meters || []).forEach(h => { const q = this._aptNo(h.owner) ?? this._aptNo(h.address); if (q != null && (v == null || q < v)) v = q; });
+      return (x._apt = v); };
+    const ra = a.addrRaw || a.address, rb = b.addrRaw || b.address;
+    const x = this._addrKey(ra), y = this._addrKey(rb), c = this._coll();
+    const qa = apt(a), qb = apt(b);
+    return c.compare(x.st, y.st) || (x.n - y.n) || c.compare(x.suf, y.suf)
+      || ((qa == null ? -1 : qa) - (qb == null ? -1 : qb)) || ((a.ord || 0) - (b.ord || 0)) || c.compare(String(ra || ''), String(rb || ''));
   }
   // ---- пошук ----
   // Нормалізація тексту для пошуку: регістр; апострофи й лапки всіх видів;
@@ -4984,17 +5028,48 @@ class Component extends DCLogic {
       return val;
     }
     const n = this._normSearch(raw);
-    // digits — лише для суто цифрового запиту (телефон/номер у будь-якому форматі),
-    // інакше «Гоголя 102» знаходив би кожен прилад з «102» у телефоні
-    const val = n ? { tokens: n.split(' '), digits: /\p{L}/u.test(raw) ? '' : raw.replace(/\D/g, '') } : null;
+    // Запит БЕЗ літер («26», «050 123 45», «43851039») — пошук за НОМЕРОМ: № акта,
+    // лічильника, особовий, телефон. Запит із літерами — текстовий: адреса, ім'я;
+    // числа в ньому («кашинського 26», «кв 9») — лише номер будинку/квартири/офісу,
+    // а не будь-яке входження в особовий чи телефон.
+    const numOnly = !/\p{L}/u.test(raw);
+    const val = n ? { tokens: n.split(' '), numOnly, digits: numOnly ? raw.replace(/\D/g, '') : '',
+      numKey: n.replace(/ /g, '') } : null;
     this._sqCache = { raw, val };
     return val;
   }
+  // окремий розбір для поля «№» (там і «П349» — шукаємо як номер, не як текст)
+  _numQuery(q){
+    const raw = String(q || '').trim();
+    if (!raw) return null;
+    const am = raw.match(/^(?:акт[а-яіїєґ]*\s*(?:№\s*)?|№\s*акт[а-яіїєґ]*\s*|#\s*|№\s*)(\S+)$/i);
+    const v = am ? am[1] : raw;
+    const numKey = this._normSearch(v).replace(/ /g, '');
+    return numKey ? { tokens: [], numOnly: true, digits: v.replace(/\D/g, ''), numKey, act: am && /^(акт|#)/i.test(raw) ? numKey : '' } : null;
+  }
+  // Збіг приладу за номером: № акта — точно; № лічильника / особовий / телефон —
+  // за цифрами (від 3 цифр) або текстом особового («п349»).
+  _numberMatch(h, sq){
+    const hay = this._houseHay(h);
+    if (hay.act && hay.act === sq.numKey) return true;
+    if (sq.act) return false;
+    // з літерами («П349») — це особовий/номер як текст, цифри окремо не шукаємо
+    if (/\p{L}/u.test(sq.numKey)) return hay.acc.indexOf(sq.numKey) !== -1 || hay.meter.indexOf(sq.numKey) !== -1;
+    const d = sq.digits;
+    // 1–2 цифри — це номер акта (вище); № лічильника / особовий / телефон — від 3 цифр
+    return !!d && d.length >= 3 && hay.digits.some(x => x && x.indexOf(d) !== -1);
+  }
   // Збіг довільного тексту з розібраним запитом: кожен токен — підрядок тексту
   // (або тексту без пробілів: «п379» знайде «П-379», «0501234» — «050 12 34»).
-  _searchHit(norm, compact, sq){
+  _searchHit(norm, compact, sq, nums){
     for (let i = 0; i < sq.tokens.length; i++) {
       const t = sq.tokens[i];
+      // число в текстовому запиті — лише окреме число адреси/імені: «26» знайде
+      // «26», «26а», «26/1», але не «260» чи «2614» у телефоні
+      if (nums && /^\d/.test(t)) {
+        if (!nums.some(w => w === t || (w.indexOf(t) === 0 && !/\d/.test(w.charAt(t.length))))) return false;
+        continue;
+      }
       if (norm.indexOf(t) === -1 && compact.indexOf(t) === -1) return false;
     }
     return true;
@@ -5004,6 +5079,7 @@ class Component extends DCLogic {
     if (!sq) return true;
     if (sq.act) return false;
     const norm = this._normSearch(text);
+    if (sq.numOnly) { const d = norm.replace(/\D/g, ''); return !!sq.digits && sq.digits.length >= 3 && d.indexOf(sq.digits) !== -1; }
     return this._searchHit(norm, norm.replace(/ /g, ''), sq);
   }
   // Нормалізований «стог» приладу кешується в WeakMap за самим об'єктом і
@@ -5016,8 +5092,14 @@ class Component extends DCLogic {
     const c = this._hayCache.get(h);
     if (c && c.raw === raw) return c;
     const norm = this._normSearch(raw);
+    const k = (x) => this._normSearch(x).replace(/ /g, '');
     const v = { raw, norm, compact: norm.replace(/ /g, ''),
-      digits: [h.phone, h.account, h.meterNo].map(x => String(x || '').replace(/\D/g, '')) };
+      digits: [h.phone, h.account, h.meterNo].map(x => String(x || '').replace(/\D/g, '')),
+      act: k(h.act), acc: k(h.account), meter: k(h.meterNo),
+      // окремі числа адреси й імені (№ будинку, квартири, офісу) — для чисел у
+      // текстовому запиті
+      nums: this._normSearch((h.address || '') + ' ' + (h.owner || '') + ' ' + (h.code || '') + ' ' + this._stripPhone(h.contact || ''))
+        .split(' ').filter(w => /^\d/.test(w)) };
     this._hayCache.set(h, v);
     return v;
   }
@@ -5025,13 +5107,10 @@ class Component extends DCLogic {
     if (!q) return true;
     const sq = (typeof q === 'object') ? q : this._searchQuery(q);
     if (!sq) return true;
-    if (sq.act) return this._normSearch(h.act).replace(/ /g, '') === sq.act;
+    if (sq.act) return this._houseHay(h).act === sq.act;
+    if (sq.numOnly) return this._numberMatch(h, sq);
     const hay = this._houseHay(h);
-    if (this._searchHit(hay.norm, hay.compact, sq)) return true;
-    // цифровий пошук: телефон / особовий / № приладу без урахування пробілів і формату
-    const qd = sq.digits;
-    if (qd.length >= 3 && hay.digits.some(d => d.indexOf(qd) !== -1)) return true;
-    return false;
+    return this._searchHit(hay.norm, hay.compact, sq, hay.nums);
   }
   // Будинок збігається, якщо збігся будь-який його прилад або контактна особа
   // з маршруту (ПІБ, телефон, додаткові контакти) — шукати можна й за ім'ям людини,
@@ -5050,6 +5129,8 @@ class Component extends DCLogic {
     // фільтр — за дебаунсним значенням; очищене поле діє одразу
     const q = s.searchQ.trim() ? (s.searchQd || '').trim() : '';
     if (q) { const sq = this._searchQuery(q); list = list.filter(h => this._matchesSearch(h, sq)); }
+    const nq = (s.searchNo || '').trim() ? this._numQuery(s.searchNoD) : null;
+    if (nq) list = list.filter(h => this._numberMatch(h, nq));
     const last = {}; list.forEach(h => { last[h.id] = this._lastReading(h.id); });
     list.sort((a,b) => {
       const la = last[a.id], lb = last[b.id];
@@ -5057,7 +5138,7 @@ class Component extends DCLogic {
         case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.code.localeCompare(b.code, 'uk');
         case 'gcalDesc': return (lb ? lb.gcal : -1) - (la ? la.gcal : -1);
         case 'pctDesc': return (lb ? lb.diff : -1e9) - (la ? la.diff : -1e9);
-        case 'streetAsc': return this._cmpAddr(a.address, b.address);
+        case 'streetAsc': return this._cmpAddr(a.address, b.address, a.owner, b.owner);
         default: return 0;
       }
     });
@@ -5130,6 +5211,8 @@ class Component extends DCLogic {
     if (s.boilerSel) list = list.filter(b => b.boiler === s.boilerSel);
     const q = s.searchQ.trim() ? (s.searchQd || '').trim() : '';
     if (q) { const sq = this._searchQuery(q); list = list.filter(b => this._buildingMatches(b, sq)); }
+    const nq = (s.searchNo || '').trim() ? this._numQuery(s.searchNoD) : null;
+    if (nq) list = list.filter(b => b.meters.some(h => this._numberMatch(h, nq)));
     list.forEach(b => {
       let gcal = 0, load = 0, hasAny = false;
       b.meters.forEach(h => { load += (Number(h.heatLoad) || 0);
@@ -5140,7 +5223,7 @@ class Component extends DCLogic {
       switch (s.sortKey) {
         case 'gcalDesc': return b.agg.gcal - a.agg.gcal;
         case 'addrAsc': return (this._addrNum(a.address) - this._addrNum(b.address)) || a.address.localeCompare(b.address, 'uk');
-        default: return this._cmpAddr(a.address, b.address);
+        default: return this._cmpBld(a, b);
       }
     });
     return list;
@@ -5152,6 +5235,17 @@ class Component extends DCLogic {
   }
   // поле оновлюється миттєво, а фільтр (searchQd) — через 150 мс після паузи в
   // наборі: на слабкому телефоні кожна літера інакше перебудовувала б весь список
+  // поле «№»: № акта / лічильника / особовий / телефон — окремо від тексту
+  onSearchNo(e){
+    const v = e.target.value;
+    this.setState({ searchNo: v });
+    clearTimeout(this._snT); this._snT = setTimeout(() => this.setState({ searchNoD: v }), 150);
+  }
+  onRouteNo(e){
+    const v = e.target.value;
+    this.setState({ routeNo: v });
+    clearTimeout(this._rnT); this._rnT = setTimeout(() => this.setState({ routeNoD: v }), 150);
+  }
   onSearch(e){
     const v = e.target.value;
     this.setState({ searchQ: v });
@@ -6160,7 +6254,7 @@ class Component extends DCLogic {
         });
       });
     });
-    rows.sort((a, b) => this._cmpAddr(a.addr, b.addr) || this._coll().compare(String(a.account), String(b.account)));
+    rows.sort((a, b) => this._cmpAddr(a.addr, b.addr, a.owner, b.owner) || this._coll().compare(String(a.account), String(b.account)));
     return rows;
   }
   _monthReportHeader(){
@@ -6309,7 +6403,7 @@ class Component extends DCLogic {
         });
       });
     });
-    rows.sort((a, b) => this._cmpAddr(a.addr, b.addr));
+    rows.sort((a, b) => this._cmpAddr(a.addr, b.addr, a.owner, b.owner));
     this._amMemo = { sig, rows };
     return rows;
   }
@@ -6343,7 +6437,8 @@ class Component extends DCLogic {
       const sq = this._searchQuery(q);
       rows = sq && sq.act
         ? rows.filter(r => this._normSearch(r.frameNo).replace(/ /g, '') === sq.act)
-        : rows.filter(r => this._searchText(r.addr + ' ' + r.meterNo + ' ' + r.owner + ' ' + r.account + ' ' + r.frameNo + ' ' + r.ord + ' ' + r.settlement + ' ' + r.worker, sq));
+        : rows.filter(r => { const h = this._houseById(r.houseId);
+            return (h && this._matchesSearch(h, sq)) || (!sq.numOnly && this._searchText(r.worker + ' ' + r.respName, sq)); });
     }
     return rows;
   }
@@ -7376,6 +7471,7 @@ class Component extends DCLogic {
       out.sortLabel = ({ streetAsc:'За вулицею', addrAsc:'За номером буд.', gcalDesc:'За обсягом' })[s.sortKey] || 'За вулицею';
       out.cycleSort = () => this.cycleSort();
       out.onSearch = (e) => this.onSearch(e);
+      out.searchNo = s.searchNo || ''; out.onSearchNo = (e) => this.onSearchNo(e);
       out.exportHouses = () => this.exportHouses();
 
       let buildings = this._filteredBuildings();
@@ -7446,10 +7542,12 @@ class Component extends DCLogic {
 
       // під час пошуку показуємо власника САМЕ тих приладів, що збіглися з запитом
       // (шукали за ім'ям — бачимо ім'я); без пошуку — власника одноприладного будинку
-      const sqB = (s.searchQ.trim() && (s.searchQd || '').trim()) ? this._searchQuery(s.searchQd.trim()) : null;
+      const sqB0 = (s.searchQ.trim() && (s.searchQd || '').trim()) ? this._searchQuery(s.searchQd.trim()) : null;
+      const nqB = (s.searchNo || '').trim() ? this._numQuery(s.searchNoD) : null;
+      const sqB = (sqB0 || nqB) ? { _m: (h) => (!sqB0 || this._matchesSearch(h, sqB0)) && (!nqB || this._numberMatch(h, nqB)) } : null;
       out.buildingList = buildings.map(b => {
         const st = this._collectStatus(b, rmap);
-        const ms = sqB ? b.meters.filter(h => this._matchesSearch(h, sqB)) : (b.meters.length === 1 ? b.meters : []);
+        const ms = sqB ? b.meters.filter(h => sqB._m(h)) : (b.meters.length === 1 ? b.meters : []);
         const owners = [...new Set(ms.map(h => String(h.owner || '').trim()).filter(Boolean))];
         const stTxt = st.state === 'na' ? '' : (st.done + '/' + st.total + ' знято');
         // питомі по будинку — головний бейдж: одразу видно, хто гріє неощадно
@@ -7589,12 +7687,14 @@ class Component extends DCLogic {
       out.routeToggleMy = () => this.toggleMyOnly();
       out.routeSearch = s.routeSearch || '';
       out.onRouteSearch = (e) => this.onRouteSearch(e);
+      out.routeNo = s.routeNo || ''; out.onRouteNo = (e) => this.onRouteNo(e);
       // Мемо списку: будування 240 карток (контакти/статуси) — найдорожче в цій
       // закладці. Фільтр працює з ДЕБАУНСНИМ routeSearchQ, тож під час набору
       // проміжні рендери беруть готовий список із кешу — без лагу на слабких
       // телефонах. Підпис кешу містить УСЕ, що читає rowOf.
       const q = (s.routeSearchQ || '').trim().toLowerCase();
-      const memoSig = [this.db, this._readingsVer || 0, s.rev, s.myOnly, s.me, s.assignments,
+      const qNo = (s.routeNo || '').trim() ? (s.routeNoD || '').trim() : '';
+      const memoSig = [qNo, this.db, this._readingsVer || 0, s.rev, s.myOnly, s.me, s.assignments,
         s.route, s.contacts, s.contactEditKey, s.routeEditKey, q, today, s.routeDay || '',
         s.routeWorker || '', s.users, this._lvl(s.authUser), s.routeFilter || 'all'];
       if (this._routeMemo && this._routeMemo.sig.every((v, i) => v === memoSig[i])) {
@@ -7610,6 +7710,7 @@ class Component extends DCLogic {
       // перемикач виконавця: кожен робітник (чи старший за ПК) бачить лише «свої»
       if (s.routeWorker) blist = blist.filter(b => b.meters.some(h => this._assignedWorker(h) === s.routeWorker));
       if (q) { const sq = this._searchQuery(q); blist = blist.filter(b => this._buildingMatches(b, sq)); }
+      if (qNo) { const nq = this._numQuery(qNo); if (nq) blist = blist.filter(b => b.meters.some(h => this._numberMatch(h, nq))); }
       // Один фізичний будинок — ОДНА картка маршруту. У книзі трапляється різне
       // написання адреси для різних приладів того самого особового
       // («вул.Кашинського, 26» і «вул. Кашинського,26») — групування за адресою
@@ -7699,13 +7800,13 @@ class Component extends DCLogic {
           cEditBg: s.contactEditKey === sk ? 'var(--primary)' : 'var(--surface)',
           cEditFg: s.contactEditKey === sk ? '#fff' : 'var(--muted)',
           cEditBd: s.contactEditKey === sk ? 'var(--primary)' : 'var(--line2)',
-          _date: plan.date || '', _time: plan.time || ''
+          _date: plan.date || '', _time: plan.time || '', _b: b
         };
       };
       const rows = blist.map(rowOf);
       const notDone = rows.filter(r => !r.done);
-      const cmpDT = (a,b) => (a._date||'9999-99-99').localeCompare(b._date||'9999-99-99') || (a._time||'99:99').localeCompare(b._time||'99:99') || a.address.localeCompare(b.address,'uk');
-      const byAddr = (a,b) => a.address.localeCompare(b.address,'uk');
+      const byAddr = (a,b) => (a._b && b._b) ? this._cmpBld(a._b, b._b) : a.address.localeCompare(b.address,'uk');
+      const cmpDT = (a,b) => (a._date||'9999-99-99').localeCompare(b._date||'9999-99-99') || (a._time||'99:99').localeCompare(b._time||'99:99') || byAddr(a, b);
       // ---- ГРАФІК ЗНЯТТЯ: домовленості розкладені по днях (а не одна купа) ----
       const appt = notDone.filter(r => r.mode==='appt');
       const overdue = appt.filter(r => r._date && r._date < today).sort(cmpDT);
