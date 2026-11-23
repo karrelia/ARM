@@ -1068,9 +1068,15 @@ window.addEventListener('appinstalled', function () {
               </div>
             </sc-if>
             <div style="position:relative">
-              <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
-                <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, кв., власник — або № (акт, лічильник, ос. рах.)" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+              <div style="position:relative;z-index:16;display:flex;gap:8px">
+                <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
+                  <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
+                  <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, кв., власник" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+                </div>
+                <div style="width:34%;max-width:180px;flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 11px;height:46px">
+                  <span style="color:var(--muted2);font-size:var(--t130);font-weight:800">№</span>
+                  <input onFocus="{{ onEntryNoFocus }}" onInput="{{ onEntryNo }}" value="{{ entryNo }}" placeholder="акт, ліч." title="№ акта, № лічильника, особовий рахунок або телефон" class="tnum" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t130);font-weight:700;color:var(--ink)">
+                </div>
               </div>
               <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ closeEntrySearch }}" style="position:fixed;inset:0;z-index:14"></div>
@@ -2263,7 +2269,7 @@ class Component extends DCLogic {
     nmOpen: false, nmAddress: '', nmOwner: '', nmAccount: '', nmMeterNo: '', nmUnit: 'Гкал', nmKind: 'kom',
     nmBoiler: '', nmSettlement: '', nmPrev: '', nmErr: '',
     // пошук: значення поля (миттєво) і дебаунсне значення для фільтра
-    searchQd: '', entrySearchQd: '', searchNo: '', searchNoD: '', routeNo: '', routeNoD: '',
+    searchQd: '', entrySearchQd: '', entryNo: '', entryNoD: '', searchNo: '', searchNoD: '', routeNo: '', routeNoD: '',
     role: '', me: '', assignments: {}, assignmentsAt: {}, settingsOpen: false, myOnly: false, notDone: false,
     collectOpen: false, collectMode: 'boiler', lastSyncAt: 0, lastPull: 0,
     cloud: false, cloudBusy: false, autoSync: true, notify: false, closedAt: 0, deletes: {}, asgExpand: null, asgSel: {}, asgSelW: '', swReady: null,
@@ -4809,6 +4815,12 @@ class Component extends DCLogic {
       per: null, hid: null, mc: new Map(), rfm: new Map(), last: new Map(), bc: new Map() };
     return this._dc;
   }
+  // множина номерів актів бази (нормалізованих) — для пріоритету точного № акта
+  _actSet(){
+    const c = this._dcache();
+    if (!c.acts) { c.acts = new Set(); c.h.forEach(h => { const k = this._normSearch(h.act).replace(/ /g, ''); if (k) c.acts.add(k); }); }
+    return c.acts;
+  }
   _houseById(id){
     const c = this._dcache();
     if (!c.hid) { c.hid = new Map(); c.h.forEach(h => c.hid.set(String(h.id), h)); }
@@ -5053,6 +5065,9 @@ class Component extends DCLogic {
     const hay = this._houseHay(h);
     if (hay.act && hay.act === sq.numKey) return true;
     if (sq.act) return false;
+    // номер, що ТОЧНО є номером акта («104»), шукає лише цей акт — інакше акти
+    // 100–333 тонули б серед лічильників/особових/телефонів, де трапляється «104»
+    if (this._actSet().has(sq.numKey)) return false;
     // з літерами («П349») — це особовий/номер як текст, цифри окремо не шукаємо
     if (/\p{L}/u.test(sq.numKey)) return hay.acc.indexOf(sq.numKey) !== -1 || hay.meter.indexOf(sq.numKey) !== -1;
     const d = sq.digits;
@@ -5183,12 +5198,22 @@ class Component extends DCLogic {
     return e ? { ord: e.ord, total: e.total } : { ord: 0, total: 1 };
   }
   // короткий підпис приладу: «Лічильник 2 з 2» (порожньо, коли прилад один)
-  _meterLabel(h){ const m = this._meterOrd(h); return m.ord ? ('Лічильник ' + m.ord + ' з ' + m.total) : ''; }
-  // прилади за ФІЗИЧНОЮ адресою (для покрокового обходу при вводі)
+  _meterLabel(h){ const m = this._meterPos(h); return m.ord ? ('Лічильник ' + m.ord + ' з ' + m.total) : ''; }
+  // прилади за ФІЗИЧНОЮ адресою (для покрокового обходу при вводі) — у тому ж
+  // порядку, що й список будинків: сам будинок, далі квартири/офіси за номером
   _addrMeters(h){
     const a = this._houseAddrKey(h);
     return this.db.houses.filter(x => this._houseAddrKey(x) === a)
-      .sort((x, y) => (x.code || '').localeCompare(y.code || '', 'uk') || (x.id - y.id));
+      .sort((x, y) => this._cmpAddr(x.address, y.address, x.owner, y.owner)
+        || (x.code || '').localeCompare(y.code || '', 'uk') || (x.id - y.id));
+  }
+  // «Лічильник N з M» для показу — позиція в цьому ж порядку обходу (_meterOrd
+  // лишається для ключів маршруту/контактів і його не чіпаємо)
+  _meterPos(h){
+    if (!h || !this.db) return { ord: 0, total: 1 };
+    const ms = this._addrMeters(h);
+    if (ms.length < 2) return { ord: 0, total: 1 };
+    return { ord: ms.findIndex(x => x.id === h.id) + 1, total: ms.length };
   }
   _buildings(){
     const map = {};
@@ -5553,6 +5578,13 @@ class Component extends DCLogic {
   // ---------- entry ----------
   onEHouse(e){ const id = e.target.value; const h = this.db.houses.find(x => String(x.id) === String(id)); this.setState({ eHouse: id, ...this._entryPatchFor(h) }); }
   onEntrySearchFocus(){ clearTimeout(this._esT); this.setState({ entrySearchOpen: true, entrySearchQ: '', entrySearchQd: '' }); }
+  // поле «№» у «Вводі» — відкриває той самий список, фільтр за номером
+  onEntryNoFocus(){ if (!this.state.entrySearchOpen) this.setState({ entrySearchOpen: true, entrySearchQ: '', entrySearchQd: '' }); }
+  onEntryNo(e){
+    const v = e.target.value;
+    this.setState({ entrySearchOpen: true, entryNo: v });
+    clearTimeout(this._enT); this._enT = setTimeout(() => this.setState({ entryNoD: v }), 120);
+  }
   onEntrySearch(e){
     const v = e.target.value;
     this.setState({ entrySearchOpen: true, entrySearchQ: v });
@@ -5560,7 +5592,7 @@ class Component extends DCLogic {
   }
   closeEntrySearch(){ this.setState({ entrySearchOpen: false }); }
   clearEntryBoilerFilter(){ this.setState({ boilerSel: '' }); }
-  selectEntryHouse(h){ clearTimeout(this._esT); this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '', entrySearchQd: '' }); }
+  selectEntryHouse(h){ clearTimeout(this._esT); clearTimeout(this._enT); this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '', entrySearchQd: '', entryNo: '', entryNoD: '' }); }
   addNewHouse(){
     const id = (this.db.houses.reduce((m, h) => Math.max(m, h.id), 0) || 0) + 1;
     const h = { id, code: '', account: '', owner: '', address: '', settlement: '', boiler: '', unit: 'Гкал',
@@ -6977,12 +7009,16 @@ class Component extends DCLogic {
       // пошуком — фільтрувати всі прилади на кожен рендер даремно)
       const q = (s.entrySearchQ || '').trim() ? (s.entrySearchQd || '').trim() : '';
       const sq = this._searchQuery(q);
-      const list = !s.entrySearchOpen ? [] : this.db.houses.filter(h => (!boilerFilter || h.boiler === boilerFilter) && this._matchesSearch(h, sq));
+      const nq = (s.entryNo || '').trim() ? this._numQuery(s.entryNoD) : null;
+      const list = !s.entrySearchOpen ? [] : this.db.houses
+        .filter(h => (!boilerFilter || h.boiler === boilerFilter) && this._matchesSearch(h, sq) && (!nq || this._numberMatch(h, nq)))
+        .sort((a, b) => this._cmpAddr(a.address, b.address, a.owner, b.owner) || (a.id - b.id));
       Object.assign(out, {
         entryBoilerFilter: boilerFilter || '',
         clearEntryBoilerFilter: () => this.clearEntryBoilerFilter(),
         onEntrySearchFocus: () => this.onEntrySearchFocus(),
         onEntrySearch: (e) => this.onEntrySearch(e),
+        entryNo: s.entryNo || '', onEntryNo: (e) => this.onEntryNo(e), onEntryNoFocus: () => this.onEntryNoFocus(),
         closeEntrySearch: () => this.closeEntrySearch(),
         entrySearchOpen: !!s.entrySearchOpen,
         entrySearchDisplay: s.entrySearchOpen ? s.entrySearchQ : (eh ? (hName(eh) + (eh.code && eh.address ? ' · ' + eh.code : '')) : ''),
@@ -7202,7 +7238,7 @@ class Component extends DCLogic {
       // «Маршрут»): зміни контакту в маршруті одразу видно в картці абонента
       const bldg = this._buildings().find(b => b.meters.some(m => m.id === eh.id));
       const c = this._routeContact(bldg);
-      const eOrd = this._meterOrd(eh);
+      const eOrd = this._meterPos(eh);
       out.einfo = {
         addr: d(eh.address || eh.code), account: d(eh.account),
         settlement: d(eh.settlement), boiler: d(eh.boiler),
@@ -7228,7 +7264,7 @@ class Component extends DCLogic {
       const hist = this._houseReadings(s.detailId).slice()
         .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id)));
       const dc = this._routeContact(this._buildings().find(b => b.meters.some(m => m.id === h.id)));
-      const dOrd = this._meterOrd(h);
+      const dOrd = this._meterPos(h);
       out.detail = {
         code: hName(h), addr: hSub(h) || '—', meter: h.meterNo || '—',
         ordShow: dOrd.ord > 0, ordTxt: 'Лічильник ' + dOrd.ord + ' з ' + dOrd.total,
