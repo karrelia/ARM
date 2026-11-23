@@ -465,7 +465,7 @@ window.addEventListener('appinstalled', function () {
         <div style="position:sticky;top:0;z-index:5;background:var(--bg);margin:-14px -16px 11px;padding:14px 16px 11px">
           <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px;margin-bottom:11px">
             <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-            <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Адреса, №, особовий, власник, телефон" style="flex:1;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
+            <input onInput="{{ onSearch }}" value="{{ searchQ }}" placeholder="Адреса, №, особовий, власник, телефон, акт 49" style="flex:1;border:none;outline:none;background:none;font-size:var(--t140);font-weight:500;color:var(--ink)">
           </div>
           <div style="display:flex;gap:8px">
             <div style="position:relative;flex:1">
@@ -646,7 +646,7 @@ window.addEventListener('appinstalled', function () {
       <div class="page {{ routePageCls }}" style="padding:16px 16px 28px">
         <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:13px;padding:0 13px;height:46px;margin-bottom:10px">
           <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-          <input onInput="{{ onRouteSearch }}" value="{{ routeSearch }}" placeholder="Адреса, власник, телефон, особовий" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+          <input onInput="{{ onRouteSearch }}" value="{{ routeSearch }}" placeholder="Адреса, власник, телефон, особовий, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
           <sc-if value="{{ routeShowMy }}" hint-placeholder-val="{{ false }}">
@@ -966,7 +966,7 @@ window.addEventListener('appinstalled', function () {
             <div style="font-size:var(--t108);font-weight:700;color:var(--muted2);margin-bottom:5px">Пошук будинку</div>
             <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 12px;height:44px">
               <span style="color:var(--muted2);font-size:var(--t140)">⌕</span>
-              <input onInput="{{ onActSearch }}" value="{{ actSearch }}" placeholder="Адреса, №, прилад" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t128);font-weight:600;color:var(--ink)">
+              <input onInput="{{ onActSearch }}" value="{{ actSearch }}" placeholder="Адреса, власник, №, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t128);font-weight:600;color:var(--ink)">
             </div>
           </div>
         </div>
@@ -1057,7 +1057,7 @@ window.addEventListener('appinstalled', function () {
             <div style="position:relative">
               <div style="display:flex;align-items:center;gap:8px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;height:46px">
                 <span style="color:var(--muted2);font-size:var(--t150)">⌕</span>
-                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, №, особовий, власник, телефон" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
+                <input onFocus="{{ onEntrySearchFocus }}" onInput="{{ onEntrySearch }}" value="{{ entrySearchDisplay }}" placeholder="Адреса, №, особовий, власник, телефон, акт 49" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t135);font-weight:600;color:var(--ink)">
               </div>
               <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
                 <div onClick="{{ closeEntrySearch }}" style="position:fixed;inset:0;z-index:14"></div>
@@ -3811,6 +3811,8 @@ class Component extends DCLogic {
         date: one(/^дата/), addr: one(/адрес/), owner: one(/(споживач|власник|абонент)/),
         acc: one(/особов/), meter: one(/(№|номер)\s*лічильник/), kind: one(/вид\s*обліку/),
         note: one(/приміт/), photo: one(/фото/),
+        // «Ком. облік (№ у рамці)» — номер акта, що друкується в рамці бланка
+        frame: one(/рамц/),
         energy: pair(/теплов\S* енергі/), voda: pair(/води по теплолічильн/),
         robota: pair(/наробіт/), prostiy: pair(/прост[оі]/), vodomir: pair(/(водолічильн|водомір)/)
       };
@@ -3866,7 +3868,8 @@ class Component extends DCLogic {
           robotaPrev: num(row, c.robota.prev), robota: num(row, c.robota.cur),
           prostiyPrev: num(row, c.prostiy.prev), prostiy: num(row, c.prostiy.cur),
           vodomirPrev: num(row, c.vodomir.prev), vodomir: num(row, c.vodomir.cur),
-          note: str(row, c.note), photo: str(row, c.photo) });
+          note: str(row, c.note), photo: str(row, c.photo),
+          frame: String(str(row, c.frame)).replace(/\.0+$/, '').trim() });
       }
       return { sheet: name, rows: out };
     }
@@ -3964,7 +3967,7 @@ class Component extends DCLogic {
       if (!h) {
         h = { id: ++maxHid, code: r.account || r.meterNo || r.address, account: r.account, owner: r.owner,
           address: r.address, settlement: '', boiler: '', unit: r.unit || 'Гкал', meterNo: r.meterNo,
-          meterType: '', act: '', komOblik: r.kind !== 'rozp', heatLoad: 0, share: 1,
+          meterType: '', act: r.frame || '', komOblik: r.kind !== 'rozp', heatLoad: 0, share: 1,
           contact: '', phone: '', prevObc: 0, addedAt: now, addedBy: by };
         db.houses.push(h); st.created++;
       } else {
@@ -3976,6 +3979,7 @@ class Component extends DCLogic {
         if (!h.address && r.address) h.address = r.address;
         if (!h.account && r.account) { h.account = r.account; if (!h.code) h.code = r.account; }
         if (r.unit) h.unit = r.unit;
+        if (r.frame) h.act = r.frame;          // № акта в рамці — за актуальною нумерацією
         // вид обліку входить у ключ синхронізації — міняємо, лише поки на приладі
         // немає вже синхронізованих польових показань (інакше вони «загубляться»)
         if (r.kind && this._meterKind(h) !== r.kind
@@ -4951,6 +4955,14 @@ class Component extends DCLogic {
   _searchQuery(q){
     const raw = String(q || '');
     if (this._sqCache && this._sqCache.raw === raw) return this._sqCache.val;
+    // «акт 49» / «акт №49» / «№ акту 49» / «#49» — точний пошук за № акта (числом
+    // у рамці бланка). Просте «49» шукає скрізь, а тут — лише цей акт.
+    const am = raw.trim().match(/^(?:акт[а-яіїєґ]*\s*(?:№\s*)?|№\s*акт[а-яіїєґ]*\s*|#\s*)(\d\S*)$/i);
+    if (am) {
+      const val = { tokens: [], digits: '', act: this._normSearch(am[1]).replace(/ /g, '') };
+      this._sqCache = { raw, val };
+      return val;
+    }
     const n = this._normSearch(raw);
     // digits — лише для суто цифрового запиту (телефон/номер у будь-якому форматі),
     // інакше «Гоголя 102» знаходив би кожен прилад з «102» у телефоні
@@ -4970,6 +4982,7 @@ class Component extends DCLogic {
   _searchText(text, q){
     const sq = (q && typeof q === 'object') ? q : this._searchQuery(q);
     if (!sq) return true;
+    if (sq.act) return false;
     const norm = this._normSearch(text);
     return this._searchHit(norm, norm.replace(/ /g, ''), sq);
   }
@@ -4977,7 +4990,8 @@ class Component extends DCLogic {
   // перебудовується, лише коли змінився сирий текст полів (редагування довідника).
   _houseHay(h){
     const raw = (h.code || '') + ' ' + (h.address || '') + ' ' + (h.boiler || '') + ' ' + (h.owner || '') + ' '
-      + (h.account || '') + ' ' + (h.meterNo || '') + ' ' + (h.settlement || '') + ' ' + (h.phone || '') + ' ' + (h.contact || '');
+      + (h.account || '') + ' ' + (h.meterNo || '') + ' ' + (h.settlement || '') + ' ' + (h.phone || '') + ' ' + (h.contact || '')
+      + ' ' + (h.act || '');
     if (!this._hayCache) this._hayCache = new WeakMap();
     const c = this._hayCache.get(h);
     if (c && c.raw === raw) return c;
@@ -4991,6 +5005,7 @@ class Component extends DCLogic {
     if (!q) return true;
     const sq = (typeof q === 'object') ? q : this._searchQuery(q);
     if (!sq) return true;
+    if (sq.act) return this._normSearch(h.act).replace(/ /g, '') === sq.act;
     const hay = this._houseHay(h);
     if (this._searchHit(hay.norm, hay.compact, sq)) return true;
     // цифровий пошук: телефон / особовий / № приладу без урахування пробілів і формату
@@ -6242,8 +6257,9 @@ class Component extends DCLogic {
           prevVal = (rm.prev != null && rm.prev !== '') ? rm.prev
             : (last && last.id !== rm.id ? last.cur : (h.prevObc != null ? h.prevObc : ''));
           lastVal = (rm.cur != null) ? rm.cur : '';
-          const d = this._rowGcal(rm);
-          diffVal = (d != null) ? d : ((lastVal !== '' && prevVal !== '') ? this.r2(lastVal - prevVal) : '');
+          // різниця — в ОДИНИЦЯХ ПРИЛАДУ (як «Попереднє/Останнє» поруч), а не в Гкал:
+          // раніше для ГДж/МВт-приладу тут стояли перераховані Гкал під підписом «ГДж»
+          diffVal = (lastVal !== '' && prevVal !== '') ? this.r3(this.num(lastVal) - this.num(prevVal)) : '';
           dateStr = rm.date || '';
         } else {
           prevVal = last ? last.cur : (h.prevObc != null ? h.prevObc : '');
@@ -6258,13 +6274,38 @@ class Component extends DCLogic {
           prevVal: prevVal === '' || prevVal == null ? '' : String(prevVal),
           lastVal: lastVal === '' || lastVal == null ? '' : String(lastVal),
           diffVal: diffVal === '' || diffVal == null ? '' : String(diffVal),
-          dateStr
+          dateStr,
+          // --- повний бланк акта (як паперовий): особовий, № у рамці, одиниця,
+          // час і решта показників приладу ---
+          account: h.account || '', frameNo: (h.act && String(h.act).trim()) || '',
+          unit: (rm && rm.unit) || h.unit || 'Гкал', time: read ? (rm.time || '') : '',
+          place: this._stripPhone(h.contact || '').trim(),
+          extra: this._actExtraRows(h, read ? rm : null),
+          tVhid: read && rm.tVhid != null ? String(rm.tVhid) : '', tVyhid: read && rm.tVyhid != null ? String(rm.tVyhid) : '',
+          vytraty: read && rm.vytraty != null ? String(rm.vytraty) : '', potuzhnist: read && rm.potuzhnist != null ? String(rm.potuzhnist) : ''
         });
       });
     });
     rows.sort((a, b) => this._cmpAddr(a.addr, b.addr));
     this._amMemo = { sig, rows };
     return rows;
+  }
+  // Рядки бланка після теплової енергії: попереднє — з показання місяця, а без
+  // нього (порожній бланк) — «останні» значення довідника; останнє/різниця —
+  // лише коли показання за місяць є.
+  _actExtraRows(h, rm){
+    const val = (v) => (v === '' || v == null) ? '' : String(v);
+    return [
+      ['Об’єм води по теплолічильнику', 'м3', 'voda', 'vodaPrev', 'prevVoda'],
+      ['Наробітка теплолічильника', 'дні/години', 'robota', 'robotaPrev', 'prevRobota'],
+      ['Простой теплолічильника', 'год.', 'prostiy', 'prostiyPrev', 'prevProstiy'],
+      ['Об’єм води по водолічильнику', 'м3', 'vodomir', 'vodomirPrev', 'prevVodomir']
+    ].map(([label, unit, cur, prev, hPrev]) => {
+      const p = rm ? (rm[prev] != null ? rm[prev] : '') : (h[hPrev] ? h[hPrev] : '');
+      const c = rm && rm[cur] != null ? rm[cur] : '';
+      const d = (c !== '' && p !== '') ? this.r3(this.num(c) - this.num(p)) : '';
+      return { label, unit, prev: val(p), last: val(c), diff: val(d) };
+    });
   }
   _actFiltered(){
     const s = this.state; let rows = this._actMeters();
@@ -6275,7 +6316,12 @@ class Component extends DCLogic {
     if (s.actWorker === '__none') rows = rows.filter(r => !r.worker);
     else if (s.actWorker) rows = rows.filter(r => r.worker === s.actWorker);
     const q = (s.actSearchQ || '').trim();
-    if (q) { const sq = this._searchQuery(q); rows = rows.filter(r => this._searchText(r.addr + ' ' + r.meterNo + ' ' + r.owner + ' ' + r.ord + ' ' + r.settlement + ' ' + r.worker, sq)); }
+    if (q) {
+      const sq = this._searchQuery(q);
+      rows = sq && sq.act
+        ? rows.filter(r => this._normSearch(r.frameNo).replace(/ /g, '') === sq.act)
+        : rows.filter(r => this._searchText(r.addr + ' ' + r.meterNo + ' ' + r.owner + ' ' + r.account + ' ' + r.frameNo + ' ' + r.ord + ' ' + r.settlement + ' ' + r.worker, sq));
+    }
     return rows;
   }
   _actSelected(){
@@ -6303,68 +6349,96 @@ class Component extends DCLogic {
   toggleActFill(){ this.setState(s => ({ actFill: !s.actFill })); }
   setActCopies(n){ this.setState({ actCopies: n }); }
 
-  _actTitle(){ return 'Акт зняття показників приладу комерційного обліку теплової енергії'; }
+  _actTitle(){ return 'Акт зняття показників теплового лічильника'; }
+  // Частини дати бланка: день, місяць ЧИСЛОМ (як у паперовому акті «27» 03 2026),
+  // рік. Без дати показання рік береться зі звітного місяця — його друкуємо.
   _actDateParts(dateStr, key){
     let day = '', month = '', year = '';
     const m = String(dateStr || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (m) { year = m[1]; month = this._monthsUk()[parseInt(m[2], 10) - 1] || ''; day = m[3]; }
+    if (m) { year = m[1]; month = m[2]; day = m[3]; }
     else { const k = String(key || '').split('-'); if (k[0]) year = k[0]; }
     return { day, month, year };
   }
   _esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
-  // HTML одного акта. fill=false → бланк (Останнє/Різниця/дата порожні)
+  // HTML одного акта — за паперовим бланком КП «Тепловодсервіс»: шапка з адресою
+  // й споживачем, № акта в рамці з видом обліку, особовий, дата/час, № лічильника,
+  // таблиця з п'яти показників, температури/витрата/потужність, архівні дані й
+  // підписи. fill=false → бланк для заповнення від руки (Останнє/Різниця/дата порожні).
   _actBlockHtml(r, fill, key){
-    const org = this._esc(this._actOrg());
+    const e = (v) => this._esc(v);
+    const org = e(this._actOrg());
     const dp = this._actDateParts(fill ? r.dateStr : '', key);
-    const u = (v, w) => '<span class="u" style="min-width:' + w + '">' + this._esc(v) + '</span>';
-    const last = fill ? r.lastVal : '';
-    const diff = fill ? r.diffVal : '';
+    const u = (v, w) => '<span class="u" style="min-width:' + w + '">' + e(v) + '</span>';
+    const f = (v) => fill ? v : '';
+    // числа — з десятковою КОМОЮ, як у паперовому бланку (160,188)
+    const n = (v) => String(v == null ? '' : v).replace(/^(-?\d+)\.(\d+)$/, '$1,$2');
+    const row = (label, unit, prev, last, diff) => '<tr><td class="l">' + e(label) + '</td><td>' + e(unit) + '</td><td>'
+      + e(n(prev)) + '</td><td class="hw">' + e(n(f(last))) + '</td><td class="hw">' + e(n(f(diff))) + '</td></tr>';
+    const rows = row('Кількість теплової енергії по лічильнику', r.unit || 'Гкал', r.prevVal, r.lastVal, r.diffVal)
+      + (r.extra || []).map(x => row(x.label, x.unit, x.prev, x.last, x.diff)).join('');
+    const kind = r.rozp ? 'розп. облік' : 'ком. облік';
     return '' +
       '<div class="act">' +
-        '<div class="t">' + this._esc(this._actTitle()) + '</div>' +
-        '<div class="ln2"><span class="addr">' + this._esc(r.addr) + '</span></div>' +
-        '<div class="ln2 dt"><span>Дата&nbsp;' + u(dp.day, '2.4em') + '&nbsp;' + u(dp.month, '7em') + '&nbsp;' + u(dp.year, '3.2em') + '&nbsp;року</span>' +
-          '<span class="mno">№&nbsp;лічильника:&nbsp;<b>' + this._esc(r.meterNo) + '</b></span></div>' +
-        '<table><thead><tr><th>Категорія виміру</th><th>Од.<br>виміру</th><th>Попереднє</th><th>Останнє</th><th>Різниця</th></tr></thead>' +
-          '<tbody><tr><td class="l">Теплова енергія по обчислювачу</td><td>' + this._esc(r.unit || 'Гкал') + '</td><td>' + this._esc(r.prevVal) + '</td><td>' + this._esc(last) + '</td><td>' + this._esc(diff) + '</td></tr></tbody></table>' +
-        '<div class="sig">' +
-          '<div class="sr"><span class="sl">Відповідальна особа</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su">' + this._esc(r.respName || '') + '</span><i>(ПІБ)</i></span></div>' +
-          '<div class="sr"><span class="sl">Представник<br>' + org + '</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su"></span><i>(ПІБ)</i></span></div>' +
+        '<div class="hd">' +
+          '<div class="hc">' +
+            '<div class="t">' + e(this._actTitle()) + '</div>' +
+            '<div class="a">' + e(r.addr) + '</div>' +
+            '<div class="o">' + e(r.owner) + '</div>' +
+          '</div>' +
+          '<div class="fr"><div class="frn">' + e(r.frameNo) + '</div><div class="frc">' + kind + '</div></div>' +
         '</div>' +
-        '<div class="gen">Сформовано ' + this._esc(this._fmtDMFull(this._todayISO())) + '</div>' +
+        '<div class="acc">' + e(r.account) + '</div>' +
+        '<div class="dl">' +
+          '<span>Дата&nbsp;"' + u(dp.day, '2.2em') + '"&nbsp;' + u(dp.month, '6em') + '&nbsp;&nbsp;' + u(dp.year, '3.6em') + '&nbsp;року</span>' +
+          '<span>Час&nbsp;' + u(f(r.time), '4.5em') + '</span>' +
+          '<span class="mno">' + e(r.meterNo) + '</span>' +
+        '</div>' +
+        '<div class="pl">' + e(r.place) + '</div>' +
+        '<table class="m"><thead><tr><th class="l0">Категорія виміру</th><th>Одиниці<br>виміру</th><th>Попереднє</th><th>Останнє</th><th>Різниця</th></tr></thead>' +
+          '<tbody>' + rows + '</tbody></table>' +
+        '<table class="x"><tbody>' +
+          '<tr><td class="k">Температура 1:</td><td class="hw">' + e(n(f(r.tVhid))) + '</td><td class="k">Витрати теплоносія:</td><td class="hw">' + e(n(f(r.vytraty))) + '</td></tr>' +
+          '<tr><td class="k">Температура 2:</td><td class="hw">' + e(n(f(r.tVyhid))) + '</td><td class="k">Миттєва потужність:</td><td class="hw">' + e(n(f(r.potuzhnist))) + '</td></tr>' +
+          '<tr><td class="k sm" colspan="2">Кількість ТЕ по лічильнику згідно архівних даних</td><td></td><td class="sm c">станом на "___"_________20___ р.</td></tr>' +
+        '</tbody></table>' +
+        '<div class="sig">' +
+          '<div class="sr"><span class="sl">Відповідальна особа</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su">' + e(r.respName && r.respName !== String(r.owner || '').trim() ? r.respName : '') + '</span><i>&nbsp;</i></span></div>' +
+          '<div class="sr"><span class="sl">Представник<br>' + org + '</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su"></span><i>&nbsp;</i></span></div>' +
+        '</div>' +
       '</div>';
   }
   _actsCss(){
-    // 4 акти на аркуш A4: висота бланка 65mm + 3mm проміжок (65*4 + 3*3 = 269mm
-    // при робочій висоті 297 - 2*8 = 281mm). Порожні місця стиснуті — відступи,
-    // міжрядковий інтервал і кегль зменшені рівно настільки, щоб бланк лишався
-    // читабельним і всі поля для підпису збереглися.
+    // 2 акти на аркуш A4 (кожен — половина аркуша, як паперовий бланк A5):
+    // 297 − 2×4мм поля − 3мм проміжок = 286мм → по ~141мм на акт.
     // ПОЛЯ ВЛАСНІ, МІНІМАЛЬНІ. @page margin:0 — не покладаємось на вибір «Поля»
-    // у діалозі друку: свій відступ задає .page. Інакше з «Поля: немає» принтер
-    // зрізав літери з країв («зул.» замість «вул.»), а з «За замовчуванням»
-    // браузер додавав ~12.7мм і четвертий бланк не влазив.
-    // Висота сторінки НЕ фіксується: 4 бланки + відступи = 265мм, тож аркуш
-    // лишається цілим і за «Поля: немає» (297мм), і за «За замовчуванням» (~272мм).
+    // у діалозі друку: свій відступ задає .page. Висота сторінки НЕ фіксується,
+    // тож аркуш лишається цілим і за «Поля: немає», і за «За замовчуванням».
     return '@page{size:A4 portrait;margin:0}' +
       '*{box-sizing:border-box}html,body{margin:0;padding:0}' +
-      "body{font-family:'Times New Roman',Georgia,serif;color:#000;font-size:9pt;background:#fff}" +
-      '.page{padding:4mm 6mm;page-break-after:always}.page:last-child{page-break-after:auto}' +
-      '.act{border:1px solid #000;padding:2.4mm 3.5mm;height:62mm;margin-bottom:3mm;display:flex;flex-direction:column;overflow:hidden}' +
+      "body{font-family:'Times New Roman',Georgia,serif;color:#000;font-size:10pt;background:#fff}" +
+      '.page{padding:4mm 7mm;page-break-after:always}.page:last-child{page-break-after:auto}' +
+      '.act{border:1px dashed #999;padding:4mm 6mm 3mm;height:136mm;margin-bottom:3mm;display:flex;flex-direction:column;overflow:hidden}' +
       '.act:last-child{margin-bottom:0}' +
-      '.t{text-align:center;font-weight:bold;font-size:10pt;line-height:1.15;margin-bottom:2mm}' +
-      '.ln2{display:flex;justify-content:space-between;align-items:flex-end;gap:4mm;margin-bottom:1.6mm}' +
-      '.addr{font-weight:bold;font-size:10.5pt}' +
-      '.dt{font-size:9pt}.mno{white-space:nowrap}' +
+      '.hd{display:flex;align-items:flex-start;gap:4mm}.hc{flex:1;text-align:center;padding-left:28mm}' +
+      '.t{font-size:12pt;line-height:1.2;margin-bottom:1.2mm}.a,.o{font-size:10.5pt;line-height:1.25}' +
+      '.fr{width:28mm;flex-shrink:0;text-align:center;margin-top:2mm}' +
+      '.frn{border:1px solid #000;font-weight:bold;font-size:13pt;padding:1mm 0;min-height:8mm}' +
+      '.frc{font-size:8.5pt;margin-top:.6mm}' +
+      '.acc{font-size:9.5pt;margin-top:1mm}' +
+      '.dl{display:flex;align-items:flex-end;gap:8mm;font-size:10.5pt}.dl .mno{margin-left:auto;font-weight:bold;font-size:11.5pt}' +
+      '.pl{font-size:9pt;min-height:1.1em;margin-bottom:1mm}' +
       '.u{display:inline-block;border-bottom:1px solid #000;text-align:center;line-height:1.05}' +
-      'table{width:100%;border-collapse:collapse;margin-bottom:2mm;font-size:9pt}' +
-      'th,td{border:1px solid #000;padding:0.8mm 1.5mm;text-align:center;vertical-align:middle}' +
-      'td.l{text-align:left}th{font-weight:bold;font-size:8pt;line-height:1.1}' +
+      'table{width:100%;border-collapse:collapse}' +
+      'th,td{border:1px solid #000;padding:.9mm 1.5mm;text-align:center;vertical-align:middle}' +
+      'table.m{font-size:10pt}table.m td{padding:1.5mm 1.5mm}table.m th{font-weight:normal;font-size:10.5pt;line-height:1.1}' +
+      'table.m th.l0{width:46%}' +
+      'td.hw{width:16%;font-weight:bold}' +
+      'table.x{border-top:0;font-size:9.5pt}table.x td{height:8mm}table.x .c{white-space:nowrap}table.x td.k{text-align:left;width:26%}' +
+      'table.x td.hw{width:24%}table.x .sm{font-size:8.5pt}table.x .c{text-align:center}' +
       '.sig{margin-top:auto}' +
-      '.sr{display:flex;align-items:flex-end;gap:4mm;margin-bottom:2.4mm}' +
-      '.sr:last-child{margin-bottom:0}' +
-      '.sl{width:36mm;flex-shrink:0;font-size:8.5pt;line-height:1.1}.sc{flex:1;text-align:center}' +
-      '.sc .su{display:block;width:100%;height:1em}.sc i{font-size:7pt;font-style:normal;color:#000}' +
-      '.gen{display:none}';
+      '.sr{display:flex;align-items:flex-end;gap:6mm;margin-bottom:2mm}.sr:last-child{margin-bottom:0}' +
+      '.sl{width:44mm;flex-shrink:0;font-size:9.5pt;line-height:1.15;text-decoration:underline}.sc{flex:1;text-align:center}' +
+      '.sc .su{display:block;width:100%;height:1.1em}.sc i{font-size:8pt;font-style:normal;color:#000}';
   }
   _actsHtml(sel, opts){
     const key = this._actMonthKey();
@@ -6372,7 +6446,7 @@ class Component extends DCLogic {
     const inst = [];
     sel.forEach(r => { for (let c = 0; c < copies; c++) inst.push(r); });
     let body = '';
-    const PER_PAGE = 4;
+    const PER_PAGE = 2;   // два бланки A5 на аркуш A4
     for (let i = 0; i < inst.length; i += PER_PAGE) {
       let page = '';
       for (let j = i; j < i + PER_PAGE && j < inst.length; j++) page += this._actBlockHtml(inst[j], opts.fill, key);
@@ -6414,17 +6488,27 @@ class Component extends DCLogic {
       const aoa = []; const merges = [];
       inst.forEach((r) => {
         const dp = this._actDateParts(fill ? r.dateStr : '', key);
-        const dateLine = 'Дата "' + (dp.day || '____') + '" ' + (dp.month || '________________') + ' ' + (dp.year || '____') + ' року';
+        // ті самі поля, що й у друкованому бланку (див. _actBlockHtml)
+        const dateLine = 'Дата "' + (dp.day || '____') + '" ' + (dp.month || '______') + ' ' + (dp.year || '____') + ' року'
+          + '   Час ' + ((fill && r.time) || '______');
+        const f = (v) => fill ? v : '';
         const base = aoa.length;
-        aoa.push([this._actTitle()]);                                   // 0: заголовок (мердж 0..5)
-        aoa.push([r.addr]);                                                  // 1: адреса
-        aoa.push([dateLine, '', '', '№ лічильника:', r.meterNo]);            // 2: дата + № лічильника
-        aoa.push(['Категорія виміру', 'Од. виміру', 'Попереднє', 'Останнє', 'Різниця']); // 3: шапка таблиці
-        aoa.push(['Теплова енергія по обчислювачу', (r.unit || 'Гкал'), r.prevVal, fill ? r.lastVal : '', fill ? r.diffVal : '']); // 4: дані
-        aoa.push(['Відповідальна особа', '', '____________ (підпис)', '', (r.respName || '________________') + ' (ПІБ)']); // 5
-        aoa.push(['Представник ' + org, '', '____________ (підпис)', '', '________________ (ПІБ)']);  // 6
-        aoa.push([]);                                                        // 7: розділювач
-        merges.push({ s: { r: base, c: 0 }, e: { r: base, c: 5 } });        // заголовок на всю ширину
+        aoa.push([this._actTitle(), '', '', '', r.frameNo]);                 // заголовок + № акта в рамці
+        aoa.push([r.addr, '', '', '', r.rozp ? 'розп. облік' : 'ком. облік']);
+        aoa.push([r.owner]);
+        aoa.push([r.account]);
+        aoa.push([dateLine, '', '', '', r.meterNo]);                          // дата/час + № лічильника
+        if (r.place) aoa.push([r.place]);
+        aoa.push(['Категорія виміру', 'Одиниці виміру', 'Попереднє', 'Останнє', 'Різниця']);
+        aoa.push(['Кількість теплової енергії по лічильнику', (r.unit || 'Гкал'), r.prevVal, f(r.lastVal), f(r.diffVal)]);
+        (r.extra || []).forEach(x => aoa.push([x.label, x.unit, x.prev, f(x.last), f(x.diff)]));
+        aoa.push(['Температура 1:', f(r.tVhid), '', 'Витрати теплоносія:', f(r.vytraty)]);
+        aoa.push(['Температура 2:', f(r.tVyhid), '', 'Миттєва потужність:', f(r.potuzhnist)]);
+        aoa.push(['Кількість ТЕ по лічильнику згідно архівних даних', '', '', 'станом на "__"________20__ р.']);
+        aoa.push(['Відповідальна особа', '', '____________ (підпис)', '', (r.respName || '________________')]);
+        aoa.push(['Представник ' + org, '', '____________ (підпис)', '', '________________']);
+        aoa.push([]);                                                        // розділювач
+        merges.push({ s: { r: base, c: 0 }, e: { r: base, c: 3 } });        // заголовок
       });
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws['!merges'] = merges;
