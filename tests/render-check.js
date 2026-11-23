@@ -208,6 +208,54 @@ async function domErrors(page) {
     check('ввід · колонку «Попередній» прибрано з обходу', prevSkipped >= 5, prevSkipped + ' полів');
   }
 
+  // --- «＋ Новий прилад»: окремий шар шаблону, рендериться лише відкритим ---
+  await page.locator('.tabBar button', { hasText: 'Будинки' }).first().click({ force: true });
+  await page.waitForTimeout(600);
+  const nmBtn = page.locator('button[title="Новий прилад обліку"]').first();
+  check('будинки · кнопка «Новий прилад»', await nmBtn.count() > 0);
+  if (await nmBtn.count()) {
+    await nmBtn.click({ force: true });
+    await page.waitForTimeout(500);
+    const errs = await domErrors(page);
+    check('новий прилад · форма відкрилась', errs.length === 0 && await page.locator('text=Новий прилад обліку').count() > 0, errs.join(' | '));
+    await page.fill('input[placeholder="вул. Гоголя, 98"]', 'вул. Тестова, 7');
+    await page.fill('input[placeholder="ПІБ або назва організації"]', 'Тестенко Іван');
+    await page.fill('input[placeholder="43851039"]', '55500077');
+    await page.locator('button', { hasText: 'Додати прилад' }).click();
+    await page.waitForTimeout(700);
+    const t = await page.locator('body').innerText();
+    check('новий прилад · збережено й відкрито «Ввід»', /вул\. Тестова, 7/.test(t) && /Введення показань/.test(t));
+  }
+
+  // --- імпорт АКТІВ (.xlsx): дворядковий заголовок, один наявний прилад + один новий ---
+  await page.addScriptTag({ url: '/vendor/xlsx.full.min.js' });
+  const actsBuf = await page.evaluate(() => {
+    const aoa = [
+      ['№', 'Дата', 'Адреса', 'Споживач', 'Особовий рахунок', '№ лічильника', 'Вид обліку',
+       'Кількість теплової енергії по лічильнику', '', '', 'Наробітка теплолічильника, дні/години', '', 'Примітка'],
+      ['', '', '', '', '', '', '', 'Од. виміру', 'Попереднє', 'Теперішнє', 'Попереднє', 'Теперішнє', ''],
+      [1, '28.03.2026', 'вул.Гірська, дом № 12', 'ОСББ', 'ГІРСЬКА12', '70948890', 'ком.', 'МВт', 3000, 3010, 100, 129, ''],
+      [2, '28.03.2026', 'вул. Нова, 1', 'Петренко Олена', 'П999', '12345678', 'росп.', 'Гкал', 5, 7.5, '', '', 'ПЕРЕВІРИТИ: тест']
+    ];
+    const wb = window.XLSX.utils.book_new();
+    window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(aoa), 'Акти');
+    return Array.from(new Uint8Array(window.XLSX.write(wb, { type: 'array', bookType: 'xlsx' })));
+  });
+  await page.setInputFiles('#dbImportInput', { name: 'akty.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(actsBuf) });
+  await page.waitForTimeout(1200);
+  {
+    const errs = await domErrors(page);
+    const t = await page.locator('body').innerText();
+    check('акти · підсумок імпорту показано', /Імпорт актів/.test(t) && /Березень 2026/i.test(t) && errs.length === 0, errs.join(' | ') || t.slice(0, 120).replace(/\n/g, ' '));
+    const ok = page.locator('button', { hasText: /^Імпортувати/ }).first();
+    if (await ok.count()) {
+      await ok.click();
+      await page.waitForTimeout(900);
+      const t2 = await page.locator('body').innerText();
+      check('акти · імпортовано: 2 показання, 1 новий прилад', /показань 2/.test(t2) && /нових приладів 1/.test(t2), (t2.match(/«Акти[^\n]*/) || [''])[0]);
+    }
+  }
+
   // --- ПК-верстка: ліва рейка + вкладка «Акти», яких немає на телефоні ---
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.reload({ waitUntil: 'domcontentloaded' });

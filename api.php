@@ -63,7 +63,7 @@ function read_body() {
 function empty_db() {
     return array('houses' => array(), 'boilers' => array(), 'readings' => array(),
                  'assignments' => new stdClass(), 'assignmentsAt' => new stdClass(), 'contacts' => new stdClass(), 'routes' => new stdClass(),
-                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0,
+                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0,
                  'deletes' => new stdClass(), 'swaps' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
 }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
@@ -157,6 +157,8 @@ function load_db() {
     if (isset($j['closedAt'])) $d['closedAt'] = $j['closedAt'];
     if (isset($j['periodKey'])) $d['periodKey'] = $j['periodKey'];
     if (isset($j['periodAt'])) $d['periodAt'] = $j['periodAt'];
+    if (isset($j['purgeBefore'])) $d['purgeBefore'] = $j['purgeBefore'];
+    if (isset($j['purgeAt'])) $d['purgeAt'] = $j['purgeAt'];
     if (isset($j['deletes'])) $d['deletes'] = $j['deletes'];
     if (isset($j['swaps'])) $d['swaps'] = $j['swaps'];
     return $d;
@@ -341,6 +343,31 @@ function merge_readings(&$db, $incoming) {
     }
     return array('added' => $added, 'updated' => $updated, 'conflicts' => $conflicts, 'skipped' => $skipped);
 }
+// ОЧИЩЕННЯ ПОПЕРЕДНІХ ПЕРІОДІВ — бригадна мітка «до періоду X станом на час T»
+// (одна пара значень замість тумбстоуна на кожне показання). Прибирає показання
+// з періодом < X, створені до T. Правила ТОЧНО як у клієнта та server.js.
+function period_of($r) {
+    $p = (string)($r['period'] ?? '');
+    return preg_match('/^\d{4}-\d{2}$/', $p) ? $p : substr((string)($r['date'] ?? ''), 0, 7);
+}
+function merge_purge(&$db, $body) {
+    $at = (float)($body['purgeAt'] ?? 0);
+    $key = (string)($body['purgeBefore'] ?? '');
+    if ($at > (float)($db['purgeAt'] ?? 0) && ($key === '' || preg_match('/^\d{4}-\d{2}$/', $key))) {
+        $db['purgeBefore'] = $key; $db['purgeAt'] = $at;
+    }
+}
+function apply_purge(&$db) {
+    $key = (string)($db['purgeBefore'] ?? '');
+    if (!preg_match('/^\d{4}-\d{2}$/', $key)) return 0;
+    $lim = (float)($db['purgeAt'] ?? 0); $kept = array(); $n = 0;
+    foreach ($db['readings'] as $r) {
+        if (strcmp(period_of($r), $key) < 0 && (float)($r['at'] ?? 0) <= $lim) { $n++; continue; }
+        $kept[] = $r;
+    }
+    $db['readings'] = $kept;
+    return $n;
+}
 function max_srv_at($db) {
     $m = 0;
     foreach ($db['readings'] as $r) if (($r['srvAt'] ?? 0) > $m) $m = $r['srvAt'];
@@ -401,6 +428,8 @@ if ($path === 'base' && $method === 'POST') {
         $st = merge_readings($db, $body['readings']);
         $baseAdded = $st['added'];
     }
+    // повторна публікація старої бази не повертає вже очищені періоди
+    merge_purge($db, $body); apply_purge($db);
     if (isset($body['contacts'])) merge_contacts($db, $body['contacts']);
     if (isset($body['routes'])) merge_routes($db, $body['routes']);
     $db['savedAt'] = round(microtime(true) * 1000);
@@ -422,6 +451,8 @@ if ($path === 'sync' && $method === 'POST') {
         && preg_match('/^\d{4}-\d{2}$/', (string)($body['periodKey'] ?? ''))) {
         $db['periodKey'] = (string)$body['periodKey']; $db['periodAt'] = (float)$body['periodAt'];
     }
+    // очищення попередніх періодів — бригадне; новіша мітка перемагає
+    merge_purge($db, $body); apply_purge($db);
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!isset($db['deletes']) || !is_array($db['deletes'])) $db['deletes'] = array();
     if (isset($body['deletes']) && is_array($body['deletes'])) {
@@ -466,6 +497,7 @@ if ($path === 'sync' && $method === 'POST') {
         'routes' => assign_out($db['routes'] ?? array()),
         'closedAt' => (float)($db['closedAt'] ?? 0),
         'periodKey' => (string)($db['periodKey'] ?? ''), 'periodAt' => (float)($db['periodAt'] ?? 0),
+        'purgeBefore' => (string)($db['purgeBefore'] ?? ''), 'purgeAt' => (float)($db['purgeAt'] ?? 0),
         'swaps' => assign_out($db['swaps'] ?? array()),
         'deletes' => assign_out($db['deletes'] ?? array()),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));

@@ -32,7 +32,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
-function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0 }; }
+function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0 }; }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
 // мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
 // Міграція: наявним призначенням без мітки даємо базову «1» (живуть, але програють
@@ -270,6 +270,23 @@ function mergeReadings(db, incoming){
   });
   return { added, updated, conflicts, skipped };
 }
+// ОЧИЩЕННЯ ПОПЕРЕДНІХ ПЕРІОДІВ — бригадна мітка «до періоду X станом на час T»
+// (одна пара значень замість тумбстоуна на кожне показання). Прибирає показання
+// з періодом < X, створені до T; внесене в старий період ПІЗНІШЕ — лишається.
+// Правила ТОЧНО як у клієнта (_applyPurge) та api.php.
+function periodOf(r){ const p = String((r && r.period) || ''); return /^\d{4}-\d{2}$/.test(p) ? p : String((r && r.date) || '').slice(0, 7); }
+function mergePurge(db, body){
+  const at = Number(body && body.purgeAt) || 0;
+  const key = String((body && body.purgeBefore) || '');
+  if (at > (Number(db.purgeAt) || 0) && (key === '' || /^\d{4}-\d{2}$/.test(key))) { db.purgeBefore = key; db.purgeAt = at; }
+}
+function applyPurge(db){
+  const key = String(db.purgeBefore || '');
+  if (!/^\d{4}-\d{2}$/.test(key)) return 0;
+  const lim = Number(db.purgeAt) || 0, before = db.readings.length;
+  db.readings = db.readings.filter(r => !(periodOf(r) < key && (Number(r.at) || 0) <= lim));
+  return before - db.readings.length;
+}
 function maxSrvAt(db){ let m = 0; db.readings.forEach(r => { if ((r.srvAt || 0) > m) m = r.srvAt; }); return m; }
 
 // ---------- HTTP ----------
@@ -360,6 +377,8 @@ async function handleApi(req, res, url){
     // базу, одразу бачив попередню історію (ідемпотентно, без дублювання)
     let baseAdded = 0;
     if (Array.isArray(body.readings) && body.readings.length) baseAdded = mergeReadings(db, body.readings).added;
+    // повторна публікація старої бази не повертає вже очищені періоди
+    mergePurge(db, body); applyPurge(db);
     mergeContacts(db, body.contacts);
     mergeRoutes(db, body.routes);
     db.savedAt = Date.now();
@@ -381,6 +400,8 @@ async function handleApi(req, res, url){
     if (Number(body.periodAt) > (Number(db.periodAt) || 0) && /^\d{4}-\d{2}$/.test(String(body.periodKey || ''))) {
       db.periodKey = String(body.periodKey); db.periodAt = Number(body.periodAt);
     }
+    // очищення попередніх періодів — бригадне; новіша мітка перемагає
+    mergePurge(db, body); applyPurge(db);
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!db.deletes || typeof db.deletes !== 'object') db.deletes = {};
     if (body.deletes && typeof body.deletes === 'object') {
@@ -411,6 +432,7 @@ async function handleApi(req, res, url){
     return sendJson(res, 200, { ok: true, warnBase: !!warnBase, stats,
       readings: out, keys: db.readings.map(keyOf), maxSrvAt: maxSrvAt(db), assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig,
       closedAt: db.closedAt || 0, periodKey: db.periodKey || '', periodAt: db.periodAt || 0, swaps: db.swaps || {},
+      purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0,
       deletes: db.deletes || {}, hasBase: db.houses.length > 0 });
   }
   return sendJson(res, 404, { error: 'невідомий маршрут' });
@@ -455,4 +477,4 @@ if (require.main === module) {
     console.log('Ключ бригади: ' + brigadeKey());
   });
 }
-module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb };
+module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb, mergePurge, applyPurge, periodOf };
