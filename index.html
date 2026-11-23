@@ -1114,7 +1114,14 @@ window.addEventListener('appinstalled', function () {
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Особовий</span>
               <input value="{{ mAccount }}" onInput="{{ onMAccount }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
             </label>
+            <label style="width:22%;flex-shrink:0;min-width:64px">
+              <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px;white-space:nowrap" title="Порядковий № акта — друкується в рамці бланка">№ акта</span>
+              <input value="{{ mAkt }}" onInput="{{ onMAktField }}" disabled="{{ dovLock }}" inputmode="numeric" placeholder="49" class="tnum" style="width:100%;height:42px;padding:0 9px;border:1px solid {{ mAktBd }};border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:700;text-align:center">
+            </label>
           </div>
+          <sc-if value="{{ dovErr }}" hint-placeholder-val="{{ false }}">
+          <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin:-3px 0 10px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ dovErr }}</div>
+          </sc-if>
           <div style="display:flex;gap:10px;margin-bottom:10px">
             <label style="flex:1;min-width:0">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Населений пункт</span>
@@ -2267,7 +2274,7 @@ class Component extends DCLogic {
     mVodZavod: '', mVodPovirka: '', mVodTip: '', mVodDN: '',
     mTspZavod: '', mTspPovirka: '', mKomOblik: false, mFop: false, mContact: '', mPhone: '',
     mMeterKind: 'kom', mKom: true,          // клас приладу: комерційний / розподільчий
-    savedDovidnyk: false,
+    savedDovidnyk: false, dovErr: '',
     // --- додаткові поля показань/розрахунку (заглушки) ---
     mTPrim: '',
     tblKilkPrev: '', tblKilkCur: '', tblVodPrev: '', tblVodCur: '',
@@ -2324,6 +2331,9 @@ class Component extends DCLogic {
     // Робітник у полі редагує лише контактні дані абонента; решту (адреса, №
     // лічильника, тип води) веде старший — щоб дані не розходились у базі.
     if (s.role !== 'worker') {
+      // порядковий № акта має бути унікальним — інакше два бланки з одним номером
+      const dupAct = this._actNoDup(s.mAkt, h.id);
+      if (dupAct) { this.setState({ savedDovidnyk: false, dovErr: this._actNoDupMsg(s.mAkt, dupAct) }); return; }
       h.address = s.mAddress || ''; h.owner = s.mOwner || ''; h.account = s.mAccount || '';
       if (!h.code) h.code = h.account || h.address;
       h.settlement = s.mSettlement || ''; h.boiler = s.mBoiler || s.mSettlement || '';
@@ -2340,7 +2350,7 @@ class Component extends DCLogic {
           this.setState({ savedDovidnyk: false }); return;
         }
       }
-      h.meterNo = newNo; h.act = s.mAkt || '';
+      h.meterNo = newNo; h.act = String(s.mAkt || '').trim();
       h.komOblik = s.mKomOblik !== false;   // комерційний / розподільчий прилад
       h.fop = !!s.mFop;
       // паспорт вузла обліку ТЕ
@@ -2358,7 +2368,17 @@ class Component extends DCLogic {
     // контактну особу дублюємо у СПІЛЬНУ мапу маршруту — щоб зміну з картки
     // абонента одразу бачив «Маршрут» і решта бригади (двобічна синхронізація)
     this._writeSharedContact(h, s.mContact || '', s.mPhone || '');
-    this.setState({ savedDovidnyk: true, rev: this.state.rev + 1 });
+    this.setState({ savedDovidnyk: true, dovErr: '', rev: this.state.rev + 1 });
+  }
+  // інший прилад із тим самим порядковим № акта (порожній номер — не дубль)
+  _actNoDup(no, selfId){
+    const k = this._normSearch(no).replace(/ /g, '');
+    if (!k || !this.db) return null;
+    return this.db.houses.find(x => String(x.id) !== String(selfId) && this._normSearch(x.act).replace(/ /g, '') === k) || null;
+  }
+  _actNoDupMsg(no, h){
+    return '№ акта ' + String(no).trim() + ' уже існує: особовий ' + (h.account || '—')
+      + (h.address ? ' (' + h.address + (h.meterNo ? ', № ' + h.meterNo : '') + ')' : '');
   }
   // записати контактну особу будинку у спільну мапу contacts (як у маршруті),
   // зберігши додаткові контакти (more), і рознести бригаді
@@ -4913,7 +4933,7 @@ class Component extends DCLogic {
       sVytraty: '', sPotuzhnist: '', sTempVhid: '', sTempVyhid: '',
       // тривалість рахується автоматично від попереднього до поточного вимірювання
       eDur: this._autoDur(this.state.eDate, this.state.eTime || this._nowHM(), h),
-      eCur: '', eNoConsumption: false, savedDovidnyk: false, ePrevSel: '', entryPhotos: [], dovExpanded: false, eDetails: false
+      eCur: '', eNoConsumption: false, savedDovidnyk: false, dovErr: '', ePrevSel: '', entryPhotos: [], dovExpanded: false, eDetails: false
     };
   }
 
@@ -6279,7 +6299,10 @@ class Component extends DCLogic {
           // час і решта показників приладу ---
           account: h.account || '', frameNo: (h.act && String(h.act).trim()) || '',
           unit: (rm && rm.unit) || h.unit || 'Гкал', time: read ? (rm.time || '') : '',
-          place: this._stripPhone(h.contact || '').trim(),
+          // примітка приладу для кінця акта: «Контактна інфо.» без телефону, якщо це
+          // не просто ім'я контактної особи / споживача (їх і так видно в акті)
+          place: (() => { const t = this._stripPhone(h.contact || '').trim();
+            return (t && t !== String(h.owner || '').trim() && t !== String(contact.name || '').trim()) ? t : ''; })(),
           extra: this._actExtraRows(h, read ? rm : null),
           tVhid: read && rm.tVhid != null ? String(rm.tVhid) : '', tVyhid: read && rm.tVyhid != null ? String(rm.tVyhid) : '',
           vytraty: read && rm.vytraty != null ? String(rm.vytraty) : '', potuzhnist: read && rm.potuzhnist != null ? String(rm.potuzhnist) : ''
@@ -6364,7 +6387,9 @@ class Component extends DCLogic {
   // й споживачем, № акта в рамці з видом обліку, особовий, дата/час, № лічильника,
   // таблиця з п'яти показників, температури/витрата/потужність, архівні дані й
   // підписи. fill=false → бланк для заповнення від руки (Останнє/Різниця/дата порожні).
-  _actBlockHtml(r, fill, key){
+  // copy — номер примірника (0 — перший). Примітки приладу («Ключі в 28 квартирі»)
+  // друкуються ЛИШЕ на першому: він лишається в бригади, другий — споживачу.
+  _actBlockHtml(r, fill, key, copy){
     const e = (v) => this._esc(v);
     const org = e(this._actOrg());
     const dp = this._actDateParts(fill ? r.dateStr : '', key);
@@ -6393,7 +6418,6 @@ class Component extends DCLogic {
           '<span>Час&nbsp;' + u(f(r.time), '4.5em') + '</span>' +
           '<span class="mno">' + e(r.meterNo) + '</span>' +
         '</div>' +
-        '<div class="pl">' + e(r.place) + '</div>' +
         '<table class="m"><thead><tr><th class="l0">Категорія виміру</th><th>Одиниці<br>виміру</th><th>Попереднє</th><th>Останнє</th><th>Різниця</th></tr></thead>' +
           '<tbody>' + rows + '</tbody></table>' +
         '<table class="x"><tbody>' +
@@ -6405,7 +6429,14 @@ class Component extends DCLogic {
           '<div class="sr"><span class="sl">Відповідальна особа</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su">' + e(r.respName && r.respName !== String(r.owner || '').trim() ? r.respName : '') + '</span><i>&nbsp;</i></span></div>' +
           '<div class="sr"><span class="sl">Представник<br>' + org + '</span><span class="sc"><span class="u su"></span><i>підпис</i></span><span class="sc"><span class="u su"></span><i>&nbsp;</i></span></div>' +
         '</div>' +
+        ((copy || 0) === 0 && r.place ? '<div class="pl">' + this._actNoteLines(r.place).map(e).join('<br>') + '</div>' : '') +
       '</div>';
+  }
+  // примітки приладу рядками «- …» (кілька приміток розділені крапкою з комою
+  // або новим рядком)
+  _actNoteLines(text){
+    return String(text || '').split(/\s*(?:\r?\n|;)\s*/).map(t => t.trim()).filter(Boolean)
+      .map(t => /^[-–—•]/.test(t) ? t.replace(/^[–—•]\s*/, '- ') : '- ' + t);
   }
   _actsCss(){
     // 2 акти на аркуш A4 (кожен — половина аркуша, як паперовий бланк A5):
@@ -6426,7 +6457,7 @@ class Component extends DCLogic {
       '.frc{font-size:8.5pt;margin-top:.6mm}' +
       '.acc{font-size:9.5pt;margin-top:1mm}' +
       '.dl{display:flex;align-items:flex-end;gap:8mm;font-size:10.5pt}.dl .mno{margin-left:auto;font-weight:bold;font-size:11.5pt}' +
-      '.pl{font-size:9pt;min-height:1.1em;margin-bottom:1mm}' +
+      '.pl{font-size:9.5pt;line-height:1.25;margin-top:2mm}' +
       '.u{display:inline-block;border-bottom:1px solid #000;text-align:center;line-height:1.05}' +
       'table{width:100%;border-collapse:collapse}' +
       'th,td{border:1px solid #000;padding:.9mm 1.5mm;text-align:center;vertical-align:middle}' +
@@ -6444,12 +6475,12 @@ class Component extends DCLogic {
     const key = this._actMonthKey();
     const copies = Math.max(1, opts.copies | 0);
     const inst = [];
-    sel.forEach(r => { for (let c = 0; c < copies; c++) inst.push(r); });
+    sel.forEach(r => { for (let c = 0; c < copies; c++) inst.push({ r, c }); });
     let body = '';
     const PER_PAGE = 2;   // два бланки A5 на аркуш A4
     for (let i = 0; i < inst.length; i += PER_PAGE) {
       let page = '';
-      for (let j = i; j < i + PER_PAGE && j < inst.length; j++) page += this._actBlockHtml(inst[j], opts.fill, key);
+      for (let j = i; j < i + PER_PAGE && j < inst.length; j++) page += this._actBlockHtml(inst[j].r, opts.fill, key, inst[j].c);
       body += '<div class="page">' + page + '</div>';
     }
     return '<!doctype html><html lang="uk"><head><meta charset="utf-8"><title>Акти зняття показань</title><style>'
@@ -6484,9 +6515,9 @@ class Component extends DCLogic {
       const fill = this.state.actFill;
       const copies = Math.max(1, this.state.actCopies | 0);
       const org = this._actOrg();
-      const inst = []; sel.forEach(r => { for (let c = 0; c < copies; c++) inst.push(r); });
+      const inst = []; sel.forEach(r => { for (let c = 0; c < copies; c++) inst.push({ r, c }); });
       const aoa = []; const merges = [];
-      inst.forEach((r) => {
+      inst.forEach(({ r, c: copyIdx }) => {
         const dp = this._actDateParts(fill ? r.dateStr : '', key);
         // ті самі поля, що й у друкованому бланку (див. _actBlockHtml)
         const dateLine = 'Дата "' + (dp.day || '____') + '" ' + (dp.month || '______') + ' ' + (dp.year || '____') + ' року'
@@ -6498,7 +6529,6 @@ class Component extends DCLogic {
         aoa.push([r.owner]);
         aoa.push([r.account]);
         aoa.push([dateLine, '', '', '', r.meterNo]);                          // дата/час + № лічильника
-        if (r.place) aoa.push([r.place]);
         aoa.push(['Категорія виміру', 'Одиниці виміру', 'Попереднє', 'Останнє', 'Різниця']);
         aoa.push(['Кількість теплової енергії по лічильнику', (r.unit || 'Гкал'), r.prevVal, f(r.lastVal), f(r.diffVal)]);
         (r.extra || []).forEach(x => aoa.push([x.label, x.unit, x.prev, f(x.last), f(x.diff)]));
@@ -6507,6 +6537,7 @@ class Component extends DCLogic {
         aoa.push(['Кількість ТЕ по лічильнику згідно архівних даних', '', '', 'станом на "__"________20__ р.']);
         aoa.push(['Відповідальна особа', '', '____________ (підпис)', '', (r.respName || '________________')]);
         aoa.push(['Представник ' + org, '', '____________ (підпис)', '', '________________']);
+        if (copyIdx === 0 && r.place) this._actNoteLines(r.place).forEach(t => aoa.push([t]));   // примітки — лише 1-й примірник
         aoa.push([]);                                                        // розділювач
         merges.push({ s: { r: base, c: 0 }, e: { r: base, c: 3 } });        // заголовок
       });
@@ -7009,6 +7040,12 @@ class Component extends DCLogic {
       }
       out.entryNav = entryNav;
     }
+    // порядковий № акта: перевірка дубля вже під час набору (червона рамка + текст)
+    out.dovErr = s.dovErr || '';
+    out.mAktBd = s.dovErr ? 'var(--debt)' : 'var(--inputBd)';
+    out.onMAktField = (e) => { const v = e.target.value; const eh0 = this._entryHouse();
+      const d = this._actNoDup(v, eh0 && eh0.id);
+      this.setState({ mAkt: v, savedDovidnyk: false, dovErr: d ? this._actNoDupMsg(v, d) : '' }); };
     ['mAddress','mOwner','mAccount','mSettlement','mBoiler','mObcZavod','mAkt','mContact',
      // паспорт приладів обліку ТЕ: обчислювач / витратомір / ТСП
      'mObcPovirka','mObcTip','mObcChastka','mObcUnit','mHeatLoad',
