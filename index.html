@@ -1235,54 +1235,67 @@ window.addEventListener('appinstalled', function () {
           <!-- ===== заміна приладу обліку (адмін/старший) ===== -->
           <sc-if value="{{ canSwap }}" hint-placeholder-val="{{ false }}">
           <div style="border-top:1px solid var(--line);margin-top:13px;padding-top:12px">
-            <sc-if value="{{ swapClosed }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ povClosed }}" hint-placeholder-val="{{ true }}">
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
                 <div style="flex:1;min-width:150px">
-                  <div style="font-size:var(--t120);font-weight:800;color:var(--ink)">Заміна приладу обліку</div>
-                  <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35">Поставили новий прилад — тисніть тут, а не міняйте номер вручну: інакше споживання до заміни не зарахується.</div>
+                  <div style="font-size:var(--t120);font-weight:800;color:var(--ink)">Заміна / повірка приладу</div>
+                  <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35">Новий прилад — «Замінити» (не міняйте номер вручну, інакше споживання до заміни не зарахується). Той самий після повірки — «Повірка».</div>
                 </div>
+                <button onClick="{{ openPov }}" title="Повірка того самого приладу: нова дата повірки, за потреби — нові показники" style="flex-shrink:0;height:42px;padding:0 15px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:800;cursor:pointer">✓ Повірка</button>
                 <button onClick="{{ openSwap }}" style="flex-shrink:0;height:42px;padding:0 15px;border-radius:12px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t118);font-weight:800;cursor:pointer">⇄ Замінити прилад</button>
               </div>
             </sc-if>
             <sc-if value="{{ swapOpen }}" hint-placeholder-val="{{ false }}">
-              <div style="font-size:var(--t122);font-weight:800;color:var(--ink);margin-bottom:3px">Заміна приладу обліку</div>
-              <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:10px">Старий прилад закриється своїм показником (спожите до заміни зарахується), новий почне з початкового. Історія старого приладу збережеться.</div>
-              <label style="display:block;margin-bottom:9px">
-                <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата заміни</span>
-                <input type="date" value="{{ swapDate }}" onInput="{{ onSwapDate }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t122);font-weight:700">
-              </label>
-              <label style="display:block;margin-bottom:9px">
-                <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Показник старого № <b style="color:var(--ink)">{{ swapOldNo }}</b> при знятті</span>
-                <input inputmode="decimal" value="{{ swapOldLast }}" onInput="{{ onSwapOldLast }}" placeholder="показник при знятті" class="tnum" style="width:100%;height:44px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t128);font-weight:800;text-align:center">
-              </label>
+              <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:3px">Заміна приладу обліку</div>
+              <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:10px">Старий прилад закриється своїми показниками (спожите до заміни зарахується), новий почне з початкових. Показники — теплолічильника; водомір не змінюється.</div>
               <div style="display:flex;gap:9px;margin-bottom:9px">
-                <label style="flex:1;min-width:0">
-                  <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Новий № обчислювача</span>
-                  <input value="{{ swapNewNo }}" onInput="{{ onSwapNewNo }}" placeholder="напр. 00512233" class="tnum" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t122);font-weight:700">
-                </label>
-                <label style="width:38%;flex-shrink:0">
-                  <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Початковий</span>
-                  <input inputmode="decimal" value="{{ swapNewInit }}" onInput="{{ onSwapNewInit }}" placeholder="0" class="tnum" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
-                </label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата заміни</span><input type="date" value="{{ swapDate }}" onInput="{{ onSwapDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Новий № обчислювача</span><input value="{{ swapNewNo }}" onInput="{{ onSwapNewNo }}" placeholder="напр. 00512233" class="tnum" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              </div>
+              <div style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:6px 8px;margin-bottom:10px"><span></span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Старий № {{ swapOldNo }}<br>при знятті</span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Новий<br>початкові</span><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Кількість ТЕ</span><input value="{{ swapOldLast }}" onInput="{{ onSwapOldLast }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewInit }}" onInput="{{ onSwapNewInit }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Обʼєм води, м3</span><input value="{{ swapOldVoda }}" onInput="{{ onSwapOldVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewVoda }}" onInput="{{ onSwapNewVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Наробіток</span><input value="{{ swapOldNar }}" onInput="{{ onSwapOldNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewNar }}" onInput="{{ onSwapNewNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Простій, год.</span><input value="{{ swapOldProst }}" onInput="{{ onSwapOldProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewProst }}" onInput="{{ onSwapNewProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"></div>
+              <div style="display:flex;gap:9px;margin-bottom:10px">
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Одиниці нового</span>
+                  <select value="{{ swapNewUnit }}" onChange="{{ onSwapNewUnit }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"><option value="Гкал">Гкал</option><option value="МВт">МВт·год</option><option value="ГДж">ГДж</option><option value="кВт">кВт·год</option></select></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Повірка нового</span><input type="date" value="{{ swapNewPov }}" onInput="{{ onSwapNewPov }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
               </div>
               <sc-if value="{{ swapHasErr }}" hint-placeholder-val="{{ false }}">
-              <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t113);font-weight:700;color:var(--debt)">{{ swapErr }}</div>
+              <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ swapErr }}</div>
               </sc-if>
               <div style="display:flex;gap:9px">
-                <button onClick="{{ saveSwap }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t122);font-weight:800;cursor:pointer">Замінити прилад</button>
+                <button onClick="{{ saveSwap }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t120);font-weight:800;cursor:pointer">Замінити прилад</button>
                 <button onClick="{{ closeSwap }}" style="flex-shrink:0;height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Скасувати</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ povOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:3px">Повірка приладу № {{ swapOldNo }}</div>
+              <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:10px">Той самий лічильник після повірки: нова дата повірки, а якщо показники змінились — показники при знятті й після повірки (спожите до повірки зарахується, нове зняття піде від нових). Попередня повірка: {{ povCur }}.</div>
+              <label style="display:block;margin-bottom:9px"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата повірки</span><input type="date" value="{{ povDate }}" onInput="{{ onPovDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer"><input type="checkbox" checked="{{ povChanged }}" onChange="{{ onPovChanged }}" style="width:18px;height:18px"><span style="font-size:var(--t115);font-weight:700;color:var(--ink)">Показники після повірки змінились</span></label>
+              <sc-if value="{{ povChanged }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:9px;margin-bottom:9px">
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Знято на повірку</span><input type="date" value="{{ povOffDate }}" onInput="{{ onPovOffDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Встановлено після</span><input type="date" value="{{ povInstDate }}" onInput="{{ onPovInstDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              </div>
+              <div style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:6px 8px;margin-bottom:10px"><span></span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">При знятті<br>(якщо знімали)</span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Після<br>повірки</span><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Кількість ТЕ</span><input value="{{ povOffEn }}" onInput="{{ onPovOffEn }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewEn }}" onInput="{{ onPovNewEn }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Обʼєм води, м3</span><input value="{{ povOffVoda }}" onInput="{{ onPovOffVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewVoda }}" onInput="{{ onPovNewVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Наробіток</span><input value="{{ povOffNar }}" onInput="{{ onPovOffNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewNar }}" onInput="{{ onPovNewNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Простій, год.</span><input value="{{ povOffProst }}" onInput="{{ onPovOffProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewProst }}" onInput="{{ onPovNewProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"></div>
+              </sc-if>
+              <sc-if value="{{ povHasErr }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ povErr }}</div>
+              </sc-if>
+              <div style="display:flex;gap:9px">
+                <button onClick="{{ savePov }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t120);font-weight:800;cursor:pointer">Зберегти повірку</button>
+                <button onClick="{{ closePov }}" style="flex-shrink:0;height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Скасувати</button>
               </div>
             </sc-if>
             <sc-if value="{{ swapHistShow }}" hint-placeholder-val="{{ false }}">
             <div style="margin-top:10px;padding-top:9px;border-top:1px dashed var(--line2)">
-              <div style="font-size:var(--t110);font-weight:800;color:var(--muted);margin-bottom:5px">Заміни приладу</div>
+              <div style="font-size:var(--t110);font-weight:800;color:var(--muted);margin-bottom:5px">Заміни й повірки приладу</div>
               <sc-for list="{{ swapHist }}" as="w" hint-placeholder-count="1">
                 <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
                   <div style="flex:1;min-width:0">
                     <div class="tnum" style="font-size:var(--t112);font-weight:700;color:var(--ink)">{{ w.txt }}</div>
                     <div class="tnum" style="font-size:var(--t104);font-weight:600;color:var(--muted2)">{{ w.sub }}</div>
                   </div>
-                  <button onClick="{{ w.undo }}" title="Скасувати заміну" style="flex-shrink:0;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t108);font-weight:700;cursor:pointer">↩ Скасувати</button>
+                  <button onClick="{{ w.undo }}" title="Скасувати" style="flex-shrink:0;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t108);font-weight:700;cursor:pointer">↩ Скасувати</button>
                 </div>
               </sc-for>
             </div>
@@ -1579,42 +1592,53 @@ window.addEventListener('appinstalled', function () {
         <sc-if value="{{ canSwap }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 13px;margin-bottom:14px">
           <sc-if value="{{ swapOpen }}" hint-placeholder-val="{{ false }}">
-            <div style="font-size:var(--t128);font-weight:800;color:var(--ink);margin-bottom:3px">Заміна приладу обліку</div>
-            <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:11px">Старий лічильник закриється своїм показником (спожите до заміни зарахується), новий почне з початкового. Історія старого приладу збережеться.</div>
-            <label style="display:block;margin-bottom:9px">
-              <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата заміни</span>
-              <input type="date" value="{{ swapDate }}" onInput="{{ onSwapDate }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t122);font-weight:700">
-            </label>
-            <div style="display:flex;gap:9px;margin-bottom:9px">
-              <label style="flex:1;min-width:0">
-                <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Старий № <b style="color:var(--ink)">{{ swapOldNo }}</b></span>
-                <input inputmode="decimal" value="{{ swapOldLast }}" onInput="{{ onSwapOldLast }}" placeholder="показник при знятті" class="tnum" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
-              </label>
-            </div>
-            <div style="display:flex;gap:9px;margin-bottom:9px">
-              <label style="flex:1;min-width:0">
-                <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Новий № лічильника</span>
-                <input value="{{ swapNewNo }}" onInput="{{ onSwapNewNo }}" placeholder="напр. 00512233" class="tnum" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t122);font-weight:700">
-              </label>
-              <label style="width:38%;flex-shrink:0">
-                <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Початковий</span>
-                <input inputmode="decimal" value="{{ swapNewInit }}" onInput="{{ onSwapNewInit }}" placeholder="0" class="tnum" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
-              </label>
-            </div>
-            <sc-if value="{{ swapHasErr }}" hint-placeholder-val="{{ false }}">
-            <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t113);font-weight:700;color:var(--debt)">{{ swapErr }}</div>
+              <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:3px">Заміна приладу обліку</div>
+              <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:10px">Старий прилад закриється своїми показниками (спожите до заміни зарахується), новий почне з початкових. Показники — теплолічильника; водомір не змінюється.</div>
+              <div style="display:flex;gap:9px;margin-bottom:9px">
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата заміни</span><input type="date" value="{{ swapDate }}" onInput="{{ onSwapDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Новий № обчислювача</span><input value="{{ swapNewNo }}" onInput="{{ onSwapNewNo }}" placeholder="напр. 00512233" class="tnum" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              </div>
+              <div style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:6px 8px;margin-bottom:10px"><span></span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Старий № {{ swapOldNo }}<br>при знятті</span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Новий<br>початкові</span><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Кількість ТЕ</span><input value="{{ swapOldLast }}" onInput="{{ onSwapOldLast }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewInit }}" onInput="{{ onSwapNewInit }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Обʼєм води, м3</span><input value="{{ swapOldVoda }}" onInput="{{ onSwapOldVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewVoda }}" onInput="{{ onSwapNewVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Наробіток</span><input value="{{ swapOldNar }}" onInput="{{ onSwapOldNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewNar }}" onInput="{{ onSwapNewNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Простій, год.</span><input value="{{ swapOldProst }}" onInput="{{ onSwapOldProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ swapNewProst }}" onInput="{{ onSwapNewProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"></div>
+              <div style="display:flex;gap:9px;margin-bottom:10px">
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Одиниці нового</span>
+                  <select value="{{ swapNewUnit }}" onChange="{{ onSwapNewUnit }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"><option value="Гкал">Гкал</option><option value="МВт">МВт·год</option><option value="ГДж">ГДж</option><option value="кВт">кВт·год</option></select></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Повірка нового</span><input type="date" value="{{ swapNewPov }}" onInput="{{ onSwapNewPov }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              </div>
+              <sc-if value="{{ swapHasErr }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ swapErr }}</div>
+              </sc-if>
+              <div style="display:flex;gap:9px">
+                <button onClick="{{ saveSwap }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t120);font-weight:800;cursor:pointer">Замінити прилад</button>
+                <button onClick="{{ closeSwap }}" style="flex-shrink:0;height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Скасувати</button>
+              </div>
             </sc-if>
-            <div style="display:flex;gap:9px">
-              <button onClick="{{ saveSwap }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t122);font-weight:800;cursor:pointer">Замінити прилад</button>
-              <button onClick="{{ closeSwap }}" style="flex-shrink:0;height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Скасувати</button>
-            </div>
-          </sc-if>
-          <sc-if value="{{ swapClosed }}" hint-placeholder-val="{{ true }}">
+            <sc-if value="{{ povOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:3px">Повірка приладу № {{ swapOldNo }}</div>
+              <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:10px">Той самий лічильник після повірки: нова дата повірки, а якщо показники змінились — показники при знятті й після повірки (спожите до повірки зарахується, нове зняття піде від нових). Попередня повірка: {{ povCur }}.</div>
+              <label style="display:block;margin-bottom:9px"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Дата повірки</span><input type="date" value="{{ povDate }}" onInput="{{ onPovDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              <label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;cursor:pointer"><input type="checkbox" checked="{{ povChanged }}" onChange="{{ onPovChanged }}" style="width:18px;height:18px"><span style="font-size:var(--t115);font-weight:700;color:var(--ink)">Показники після повірки змінились</span></label>
+              <sc-if value="{{ povChanged }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:9px;margin-bottom:9px">
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Знято на повірку</span><input type="date" value="{{ povOffDate }}" onInput="{{ onPovOffDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+                <label style="flex:1;min-width:0"><span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:4px">Встановлено після</span><input type="date" value="{{ povInstDate }}" onInput="{{ onPovInstDate }}" style="width:100%;height:40px;padding:0 10px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:700"></label>
+              </div>
+              <div style="display:grid;grid-template-columns:1.15fr 1fr 1fr;gap:6px 8px;margin-bottom:10px"><span></span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">При знятті<br>(якщо знімали)</span><span style="font-size:var(--t105);font-weight:800;color:var(--muted2);text-align:center;line-height:1.2">Після<br>повірки</span><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Кількість ТЕ</span><input value="{{ povOffEn }}" onInput="{{ onPovOffEn }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewEn }}" onInput="{{ onPovNewEn }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Обʼєм води, м3</span><input value="{{ povOffVoda }}" onInput="{{ onPovOffVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewVoda }}" onInput="{{ onPovNewVoda }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Наробіток</span><input value="{{ povOffNar }}" onInput="{{ onPovOffNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewNar }}" onInput="{{ onPovNewNar }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><span style="font-size:var(--t110);font-weight:700;color:var(--muted);align-self:center">Простій, год.</span><input value="{{ povOffProst }}" onInput="{{ onPovOffProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"><input value="{{ povNewProst }}" onInput="{{ onPovNewProst }}" inputmode="decimal" class="tnum" style="width:100%;height:38px;padding:0 6px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t120);font-weight:800;text-align:center"></div>
+              </sc-if>
+              <sc-if value="{{ povHasErr }}" hint-placeholder-val="{{ false }}">
+              <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin-bottom:9px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ povErr }}</div>
+              </sc-if>
+              <div style="display:flex;gap:9px">
+                <button onClick="{{ savePov }}" style="flex:1;height:44px;border-radius:12px;border:none;background:var(--primary);color:#fff;font-size:var(--t120);font-weight:800;cursor:pointer">Зберегти повірку</button>
+                <button onClick="{{ closePov }}" style="flex-shrink:0;height:44px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Скасувати</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ povClosed }}" hint-placeholder-val="{{ true }}">
             <div style="display:flex;align-items:center;gap:10px">
               <div style="flex:1;min-width:0">
-                <div style="font-size:var(--t122);font-weight:800;color:var(--ink)">Заміна приладу обліку</div>
-                <div class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2)">поточний № {{ swapOldNo }}</div>
+                <div style="font-size:var(--t120);font-weight:800;color:var(--ink)">Заміна / повірка</div>
+                <div class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2)">№ {{ swapOldNo }} · повірка {{ povCur }}</div>
               </div>
+              <button onClick="{{ openPov }}" title="Повірка того самого приладу" style="flex-shrink:0;height:40px;padding:0 15px;border-radius:12px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:800;cursor:pointer">✓ Повірка</button>
               <button onClick="{{ openSwap }}" style="flex-shrink:0;height:40px;padding:0 14px;border-radius:11px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t118);font-weight:800;cursor:pointer">⇄ Замінити</button>
             </div>
           </sc-if>
@@ -1623,14 +1647,14 @@ window.addEventListener('appinstalled', function () {
 
         <sc-if value="{{ swapHistShow }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--chipBg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px">
-          <div style="font-size:var(--t113);font-weight:800;color:var(--ink);margin-bottom:6px">Заміни приладу</div>
+          <div style="font-size:var(--t113);font-weight:800;color:var(--ink);margin-bottom:6px">Заміни й повірки приладу</div>
           <sc-for list="{{ swapHist }}" as="w" hint-placeholder-count="1">
             <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:6px">
               <div style="flex:1;min-width:0">
                 <div class="tnum" style="font-size:var(--t113);font-weight:700;color:var(--ink)">{{ w.txt }}</div>
                 <div class="tnum" style="font-size:var(--t105);font-weight:600;color:var(--muted2)">{{ w.sub }}</div>
               </div>
-              <button onClick="{{ w.undo }}" title="Скасувати заміну" style="flex-shrink:0;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t108);font-weight:700;cursor:pointer">↩ Скасувати</button>
+              <button onClick="{{ w.undo }}" title="Скасувати" style="flex-shrink:0;height:30px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--debt);font-size:var(--t108);font-weight:700;cursor:pointer">↩ Скасувати</button>
             </div>
           </sc-for>
         </div>
@@ -2257,6 +2281,13 @@ class Component extends DCLogic {
     eNoConsumption: false, entryPhotos: [], photoView: null, dovExpanded: false, eDetails: false,
     editReadId: null, editReadVal: '',
     swapHouseId: null, swapDate: '', swapOldLast: '', swapNewNo: '', swapNewInit: '0', swapErr: '',
+    // решта показників ТЕПЛОЛІЧИЛЬНИКА при заміні (водомір — окремий прилад, не чіпаємо)
+    swapOldVoda: '', swapOldNar: '', swapOldProst: '', swapNewVoda: '0', swapNewNar: '0', swapNewProst: '0',
+    swapNewUnit: '', swapNewPov: '',
+    // повірка приладу (той самий №): нова дата повірки, за потреби — нові показники
+    povHouseId: null, povDate: '', povChanged: false, povOffDate: '', povInstDate: '',
+    povOffEn: '', povOffVoda: '', povOffNar: '', povOffProst: '',
+    povNewEn: '', povNewVoda: '', povNewNar: '', povNewProst: '', povErr: '',
     swaps: {},
     csvDate: new Date().toISOString().slice(0,10), csvWarn: '',
     periodKey: '', periodAt: 0,
@@ -5817,6 +5848,7 @@ class Component extends DCLogic {
     // повертаємо довідник
     h.meterNo = w.oldNo || '';
     h.prevObc = (w.prevBefore == null) ? w.oldLast : w.prevBefore;
+    this._restoreBeforeX(h, w.beforeX);
     h.meterSwaps = list.filter((_, i) => i !== idx);
     // позначаємо заміну скасованою у бригадній мапі (свіжий at — перемагає)
     const sw = { ...(this.state.swaps || {}) };
@@ -5824,11 +5856,11 @@ class Component extends DCLogic {
     sw[sid] = Object.assign({}, sw[sid] || {}, {
       acc: (sw[sid] && sw[sid].acc) || h.account || '', wt: (sw[sid] && sw[sid].wt) || this._meterKind(h),
       oldNo: w.oldNo, newNo: w.newNo, oldLast: w.oldLast, init: w.init, date: w.date,
-      prevBefore: w.prevBefore, by: this.state.me || '', at: now, undone: true });
+      prevBefore: w.prevBefore, beforeX: w.beforeX, by: this.state.me || '', at: now, undone: true });
     this.state.swaps = sw;
     this._persist();
     this._saveSettings({ deletes: dels, swaps: sw });
-    this.setState({ swapHouseId: null, swapErr: '', rev: this.state.rev + 1,
+    this.setState({ swapHouseId: null, swapErr: '', rev: this.state.rev + 1, ...this._entryRefresh(h),
       importOpen: true, importName: 'Заміну скасовано',
       importMeta: 'прилад повернено на № ' + (w.oldNo || '—') + ' · прибрано записів: ' + doomed.length });
     if (this.state.cloud && this.state.authUser) this.cloudSync(true);
@@ -5863,6 +5895,7 @@ class Component extends DCLogic {
     let changed = false;
     ids.forEach(id => {
       const w = map[id]; if (!w) return;
+      if (w.kind === 'pov') { if (this._applyPovRecord(w)) changed = true; return; }
       const findBy = (no) => this.db.houses.find(h => this._normAddr(h.account) === this._normAddr(w.acc)
         && this._meterKind(h) === (w.wt || 'kom') && this._sameMeterNo(h.meterNo, no));
       // Ототожнюємо заміну за ЗМІСТОМ (дата + старий/новий номер), а не за at:
@@ -5876,6 +5909,7 @@ class Component extends DCLogic {
         if (h && (h.meterSwaps || []).some(same)) {
           h.meterNo = w.oldNo || '';
           h.prevObc = (w.prevBefore == null) ? w.oldLast : w.prevBefore;
+          this._restoreBeforeX(h, w.beforeX);
           h.meterSwaps = (h.meterSwaps || []).filter(x => !same(x));
           changed = true;
         }
@@ -5886,8 +5920,11 @@ class Component extends DCLogic {
       if ((h.meterSwaps || []).some(same)) return;
       h.meterSwaps = Array.isArray(h.meterSwaps) ? h.meterSwaps : [];
       h.meterSwaps.push({ date: w.date, oldNo: w.oldNo, oldLast: w.oldLast, newNo: w.newNo,
-        init: w.init, by: w.by, at: w.at, prevBefore: w.prevBefore });
+        init: w.init, by: w.by, at: w.at, prevBefore: w.prevBefore, initX: w.initX, beforeX: w.beforeX, newUnit: w.newUnit, newPov: w.newPov });
       h.meterNo = w.newNo; h.prevObc = w.init;
+      this._setPrevX(h, w.initX);
+      if (w.newUnit) h.unit = w.newUnit;
+      if (w.newPov) h.obcPovirka = w.newPov;
       // Лікуємо записи, що прийшли зі старих версій без номера: проставляємо їм
       // приналежність за значенням, інакше вони й далі плутали б «попереднє».
       this._houseReadings(h.id).forEach(r => {
@@ -5899,6 +5936,164 @@ class Component extends DCLogic {
     });
     if (changed) this._persist();
     return changed;
+  }
+  // Якщо прилад зараз відкритий у «Вводі» — перерахувати форму (попередні
+  // показники, № лічильника): інакше після заміни/повірки в ній лишались старі
+  // «попередні», і новий показник рахувався б від старого приладу.
+  _entryRefresh(h){
+    if (!h || String(this.state.eHouse) !== String(h.id)) return {};
+    const p = this._entryPatchFor(h);
+    // розгорнутий довідник не згортаємо — користувач щойно з ним працював
+    delete p.dovExpanded;
+    return p;
+  }
+  // «останні» значення теплолічильника в довіднику (стають «попередніми» при вводі)
+  _setPrevX(h, x){
+    if (!h || !x) return;
+    if (x.voda != null) h.prevVoda = x.voda;
+    if (x.robota != null) h.prevRobota = x.robota;
+    if (x.prostiy != null) h.prevProstiy = x.prostiy;
+  }
+  _restoreBeforeX(h, b){
+    if (!h || !b) return;
+    h.prevVoda = b.voda == null ? 0 : b.voda; h.prevRobota = b.robota == null ? 0 : b.robota; h.prevProstiy = b.prostiy == null ? 0 : b.prostiy;
+    if (b.unit) h.unit = b.unit;
+    if (b.pov != null) h.obcPovirka = b.pov;
+    if (b.prevObc != null) h.prevObc = b.prevObc;
+  }
+
+  // ---------- ПОВІРКА приладу (той самий лічильник) ----------
+  // Після повірки змінюється дата повірки, а іноді й показники (обчислювач
+  // обнулили / переналаштували). Якщо показники змінились: закривний запис
+  // «при знятті» (дата зняття — спожите до повірки зарахується) і відкривний
+  // «після повірки» (дата встановлення, приріст 0 — від нього піде наступне
+  // зняття). Дати мусять відрізнятися: № лічильника той самий, а ключ
+  // показання — особовий + дата + №. Без зміни показників — лише нова дата.
+  // Бригадна: запис іде в ту саму мапу swaps (kind: 'pov').
+  _povId(h, instDate, povDate){ return 'p|' + this._swapId(h.account, this._meterKind(h), h.meterNo, (instDate || '') + '|' + (povDate || '')); }
+  onPovField(k){ return (e) => this.setState({ [k]: e.target.value, povErr: '' }); }
+  openPovirka(houseId){
+    if (!this.canReplaceMeter()) return;
+    const h = this.db.houses.find(x => x.id === houseId); if (!h) return;
+    const sv = (v) => (v === '' || v == null || v === 0) ? '' : String(v);
+    const last = this._lastReading(houseId);
+    this.setState({ povHouseId: houseId, swapHouseId: null, povErr: '', povChanged: false,
+      povDate: this._todayISO(), povInstDate: this._todayISO(),
+      povOffDate: last && last.date && last.date < this._todayISO() ? last.date : '',
+      povOffEn: '', povOffVoda: sv(h.prevVoda), povOffNar: sv(h.prevRobota), povOffProst: sv(h.prevProstiy),
+      povNewEn: '', povNewVoda: '', povNewNar: '', povNewProst: '' });
+  }
+  closePovirka(){ this.setState({ povHouseId: null, povErr: '' }); }
+  savePovirka(){
+    if (!this.canReplaceMeter()) return;
+    const s = this.state;
+    const h = this.db.houses.find(x => x.id === s.povHouseId); if (!h) return;
+    const isD = (d) => /^\d{4}-\d{2}-\d{2}$/.test(String(d || ''));
+    const opt = (v) => { const t = String(v == null ? '' : v).trim(); return t === '' ? null : (isNaN(Number(t.replace(',', '.').replace(/\s/g, ''))) ? NaN : this.num(t)); };
+    if (!isD(s.povDate)) { this.setState({ povErr: 'Вкажіть дату повірки' }); return; }
+    const before = { voda: h.prevVoda, robota: h.prevRobota, prostiy: h.prevProstiy, unit: h.unit || 'Гкал', pov: h.obcPovirka || '', prevObc: h.prevObc };
+    const now = Date.now(), by = s.me || '', no = h.meterNo || '';
+    const rec = { kind: 'pov', acc: h.account || '', wt: this._meterKind(h), no, povDate: s.povDate,
+      changed: !!s.povChanged, before, by, at: now, undone: false };
+    if (s.povChanged) {
+      if (!isD(s.povInstDate)) { this.setState({ povErr: 'Вкажіть дату встановлення після повірки' }); return; }
+      const nw = { en: opt(s.povNewEn), voda: opt(s.povNewVoda), robota: opt(s.povNewNar), prostiy: opt(s.povNewProst) };
+      const off = { en: opt(s.povOffEn), voda: opt(s.povOffVoda), robota: opt(s.povOffNar), prostiy: opt(s.povOffProst) };
+      if (Object.values(nw).concat(Object.values(off)).some(v => Number.isNaN(v))) { this.setState({ povErr: 'Показники мають бути числами' }); return; }
+      if (nw.en == null) { this.setState({ povErr: 'Вкажіть кількість ТЕ після повірки' }); return; }
+      if (off.en != null) {
+        if (!isD(s.povOffDate)) { this.setState({ povErr: 'Вкажіть дату зняття на повірку' }); return; }
+        if (s.povOffDate >= s.povInstDate) { this.setState({ povErr: 'Дата зняття має бути раніше за дату встановлення' }); return; }
+      }
+      // у день встановлення вже є показання цього приладу — два записи злиплися б
+      const clash = this._houseReadings(h.id).some(r => !r.isControl && r.date === s.povInstDate && (!r.meterNo || this._sameMeterNo(r.meterNo, no)));
+      if (clash) { this.setState({ povErr: 'На ' + this._fmtDMFull(s.povInstDate) + ' уже є показання цього приладу — оберіть іншу дату встановлення' }); return; }
+      rec.instDate = s.povInstDate; rec.init = nw;
+      if (off.en != null) {
+        const offDate = s.povOffDate;
+        let prevR = null;
+        this._houseReadings(h.id).forEach(r => { if (!r.isControl && r.date && r.date < offDate && (!r.meterNo || this._sameMeterNo(r.meterNo, no))
+          && (!prevR || r.date > prevR.date || (r.date === prevR.date && r.id > prevR.id))) prevR = r; });
+        const offPrev = prevR ? this.num(prevR.cur) : (h.prevObc != null ? this.num(h.prevObc) : 0);
+        if (off.en < offPrev) { this.setState({ povErr: 'Показник при знятті (' + this.fmt(off.en, 3) + ') менший за попередній (' + this.fmt(offPrev, 3) + ')' }); return; }
+        rec.offDate = offDate; rec.off = off; rec.offPrev = offPrev;
+      }
+    }
+    this._applyPovRecord(rec, true);
+    const sw = { ...(this.state.swaps || {}) };
+    sw[this._povId(h, rec.instDate, rec.povDate)] = rec;
+    this.state.swaps = sw;
+    this._persist();
+    this._saveSettings({ swaps: sw });
+    this.setState({ povHouseId: null, povErr: '', rev: this.state.rev + 1, ...this._entryRefresh(h), importOpen: true, importName: 'Повірка приладу',
+      importMeta: '№ ' + (no || '—') + ' · повірка ' + this._fmtDMFull(rec.povDate)
+        + (rec.changed ? ' · нові показники з ' + this._fmtDMFull(rec.instDate) : ' · показники без змін') });
+    if (this.state.cloud && this.state.authUser) this.cloudSync(true);
+  }
+  // Застосувати запис повірки до картки (і створити записи показань — лише на
+  // пристрої, де повірку оформили: на інших показання приходять синхронізацією).
+  // Ідемпотентно: повторне застосування нічого не дублює.
+  _applyPovRecord(w, own){
+    if (!this.db) return false;
+    const h = this.db.houses.find(x => this._normAddr(x.account) === this._normAddr(w.acc) && this._meterKind(x) === (w.wt || 'kom') && this._sameMeterNo(x.meterNo, w.no));
+    if (!h) return false;
+    const list = Array.isArray(h.meterPovirky) ? h.meterPovirky : [];
+    const idx = list.findIndex(v => v.povDate === w.povDate && (v.instDate || '') === (w.instDate || ''));
+    if (w.undone) {
+      if (idx === -1) return false;
+      this._restoreBeforeX(h, list[idx].before);
+      h.meterPovirky = list.filter((_, i) => i !== idx);
+      return true;
+    }
+    if (idx !== -1) return false;
+    h.meterPovirky = list.concat([{ povDate: w.povDate, instDate: w.instDate || '', offDate: w.offDate || '', changed: !!w.changed,
+      no: w.no, init: w.init || null, off: w.off || null, before: w.before, by: w.by, at: w.at }]);
+    h.obcPovirka = w.povDate;
+    if (w.changed && w.init) { h.prevObc = w.init.en; this._setPrevX(h, w.init); }
+    if (own && w.changed && w.init) {
+      let maxId = this.db.readings.reduce((m, r) => Math.max(m, r.id || 0), 0);
+      const period = this._openPeriod();
+      const x = (cur, prev) => { const o = {};
+        [['voda', 'vodaPrev'], ['robota', 'robotaPrev'], ['prostiy', 'prostiyPrev']].forEach(([k, kp]) => {
+          if (cur && cur[k] != null) o[k] = cur[k]; if (prev && prev[k] != null && prev[k] !== '') o[kp] = this.num(prev[k]); });
+        return o; };
+      const base = (date, cur, prev, extra) => Object.assign({ id: ++maxId, houseId: h.id, date, time: '', isControl: false, period,
+        unit: h.unit || 'Гкал', cur, prev, delta: this.r3(cur - prev), gcal: this.toGcal(this.r3(cur - prev), h.unit), gcalReal: true,
+        q: 0, diff: 0, pct: null, photos: [], meterNo: w.no, src: 'field', by: w.by, at: w.at, synced: false, povirka: true }, extra);
+      if (w.offDate && w.off) {
+        const ex = this.db.readings.find(r => r.houseId === h.id && r.date === w.offDate && !r.isControl && (!r.meterNo || this._sameMeterNo(r.meterNo, w.no)));
+        if (ex) Object.assign(ex, { cur: w.off.en, prev: w.offPrev, delta: this.r3(w.off.en - w.offPrev), gcal: this.toGcal(this.r3(w.off.en - w.offPrev), ex.unit || h.unit),
+          gcalReal: true, swapOut: true, povirka: true, at: w.at, synced: false, by: w.by }, x(w.off, w.before));
+        else this.db.readings.push(base(w.offDate, w.off.en, w.offPrev, Object.assign({ swapOut: true }, x(w.off, w.before))));
+      }
+      this.db.readings.push(base(w.instDate, w.init.en, w.init.en, Object.assign({ swapIn: true }, x(w.init, w.init))));
+    }
+    return true;
+  }
+  undoPovirka(houseId, at){
+    if (!this.canReplaceMeter()) return;
+    const h = this.db.houses.find(x => x.id === houseId); if (!h) return;
+    const v = (h.meterPovirky || []).find(x => String(x.at) === String(at)); if (!v) return;
+    if (typeof window !== 'undefined' && window.confirm && !window.confirm('Скасувати повірку ' + this._fmtDMFull(v.povDate) + '?'
+      + (v.changed ? '\n\nЗаписи «при знятті» й «після повірки» буде видалено.' : '') + '\n\nДата повірки й показники довідника повернуться.')) return;
+    const doomed = this.db.readings.filter(r => r.houseId === h.id && r.povirka && !r.isControl
+      && ((r.swapIn && r.date === v.instDate) || (r.swapOut && v.offDate && r.date === v.offDate)));
+    const dels = { ...(this.state.deletes || {}) }; const now = Date.now();
+    doomed.forEach(r => { dels[this._readingTombKey(r)] = now; });
+    const ids = new Set(doomed.map(r => r.id));
+    this.db.readings = this.db.readings.filter(r => !ids.has(r.id));
+    this.state.deletes = dels;
+    const sw = { ...(this.state.swaps || {}) };
+    const key = this._povId(h, v.instDate, v.povDate);
+    sw[key] = Object.assign({}, sw[key] || { kind: 'pov', acc: h.account || '', wt: this._meterKind(h), no: v.no, povDate: v.povDate, instDate: v.instDate, before: v.before },
+      { undone: true, at: now, by: this.state.me || '' });
+    this.state.swaps = sw;
+    this._applyPovRecord(sw[key]);
+    this._persist();
+    this._saveSettings({ deletes: dels, swaps: sw });
+    this.setState({ rev: this.state.rev + 1, ...this._entryRefresh(h), importOpen: true, importName: 'Повірку скасовано',
+      importMeta: '№ ' + (v.no || '—') + ' · прибрано записів: ' + doomed.length });
+    if (this.state.cloud && this.state.authUser) this.cloudSync(true);
   }
   // Прив'язки форми заміни — спільні для картки приладу і екрана «Ввід»
   // (робітник/старший найчастіше помічає новий лічильник саме під час зняття).
@@ -5918,19 +6113,57 @@ class Component extends DCLogic {
       swapNewNo: s.swapNewNo || '', onSwapNewNo: this.onSwapField('swapNewNo'),
       swapNewInit: s.swapNewInit || '', onSwapNewInit: this.onSwapField('swapNewInit'),
       swapErr: s.swapErr || '', swapHasErr: !!s.swapErr,
-      swapHistShow: swaps.length > 0,
-      swapHist: swaps.map(w => ({
+      swapOldVoda: s.swapOldVoda || '', onSwapOldVoda: this.onSwapField('swapOldVoda'),
+      swapOldNar: s.swapOldNar || '', onSwapOldNar: this.onSwapField('swapOldNar'),
+      swapOldProst: s.swapOldProst || '', onSwapOldProst: this.onSwapField('swapOldProst'),
+      swapNewVoda: s.swapNewVoda || '', onSwapNewVoda: this.onSwapField('swapNewVoda'),
+      swapNewNar: s.swapNewNar || '', onSwapNewNar: this.onSwapField('swapNewNar'),
+      swapNewProst: s.swapNewProst || '', onSwapNewProst: this.onSwapField('swapNewProst'),
+      swapNewUnit: s.swapNewUnit || (h && h.unit) || 'Гкал', onSwapNewUnit: this.onSwapField('swapNewUnit'),
+      swapNewPov: s.swapNewPov || '', onSwapNewPov: this.onSwapField('swapNewPov'),
+      swapUnit: (h && h.unit) || 'Гкал',
+      // --- повірка ---
+      povOpen: !!h && s.povHouseId === h.id,
+      povClosed: !!h && s.povHouseId !== h.id && s.swapHouseId !== h.id,
+      povCur: (h && h.obcPovirka) ? this._fmtDMFull(h.obcPovirka) : 'не вказано',
+      openPov: () => h && this.openPovirka(h.id), closePov: () => this.closePovirka(), savePov: () => this.savePovirka(),
+      povDate: s.povDate || '', onPovDate: this.onPovField('povDate'),
+      povChanged: !!s.povChanged, onPovChanged: (e) => this.setState({ povChanged: !!(e && e.target && e.target.checked), povErr: '' }),
+      povOffDate: s.povOffDate || '', onPovOffDate: this.onPovField('povOffDate'),
+      povInstDate: s.povInstDate || '', onPovInstDate: this.onPovField('povInstDate'),
+      povOffEn: s.povOffEn || '', onPovOffEn: this.onPovField('povOffEn'),
+      povOffVoda: s.povOffVoda || '', onPovOffVoda: this.onPovField('povOffVoda'),
+      povOffNar: s.povOffNar || '', onPovOffNar: this.onPovField('povOffNar'),
+      povOffProst: s.povOffProst || '', onPovOffProst: this.onPovField('povOffProst'),
+      povNewEn: s.povNewEn || '', onPovNewEn: this.onPovField('povNewEn'),
+      povNewVoda: s.povNewVoda || '', onPovNewVoda: this.onPovField('povNewVoda'),
+      povNewNar: s.povNewNar || '', onPovNewNar: this.onPovField('povNewNar'),
+      povNewProst: s.povNewProst || '', onPovNewProst: this.onPovField('povNewProst'),
+      povErr: s.povErr || '', povHasErr: !!s.povErr,
+      // історія: заміни й повірки разом, новіші вгорі
+      swapHistShow: swaps.length > 0 || ((h && h.meterPovirky) || []).length > 0,
+      swapHist: swaps.map(w => ({ at: w.at || 0,
         txt: this._fmtDMFull(w.date) + ': № ' + (w.oldNo || '—') + ' → № ' + w.newNo,
         sub: 'знято ' + this.fmt(w.oldLast, 2) + ' · новий з ' + this.fmt(w.init, 2) + (w.by ? ' · ' + w.by : ''),
         undo: () => h && this.undoMeterSwap(h.id, w.at)
-      }))
+      })).concat(((h && h.meterPovirky) || []).map(v => ({ at: v.at || 0,
+        txt: 'Повірка ' + this._fmtDMFull(v.povDate) + ' · № ' + (v.no || '—'),
+        sub: v.changed
+          ? ('показники змінено: з ' + this.fmt(v.init && v.init.en, 2) + ' (встановлено ' + this._fmtDMFull(v.instDate) + ')' + (v.by ? ' · ' + v.by : ''))
+          : ('показники без змін' + (v.by ? ' · ' + v.by : '')),
+        undo: () => h && this.undoPovirka(h.id, v.at)
+      }))).sort((a, b) => b.at - a.at)
     };
   }
   openMeterSwap(houseId){
     if (!this.canReplaceMeter()) return;
     const h = this.db.houses.find(x => x.id === houseId); if (!h) return;
-    this.setState({ swapHouseId: houseId, swapDate: this._todayISO(),
-      swapOldLast: String(this._prevEnergy(houseId) || ''), swapNewNo: '', swapNewInit: '0', swapErr: '' });
+    const sv = (v) => (v === '' || v == null || v === 0) ? '' : String(v);
+    this.setState({ swapHouseId: houseId, povHouseId: null, swapDate: this._todayISO(),
+      swapOldLast: String(this._prevEnergy(houseId) || ''), swapNewNo: '', swapNewInit: '0', swapErr: '',
+      // «при знятті» — підставляємо останні відомі значення довідника; новий — з нуля
+      swapOldVoda: sv(h.prevVoda), swapOldNar: sv(h.prevRobota), swapOldProst: sv(h.prevProstiy),
+      swapNewVoda: '0', swapNewNar: '0', swapNewProst: '0', swapNewUnit: h.unit || 'Гкал', swapNewPov: '' });
   }
   closeMeterSwap(){ this.setState({ swapHouseId: null, swapErr: '' }); }
   onSwapField(k){ return (e) => this.setState({ [k]: e.target.value, swapErr: '' }); }
@@ -5948,6 +6181,14 @@ class Component extends DCLogic {
     if (oldLastRaw === '' || isNaN(Number(oldLastRaw.replace(',', '.')))) { this.setState({ swapErr: 'Вкажіть показник старого лічильника' }); return; }
     if (initRaw === '' || isNaN(Number(initRaw.replace(',', '.')))) { this.setState({ swapErr: 'Вкажіть початковий показник нового' }); return; }
     const oldLast = this.num(oldLastRaw), init = this.num(initRaw);
+    // решта показників теплолічильника (необов'язкові, але якщо введено — число)
+    const opt = (v) => { const t = String(v == null ? '' : v).trim(); return t === '' ? null : (isNaN(Number(t.replace(',', '.').replace(/\s/g, ''))) ? NaN : this.num(t)); };
+    const oldX = { voda: opt(s.swapOldVoda), robota: opt(s.swapOldNar), prostiy: opt(s.swapOldProst) };
+    const initX = { voda: opt(s.swapNewVoda), robota: opt(s.swapNewNar), prostiy: opt(s.swapNewProst) };
+    if (Object.values(oldX).concat(Object.values(initX)).some(v => Number.isNaN(v))) { this.setState({ swapErr: 'Показники мають бути числами' }); return; }
+    const newUnit = Component.UNITS[s.swapNewUnit] != null ? s.swapNewUnit : (h.unit || 'Гкал');
+    const newPov = /^\d{4}-\d{2}-\d{2}$/.test(String(s.swapNewPov || '')) ? s.swapNewPov : '';
+    const beforeX = { voda: h.prevVoda, robota: h.prevRobota, prostiy: h.prevProstiy, unit: h.unit || 'Гкал', pov: h.obcPovirka || '' };
     const oldNo = h.meterNo || '';
     // попередній показник СТАРОГО приладу — останнє його показання до дати заміни
     const list = this._houseReadings(h.id).filter(r => !r.isControl && r.date && r.date <= date
@@ -5960,12 +6201,17 @@ class Component extends DCLogic {
     const period = this._openPeriod();
     const by = this.state.me || '';
     let maxId = this.db.readings.reduce((m, r) => Math.max(m, r.id || 0), 0);
-    const mk = (mno, cur, prev, extra) => Object.assign({
+    const mk = (mno, cur, prev, extra, unit) => Object.assign({
       id: ++maxId, houseId: h.id, date, time: this._nowHM(), isControl: false, period,
-      unit: h.unit || 'Гкал', cur, prev, delta: this.r3(cur - prev), gcal: this.toGcal(this.r3(cur - prev), h.unit), gcalReal: true,
+      unit: unit || h.unit || 'Гкал', cur, prev, delta: this.r3(cur - prev), gcal: this.toGcal(this.r3(cur - prev), unit || h.unit), gcalReal: true,
       q: 0, diff: 0, pct: null, photos: [], meterNo: mno,
       src: 'field', by, at: now, synced: false
     }, extra || {});
+    // вода/наробіток/простій у записі: закривний — «було → при знятті», відкривний — старт
+    const fx = (cur, prev) => { const o = {};
+      [['voda', 'vodaPrev'], ['robota', 'robotaPrev'], ['prostiy', 'prostiyPrev']].forEach(([k, kp]) => {
+        if (cur[k] != null) o[k] = cur[k]; if (prev && prev[k] != null && prev[k] !== '') o[kp] = this.num(prev[k]); });
+      return o; };
     // закривне для старого (якщо на цю дату вже є його показання — оновлюємо)
     const exOld = this.db.readings.find(r => r.houseId === h.id && r.date === date && !r.isControl
       && (!r.meterNo || this._sameMeterNo(r.meterNo, oldNo)));
@@ -5973,28 +6219,32 @@ class Component extends DCLogic {
       exOld.cur = oldLast; exOld.prev = oldPrev; exOld.delta = this.r3(oldLast - oldPrev);
       exOld.gcal = this.toGcal(exOld.delta, exOld.unit || h.unit); exOld.gcalReal = true; exOld.meterNo = oldNo;   // у Гкал, як mk()
       exOld.swapOut = true; exOld.at = now; exOld.synced = false; exOld.by = by;
+      Object.assign(exOld, fx(oldX, beforeX));
     } else {
-      this.db.readings.push(mk(oldNo, oldLast, oldPrev, { swapOut: true }));
+      this.db.readings.push(mk(oldNo, oldLast, oldPrev, Object.assign({ swapOut: true }, fx(oldX, beforeX))));
     }
     // відкривне для нового приладу: приріст 0, від нього піде наступний місяць
-    this.db.readings.push(mk(newNo, init, init, { swapIn: true }));
+    this.db.readings.push(mk(newNo, init, init, Object.assign({ swapIn: true }, fx(initX, initX)), newUnit));
     // історія замін на будинку + перемикаємо довідник на новий прилад
     h.meterSwaps = Array.isArray(h.meterSwaps) ? h.meterSwaps : [];
     // prevBefore — показник довідника ДО заміни: без нього скасування не змогло б
     // повернути прилад точно в попередній стан
     const prevBefore = (h.prevObc == null ? 0 : this.num(h.prevObc));
-    h.meterSwaps.push({ date, oldNo, oldLast, newNo, init, by, at: now, prevBefore });
+    h.meterSwaps.push({ date, oldNo, oldLast, newNo, init, by, at: now, prevBefore, initX, beforeX, newUnit, newPov });
     h.meterNo = newNo;
     h.prevObc = init;
+    this._setPrevX(h, initX);
+    h.unit = newUnit;
+    if (newPov) h.obcPovirka = newPov;
     // бригадний запис заміни — щоб інші пристрої перемкнули прилад у себе
     const sw = { ...(this.state.swaps || {}) };
     sw[this._swapId(h.account, this._meterKind(h), oldNo, date)] = {
       acc: h.account || '', wt: this._meterKind(h),
-      oldNo, newNo, oldLast, init, date, prevBefore, by, at: now, undone: false };
+      oldNo, newNo, oldLast, init, date, prevBefore, initX, beforeX, newUnit, newPov, by, at: now, undone: false };
     this.state.swaps = sw;
     this._persist();
     this._saveSettings({ swaps: sw });
-    this.setState({ swapHouseId: null, swapErr: '', rev: this.state.rev + 1,
+    this.setState({ swapHouseId: null, swapErr: '', rev: this.state.rev + 1, ...this._entryRefresh(h),
       importOpen: true, importName: 'Заміна лічильника',
       importMeta: (oldNo || '—') + ' → ' + newNo + ' · знято ' + this.fmt(oldLast, 0)
         + ' · новий з ' + this.fmt(init, 0) + ' · ' + this._fmtDMFull(date) });
