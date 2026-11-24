@@ -237,7 +237,56 @@ async function syncNow(d) {
     const pg = await B.run(a => ({ march: a.db.readings.filter(r => a._rPeriod(r) === '2026-03').length, total: a.db.readings.length, pb: a.state.purgeBefore }));
     check('очищення дійшло до робітника (березень видалено)', pg.march === 0 && pg.pb === '2026-04' && pg.total > 0, JSON.stringify(pg));
 
-    // ---------- 10. помилок JS немає ----------
+    // ---------- 10. завдання без зв'язку: зрозуміла помилка, потім доходить само ----------
+    await A.ctx.setOffline(true);
+    const offErr = await A.run(async (a) => {
+      const k = 'a:т005';
+      a.setState({ assignments: { ...(a.state.assignments || {}), [k]: 'Робітник Тест' }, assignmentsAt: { ...(a.state.assignmentsAt || {}), [k]: Date.now() } });
+      await new Promise(r => setTimeout(r, 50));
+      await a.cloudPublishAssign();
+      return a.state.importError || '';
+    });
+    check('без зв’язку: зрозуміле повідомлення замість «Failed to fetch»', /немає зв/.test(offErr) && !/Failed to fetch/i.test(offErr), offErr.slice(0, 90));
+    await A.ctx.setOffline(false);
+    await syncNow(A); await syncNow(B);
+    const asgB = await B.run(a => (a.state.assignments || {})['a:т005'] || '');
+    check('завдання дійшло до робітника після появи зв’язку (звичайною синхронізацією)', asgB === 'Робітник Тест', asgB || 'нема');
+
+    // ---------- 10б. різні виконавці для лічильників однієї адреси (таблиця маршруту) ----------
+    const asgMulti = await A.run(async (a) => {
+      a.setState({ tab: 'route', routeTable: true }); await new Promise(r => setTimeout(r, 300));
+      a.setBuildingAssign('вул.Тестова, 1', 'Робітник Тест');          // будинку — один
+      await new Promise(r => setTimeout(r, 150));
+      const rowsOf = () => (a.renderVals().routeAll || []).filter(r => /Тестова, 1/.test(r.address));
+      rowsOf()[1].onWorker({ target: { value: 'Інший Робітник' } });  // рядку (2) — інший
+      await new Promise(r => setTimeout(r, 150));
+      const hs = a.db.houses.filter(h => /Тестова, 1$/.test(h.address));
+      const step1 = hs.map(h => a._assignedWorker(h));
+      rowsOf()[0].onWorker({ target: { value: '' } });                 // з рядка (1) — зняти
+      await new Promise(r => setTimeout(r, 150));
+      return { rows: rowsOf().map(r => r.address + ': ' + (r.worker || '—')), step1, step2: hs.map(h => a._assignedWorker(h)) };
+    });
+    check('маршрут: різні виконавці для лічильників однієї адреси', asgMulti.step1.join() === 'Робітник Тест,Інший Робітник', JSON.stringify(asgMulti.step1));
+    check('маршрут: зняття з одного рядка не чіпає інший', asgMulti.step2.join() === ',Інший Робітник', JSON.stringify(asgMulti.rows));
+    await syncNow(A); await syncNow(B);
+    const asgMultiB = await B.run(a => a.db.houses.filter(h => /Тестова, 1$/.test(h.address)).map(h => a._assignedWorker(h)));
+    check('ці призначення дійшли до робітника', asgMultiB.join() === ',Інший Робітник', JSON.stringify(asgMultiB));
+
+    // ---------- 10в. призначення лічильника переживає заміну приладу ----------
+    const asgSwap = await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'Т005');
+      a.setMetersAssign([h], 'Інший Робітник'); await new Promise(r => setTimeout(r, 100));
+      a.openMeterSwap(h.id); await new Promise(r => setTimeout(r, 50));
+      a.setState({ swapNewNo: '50000005', swapOldLast: '480', swapNewInit: '0' });
+      await new Promise(r => setTimeout(r, 50)); a.saveMeterSwap(); await new Promise(r => setTimeout(r, 150));
+      return { no: h.meterNo, w: a._assignedWorker(h) };
+    });
+    await syncNow(A); await syncNow(B);
+    const asgSwapB = await B.run(a => { const h = a.db.houses.find(q => q.account === 'Т005'); return { no: h.meterNo, w: a._assignedWorker(h) }; });
+    check('призначення лічильника не губиться після заміни (обидва пристрої)', asgSwap.no === '50000005' && asgSwap.w === 'Інший Робітник'
+      && asgSwapB.no === '50000005' && asgSwapB.w === 'Інший Робітник', JSON.stringify([asgSwap, asgSwapB]));
+
+    // ---------- 11. помилок JS немає ----------
     check('немає JS-помилок (старший)', A.errors.length === 0, A.errors.slice(0, 2).join(' | '));
     check('немає JS-помилок (робітник)', B.errors.length === 0, B.errors.slice(0, 2).join(' | '));
   } catch (e) {

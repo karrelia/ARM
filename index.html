@@ -1141,6 +1141,17 @@ window.addEventListener('appinstalled', function () {
           <sc-if value="{{ dovErr }}" hint-placeholder-val="{{ false }}">
           <div style="background:var(--debtTint);border:1px solid var(--debt);border-radius:10px;padding:8px 10px;margin:-3px 0 10px;font-size:var(--t115);font-weight:700;color:var(--debt)">{{ dovErr }}</div>
           </sc-if>
+          <!-- вільний № акта: наступний після найбільшого, і найменший пропуск, якщо є -->
+          <sc-if value="{{ actFreeShow }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap;margin:-4px 0 10px">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted2)">Вільний № акта:</span>
+            <button onClick="{{ useActNext }}" title="Наступний після найбільшого" style="height:28px;padding:0 10px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t110);font-weight:800;cursor:pointer">{{ actFreeNext }}</button>
+            <sc-if value="{{ actHasGap }}" hint-placeholder-val="{{ false }}">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted2)">або пропуск</span>
+            <button onClick="{{ useActGap }}" title="Найменший незайнятий номер" style="height:28px;padding:0 10px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t110);font-weight:800;cursor:pointer">{{ actFreeGap }}</button>
+            </sc-if>
+          </div>
+          </sc-if>
           <div style="display:flex;gap:10px;margin-bottom:10px">
             <label style="flex:1;min-width:0">
               <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Населений пункт</span>
@@ -2200,6 +2211,11 @@ window.addEventListener('appinstalled', function () {
             <input value="{{ nmMeterNo }}" onInput="{{ onNmMeterNo }}" placeholder="43851039" class="tnum" style="width:100%;height:44px;padding:0 12px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:700">
           </label>
         </div>
+        <label style="display:block;margin-bottom:10px">
+          <span style="display:flex;align-items:center;gap:8px;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:5px">№ акта (у рамці)
+            <button onClick="{{ useNmActNext }}" title="Підставити наступний вільний номер" style="height:24px;padding:0 10px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t110);font-weight:800;cursor:pointer">вільний: {{ nmActNext }}</button></span>
+          <input value="{{ nmAct }}" onInput="{{ onNmAct }}" inputmode="numeric" placeholder="{{ nmActNext }}" class="tnum" style="width:100%;height:44px;padding:0 12px;border:1px solid var(--inputBd);border-radius:12px;background:var(--inputBg);color:var(--ink);font-size:var(--t125);font-weight:700">
+        </label>
         <div style="display:flex;gap:9px;margin-bottom:10px">
           <label style="flex:1;min-width:0">
             <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:5px">Одиниці обчислювача</span>
@@ -2292,7 +2308,7 @@ class Component extends DCLogic {
     actsPlan: null, actsClear: true,
     // новий прилад обліку (ручне внесення)
     nmOpen: false, nmAddress: '', nmOwner: '', nmAccount: '', nmMeterNo: '', nmUnit: 'Гкал', nmKind: 'kom',
-    nmBoiler: '', nmSettlement: '', nmPrev: '', nmErr: '',
+    nmBoiler: '', nmSettlement: '', nmPrev: '', nmErr: '', nmAct: '',
     // пошук: значення поля (миттєво) і дебаунсне значення для фільтра
     searchQd: '', entrySearchQd: '', entryNo: '', entryNoD: '', searchNo: '', searchNoD: '', routeNo: '', routeNoD: '',
     role: '', me: '', assignments: {}, assignmentsAt: {}, settingsOpen: false, myOnly: false, notDone: false,
@@ -2421,8 +2437,26 @@ class Component extends DCLogic {
     return this.db.houses.find(x => String(x.id) !== String(selfId) && this._normSearch(x.act).replace(/ /g, '') === k) || null;
   }
   _actNoDupMsg(no, h){
+    const fr = this._freeActNos(this._entryHouse() && this._entryHouse().id);
     return '№ акта ' + String(no).trim() + ' уже існує: особовий ' + (h.account || '—')
-      + (h.address ? ' (' + h.address + (h.meterNo ? ', № ' + h.meterNo : '') + ')' : '');
+      + (h.address ? ' (' + h.address + (h.meterNo ? ', № ' + h.meterNo : '') + ')' : '')
+      + ' · вільний: ' + fr.next + (fr.gap != null ? ' (або пропуск ' + fr.gap + ')' : '');
+  }
+  // Вільні номери актів: next — наступний після найбільшого числового, gap —
+  // найменший незайнятий від 1 (якщо в нумерації є пропуск). selfId — прилад,
+  // якому підбираємо номер (його власний номер вільним не рахуємо зайнятим).
+  _freeActNos(selfId){
+    const used = new Set();
+    let max = 0;
+    ((this.db && this.db.houses) || []).forEach(h => {
+      if (selfId != null && String(h.id) === String(selfId)) return;
+      const m = String(h.act || '').trim().match(/^\d+$/);
+      if (!m) return;
+      const n = parseInt(m[0], 10); used.add(n); if (n > max) max = n;
+    });
+    let gap = null;
+    for (let i = 1; i < max; i++) if (!used.has(i)) { gap = i; break; }
+    return { next: max + 1, gap };
   }
   // записати контактну особу будинку у спільну мапу contacts (як у маршруті),
   // зберігши додаткові контакти (more), і рознести бригаді
@@ -2513,7 +2547,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.24.2'; }
+  static get APP_VERSION(){ return '2026.11.24.3'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -2784,11 +2818,32 @@ class Component extends DCLogic {
   // Усі API-виклики (крім ping) ідуть із ключем бригади (X-Brigade-Key) —
   // сервер на публічному хостингу без нього відмовляє (403). 403 вмикає
   // підказку «введіть ключ» на екрані входу та в «Виконавець».
+  // Обрив зв'язку («Failed to fetch» / «NetworkError» / «Load failed») — запит не
+  // дійшов до сервера або відповідь обірвалась. Повторюємо ОДИН раз через 1,5 с:
+  // у підвалі/на мобільному зв'язку короткі розриви — звичайна справа, а всі
+  // запити до API безпечні для повтору (сервер зводить дані за ключами).
+  _isNetErr(err){
+    const m = String((err && err.message) || err || '');
+    return /failed to fetch|networkerror|load failed|network request failed|fetch failed/i.test(m);
+  }
+  // текст помилки для людини: мережеві — зрозуміло й з порадою, решта — як є
+  _errText(err){
+    if (this._isNetErr(err)) return 'немає зв’язку з сервером (запит не дійшов). Перевірте інтернет/Wi-Fi і чи працює сервер — '
+      + 'дані збережено на пристрої, наступна синхронізація надішле їх сама.';
+    return (err && err.message) ? err.message : String(err);
+  }
   _apiFetch(path, opts){
     const o = opts ? { ...opts } : {};
     o.headers = { ...(o.headers || {}) };
     if (this.state.brigadeKey) o.headers['X-Brigade-Key'] = this.state.brigadeKey;
-    return fetch(this._apiBase + path, o).then(r => {
+    const go = () => fetch(this._apiBase + path, o);
+    // повторюємо лише надсилання (POST — дії користувача й синхронізація); читання
+    // при запуску — ні, інакше без зв'язку екран входу з'являвся б на 1,5 с пізніше
+    const retry = String(o.method || 'GET').toUpperCase() !== 'GET';
+    return go().catch(err => {
+      if (!retry || !this._isNetErr(err)) throw err;
+      return new Promise(r => setTimeout(r, 1500)).then(go);
+    }).then(r => {
       if (r && r.status === 403) { if (!this.state.needKey) this.setState({ needKey: true }); }
       else if (r && r.ok && this.state.needKey) this.setState({ needKey: false });
       return r;
@@ -2835,7 +2890,7 @@ class Component extends DCLogic {
       r.ocrRaw = d.raw || ''; r.ocrAt = Date.now();
       this._persist();
       this.setState({ ocrBusyId: null, rev: this.state.rev + 1 });
-    } catch (err) { this.setState({ ocrBusyId: null, importError: 'Розпізнавання: ' + (err && err.message ? err.message : err) }); }
+    } catch (err) { this.setState({ ocrBusyId: null, importError: 'Розпізнавання: ' + this._errText(err) }); }
   }
   // якщо сервер щойно з'явився, а на ньому ще немає користувачів (перший адмін
   // створився до того, як підтвердилась мережа) — виштовхуємо локальних
@@ -3103,7 +3158,7 @@ class Component extends DCLogic {
       }
       this.setState(patch);
     } catch (err) {
-      this.setState({ cloudBusy: false, ...(silent ? {} : { importError: 'Синхронізація не вдалася: ' + (err && err.message ? err.message : err) }) });
+      this.setState({ cloudBusy: false, ...(silent ? {} : { importError: 'Синхронізація не вдалася: ' + this._errText(err) }) });
     }
   }
   // ---- автосинхронізація: коли є мережа, черга сама йде на сервар, а дашборд
@@ -3257,7 +3312,7 @@ class Component extends DCLogic {
       this._mergeContacts(d.contacts); this._mergeRoutes(d.routes);
       this._saveSettings({ contacts: this.state.contacts, route: this.state.route });
       this.setState({ cloudBusy: false, settingsOpen: false, importOpen: true, importName: 'Публікація бази', importMeta: 'на сервері: ' + d.houses + ' будинків' + rc });
-    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося опублікувати базу: ' + (err && err.message ? err.message : err) }); }
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося опублікувати базу: ' + this._errText(err) }); }
   }
   async cloudLoadBase(){
     if (this.state.cloudBusy && !(await this._waitCloudIdle())) { this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте ще раз' }); return; }
@@ -3296,7 +3351,7 @@ class Component extends DCLogic {
       // сервера, щоб з'явились попередні дані (архів/історія й «попередній показник»),
       // а не порожній дашборд до наступної автосинхронізації.
       if (this.state.cloud) setTimeout(() => { if (this.db && !this.state.cloudBusy) this.cloudSync(true); }, 0);
-    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + (err && err.message ? err.message : err) }); }
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + this._errText(err) }); }
   }
   // завантажити ЛИШЕ розподіл (завдання) із сервера — не чіпаючи базу й локальну
   // чергу показань. Робітник підтягує оновлене завдання від старшого.
@@ -3315,7 +3370,7 @@ class Component extends DCLogic {
       this._saveSettings({ assignments: this.state.assignments, assignmentsAt: this.state.assignmentsAt || {}, contacts: this.state.contacts, route: this.state.route });
       this.setState({ cloudBusy: false, rev: this.state.rev + 1, importOpen: true, importName: 'Завдання з сервера',
         importMeta: n ? ('оновлено розподіл (' + n + ')' + (cc ? ' · контакти' : '')) : 'на сервері ще немає завдання' });
-    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження завдання: ' + (err && err.message ? err.message : err) }); }
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження завдання: ' + this._errText(err) }); }
   }
   _saveSettings(patch){
     const s = this.state;
@@ -3363,9 +3418,24 @@ class Component extends DCLogic {
   }
   // до кого прикріплений будинок: спочатку персональне призначення будинку
   // (@адреса), далі — за котельнею
+  // Виконавець приладу. Три рівні, від точнішого: ЛІЧИЛЬНИК ('#особовий|№') →
+  // АДРЕСА ('@адреса') → населений пункт (котельня). На одній адресі буває кілька
+  // лічильників, і кожному можна дати свого виконавця. '__none' — явно «нікого»
+  // на рівні лічильника (порожнє значення зведення трактує як видалення ключа).
+  _meterAsgKey(h, no){
+    const acc = this._normAddr(h && h.account);
+    return '#' + (acc || ('@' + this._normAddr(h && h.address))) + '|' + this._normAddr(no != null ? no : (h && h.meterNo));
+  }
   _assignedWorker(h){
     const a = this.state.assignments || {};
     if (!h) return '';
+    // лічильник: поточний №, далі номери до заміни (призначення не губиться після заміни)
+    const nos = [h.meterNo].concat((Array.isArray(h.meterSwaps) ? h.meterSwaps : []).map(w => w.oldNo).reverse());
+    for (const no of nos) {
+      if (!no) continue;
+      const v = a[this._meterAsgKey(h, no)];
+      if (v !== undefined) return v === '__none' ? '' : v;
+    }
     const b = a['@' + this._normAddr(h.address)];
     if (b !== undefined) return b;
     return a[h.boiler] || '';
@@ -3429,6 +3499,24 @@ class Component extends DCLogic {
     else a[k] = worker;                            // конкретний робітник або '' (ніхто)
     this._saveAssign(a);
   }
+  // призначити виконавця приладам будинку: ключ — кожна їхня адреса (у злитій
+  // картці маршруту бувають різні написання тієї самої адреси)
+  // Призначення ОКРЕМИХ лічильників (рядок таблиці маршруту = один лічильник):
+  // інші лічильники тієї ж адреси не змінюються. '' — «нікого» саме для цього
+  // лічильника; '__inherit' — повернути до призначення адреси / нас. пункту.
+  setMetersAssign(meters, worker){
+    const a = { ...(this.state.assignments || {}) };
+    const list = (meters || []).filter(h => h && (h.meterNo || h.account || h.address));
+    if (!list.length) return;
+    list.forEach(h => {
+      const k = this._meterAsgKey(h);
+      // старі ключі цього лічильника (до заміни) прибираємо — діє поточний
+      (Array.isArray(h.meterSwaps) ? h.meterSwaps : []).forEach(w => { if (w.oldNo) delete a[this._meterAsgKey(h, w.oldNo)]; });
+      if (worker === '__inherit') delete a[k];
+      else a[k] = worker ? worker : '__none';
+    });
+    this._saveAssign(a);
+  }
   toggleAsgExpand(boiler){ this.setState(s => ({ asgExpand: s.asgExpand === boiler ? null : boiler, asgSel: {}, asgSelW: '' })); }
   // виділення блоку будинків і призначення відповідального одним рухом
   toggleAsgSel(address){
@@ -3467,7 +3555,7 @@ class Component extends DCLogic {
       const lastPull = Math.max(this.state.lastPull || 0, data.maxSrvAt || 0);
       this._persist(); this._saveSettings({ lastPull, assignments: this.state.assignments, assignmentsAt: this.state.assignmentsAt || {} });
       this.setState({ cloudBusy: false, importOpen: true, importName: 'Завдання', importMeta: 'збережено на сервері', rev: this.state.rev + 1 });
-    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося зберегти завдання: ' + (err && err.message ? err.message : err) }); }
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося зберегти завдання: ' + this._errText(err) }); }
   }
   // Закрити місяць (лише адміністратор): нові заявки починаються з нуля. Не
   // видаляємо жодного показання — ставимо бригадну мітку closedAt=зараз;
@@ -3717,7 +3805,7 @@ class Component extends DCLogic {
           if (this.state.cloud && this.state.authUser) this.cloudSync(true);
         }, 2500);
       } catch (err) {
-        this.setState({ importBusy: false, settingsOpen: false, importError: 'Показання з таблиці: ' + (err && err.message ? err.message : err) });
+        this.setState({ importBusy: false, settingsOpen: false, importError: 'Показання з таблиці: ' + this._errText(err) });
       }
     };
     reader.readAsArrayBuffer(f);
@@ -4187,7 +4275,7 @@ class Component extends DCLogic {
         importMeta: parts.join(' · '), csvWarn: warn.trim(), rev: this.state.rev + 1 });
       if (cloud) setTimeout(() => { if (this.db && !this.state.cloudBusy) this.cloudSync(true); }, 2500);
     } catch (err) {
-      this.setState({ actsPlan: null, importError: 'Імпорт актів: ' + (err && err.message ? err.message : err) });
+      this.setState({ actsPlan: null, importError: 'Імпорт актів: ' + this._errText(err) });
     }
   }
   importActsFile(){ const el = document.getElementById('actsImportInput'); if (el) { el.value = ''; el.click(); } }
@@ -4205,7 +4293,7 @@ class Component extends DCLogic {
         if (!parsed) throw new Error('не знайдено таблиці актів (потрібні колонки «№ лічильника» і «Кількість теплової енергії» з «Попереднє / Теперішнє»)');
         this._openActsPlan(parsed, f.name);
       } catch (err) {
-        this.setState({ importBusy: false, settingsOpen: false, importError: 'Імпорт актів: ' + (err && err.message ? err.message : err) });
+        this.setState({ importBusy: false, settingsOpen: false, importError: 'Імпорт актів: ' + this._errText(err) });
       }
     };
     reader.readAsArrayBuffer(f);
@@ -4267,7 +4355,7 @@ class Component extends DCLogic {
   openNewMeter(){
     const s = this.state;
     this.setState({ nmOpen: true, nmErr: '', nmAddress: '', nmOwner: '', nmAccount: '', nmMeterNo: '', nmUnit: 'Гкал', nmKind: 'kom',
-      nmBoiler: s.boilerSel || '', nmSettlement: '', nmPrev: '', settingsOpen: false });
+      nmBoiler: s.boilerSel || '', nmSettlement: '', nmPrev: '', nmAct: String(this._freeActNos().next), settingsOpen: false });
   }
   closeNewMeter(){ this.setState({ nmOpen: false, nmErr: '' }); }
   onNmField(k){ return (e) => this.setState({ [k]: e && e.target ? e.target.value : e, nmErr: '' }); }
@@ -4281,10 +4369,13 @@ class Component extends DCLogic {
     if (dup) { this.setState({ nmErr: 'Лічильник № ' + meterNo + ' уже є: ' + (dup.address || dup.code) }); return; }
     const prevRaw = t(s.nmPrev);
     if (prevRaw && this._cellNum(prevRaw) == null) { this.setState({ nmErr: 'Початковий показник — число' }); return; }
+    const act = t(s.nmAct);
+    const dupAct = act ? this._actNoDup(act, null) : null;
+    if (dupAct) { const fr = this._freeActNos(); this.setState({ nmErr: '№ акта ' + act + ' уже існує: особовий ' + (dupAct.account || '—') + ' · вільний: ' + fr.next + (fr.gap != null ? ' (або ' + fr.gap + ')' : '') }); return; }
     const boiler = t(s.nmBoiler) || t(s.nmSettlement);
     const id = this.db.houses.reduce((m, h) => Math.max(m, h.id || 0), 0) + 1;
     const h = { id, code: account || meterNo, account, owner: t(s.nmOwner), address, settlement: t(s.nmSettlement) || boiler, boiler,
-      unit: s.nmUnit || 'Гкал', meterNo, meterType: '', act: '', komOblik: s.nmKind !== 'rozp', heatLoad: 0, share: 1,
+      unit: s.nmUnit || 'Гкал', meterNo, meterType: '', act, komOblik: s.nmKind !== 'rozp', heatLoad: 0, share: 1,
       contact: '', phone: '', prevObc: prevRaw ? this._cellNum(prevRaw) : 0, addedAt: Date.now(), addedBy: s.me || '' };
     this.db.houses.push(h);
     if (boiler && !(this.db.boilers || []).includes(boiler)) this.db.boilers = [...(this.db.boilers || []), boiler];
@@ -4346,11 +4437,11 @@ class Component extends DCLogic {
           this.setState({ importBusy: false, importOpen: true, hasData: true, tab: 'overview',
             importMeta: 'завантажено · ' + db.houses.length + ' будинків · ' + db.readings.length + ' показань' });
         } catch (err) {
-          this.setState({ importBusy: false, importError: 'Помилка імпорту: ' + (err && err.message ? err.message : err) });
+          this.setState({ importBusy: false, importError: 'Помилка імпорту: ' + this._errText(err) });
         }
       } else {
         try { this._applySync(JSON.parse(new TextDecoder('utf-8').decode(buf))); }
-        catch (err) { this.setState({ importBusy: false, importError: 'Помилка файлу синхронізації: ' + (err && err.message ? err.message : err) }); }
+        catch (err) { this.setState({ importBusy: false, importError: 'Помилка файлу синхронізації: ' + this._errText(err) }); }
       }
     };
     reader.readAsArrayBuffer(f);
@@ -7200,6 +7291,8 @@ class Component extends DCLogic {
       onNmAddress: this.onNmField('nmAddress'), onNmOwner: this.onNmField('nmOwner'), onNmAccount: this.onNmField('nmAccount'),
       onNmMeterNo: this.onNmField('nmMeterNo'), onNmUnit: this.onNmField('nmUnit'), onNmKind: this.onNmField('nmKind'),
       onNmBoiler: this.onNmField('nmBoiler'), onNmPrev: this.onNmField('nmPrev'),
+      nmAct: s.nmAct || '', onNmAct: this.onNmField('nmAct'),
+      nmActNext: String(this._freeActNos().next), useNmActNext: () => this.setState({ nmAct: String(this._freeActNos().next), nmErr: '' }),
       nmBoilerOpts: (this.db && this.db.boilers) || [],
       // очищення попередніх періодів
       purgeActive: /^\d{4}-\d{2}$/.test(s.purgeBefore || ''), purgeLabel: this._monthLabel(s.purgeBefore),
@@ -7494,6 +7587,15 @@ class Component extends DCLogic {
     // порядковий № акта: перевірка дубля вже під час набору (червона рамка + текст)
     out.dovErr = s.dovErr || '';
     out.mAktBd = s.dovErr ? 'var(--debt)' : 'var(--inputBd)';
+    {
+      const eh1 = this._entryHouse();
+      const fr = this._freeActNos(eh1 && eh1.id);
+      // показуємо, коли номер порожній або зайнятий (дубль) — тоді вільний справді потрібен
+      out.actFreeShow = !s.dovLock && !!eh1 && (!String(s.mAkt || '').trim() || !!s.dovErr);
+      out.actFreeNext = String(fr.next); out.actFreeGap = fr.gap != null ? String(fr.gap) : ''; out.actHasGap = fr.gap != null;
+      out.useActNext = () => this.setState({ mAkt: String(fr.next), dovErr: '', savedDovidnyk: false });
+      out.useActGap = () => fr.gap != null && this.setState({ mAkt: String(fr.gap), dovErr: '', savedDovidnyk: false });
+    }
     out.onMAktField = (e) => { const v = e.target.value; const eh0 = this._entryHouse();
       const d = this._actNoDup(v, eh0 && eh0.id);
       this.setState({ mAkt: v, savedDovidnyk: false, dovErr: d ? this._actNoDupMsg(v, d) : '' }); };
@@ -8151,7 +8253,10 @@ class Component extends DCLogic {
           worker: this._assignedWorker(b.meters[0]) || '',
           workerTxt: this._assignedWorker(b.meters[0]) || '—',
           canAssign: canAssign,
-          onWorker: (e) => this.setBuildingAssign(b.address, e.target.value),
+          // призначення — за ФІЗИЧНОЮ адресою приладів, а не за підписом рядка:
+          // у «вул.Воскресінська, 2 (1)» номер позиції — лише для показу, і з ним
+          // ключ не збігався з тим, за яким призначення читається (_assignedWorker)
+          onWorker: (e) => this.setMetersAssign(b.meters, e.target.value),
           // підсвітка олівця контакту, коли рядок у режимі редагування
           cEditBg: s.contactEditKey === sk ? 'var(--primary)' : 'var(--surface)',
           cEditFg: s.contactEditKey === sk ? '#fff' : 'var(--muted)',
@@ -8220,7 +8325,7 @@ class Component extends DCLogic {
       // виконавці для селекта призначення в таблиці й перемикача — усі користувачі
       // + ті, хто вже фігурує в розподілі (навіть якщо ще без облікового запису)
       const wset = {};
-      Object.values(s.assignments || {}).forEach(w => { if (w) wset[w] = 1; });
+      Object.values(s.assignments || {}).forEach(w => { if (w && w.indexOf('__') !== 0) wset[w] = 1; });
       (s.users || []).forEach(u => { if (u && u.name) wset[u.name] = 1; });
       const routeWorkerOpts = Object.keys(wset).sort((a, b) => a.localeCompare(b, 'uk'));
       const memoVal = {
