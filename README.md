@@ -315,6 +315,7 @@ node --check server.js && node --check sw.js   # синтаксис бекенд
 node --test tests/*.test.js                    # merge-логіка сервера + очищення періодів
 node tests/check-app.js                        # статика index.html
 node tests/render-check.js                     # рендер у справжньому браузері
+node tests/sync-check.js                       # синхронізація між двома пристроями (server.js)
 php -l api.php                                 # лінт PHP-бекенда
 ```
 

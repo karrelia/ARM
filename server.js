@@ -18,7 +18,8 @@ const path = require('path');
 
 const ROOT = __dirname;
 const PORT = parseInt(process.env.PORT || '8083', 10);
-const DATA_DIR = path.join(ROOT, 'arm-data');
+// ARM_DATA_DIR — інша тека даних (тести синхронізації піднімають сервер на тимчасовій)
+const DATA_DIR = process.env.ARM_DATA_DIR ? path.resolve(process.env.ARM_DATA_DIR) : path.join(ROOT, 'arm-data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const PHOTOS_DIR = path.join(DATA_DIR, 'photos'); // фото винесені з db.json в окремі файли
@@ -32,7 +33,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
-function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0 }; }
+function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0, baseAt: 0 }; }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
 // мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
 // Міграція: наявним призначенням без мітки даємо базову «1» (живуть, але програють
@@ -365,7 +366,8 @@ async function handleApi(req, res, url){
     const db = loadDb();
     ensureAsgStamps(db);
     return sendJson(res, 200, { hasBase: db.houses.length > 0, houses: db.houses, boilers: db.boilers,
-      assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig, savedAt: db.savedAt });
+      assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig, savedAt: db.savedAt,
+      baseAt: db.baseAt || 0 });
   }
   // POST /api/base — старший публікує довідник (показання й розподіл зберігаються)
   if (p === '/api/base' && req.method === 'POST') {
@@ -373,6 +375,9 @@ async function handleApi(req, res, url){
     if (!body.houses || !body.houses.length) return sendJson(res, 400, { error: 'порожня база' });
     const db = loadDb();
     db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || '';
+    // мітка версії ДОВІДНИКА: пристрої бригади бачать її в /sync і самі
+    // доливають нові прилади й правки паспорта, не чіпаючи своїх показань
+    db.baseAt = Date.now();
     // базові (архівні/імпортовані) показання — щоб робітник, який завантажить
     // базу, одразу бачив попередню історію (ідемпотентно, без дублювання)
     let baseAdded = 0;
@@ -383,7 +388,7 @@ async function handleApi(req, res, url){
     mergeRoutes(db, body.routes);
     db.savedAt = Date.now();
     saveDb(db);
-    return sendJson(res, 200, { ok: true, houses: db.houses.length, readings: db.readings.length, baseAdded, contacts: db.contacts || {}, routes: db.routes || {} });
+    return sendJson(res, 200, { ok: true, houses: db.houses.length, readings: db.readings.length, baseAdded, contacts: db.contacts || {}, routes: db.routes || {}, baseAt: db.baseAt });
   }
   // POST /api/sync — push черги + опційно розподіл; повертає ЛИШЕ показання,
   // змінені після body.since (інкрементально — щоб автосинхронізація не тягала
@@ -432,7 +437,7 @@ async function handleApi(req, res, url){
     return sendJson(res, 200, { ok: true, warnBase: !!warnBase, stats,
       readings: out, keys: db.readings.map(keyOf), maxSrvAt: maxSrvAt(db), assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig,
       closedAt: db.closedAt || 0, periodKey: db.periodKey || '', periodAt: db.periodAt || 0, swaps: db.swaps || {},
-      purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0,
+      purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0, baseAt: db.baseAt || 0,
       deletes: db.deletes || {}, hasBase: db.houses.length > 0 });
   }
   return sendJson(res, 404, { error: 'невідомий маршрут' });

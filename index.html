@@ -2293,7 +2293,7 @@ class Component extends DCLogic {
     periodKey: '', periodAt: 0,
     // бригадне очищення попередніх періодів: показання з періодом < purgeBefore,
     // створені до purgeAt, прибираються на всіх пристроях (мітка йде через сервер)
-    purgeBefore: '', purgeAt: 0, purgeKey: '',
+    purgeBefore: '', purgeAt: 0, purgeKey: '', baseAt: 0,
     // імпорт актів зняття показників (.xlsx): план перед застосуванням
     actsPlan: null, actsClear: true,
     // новий прилад обліку (ручне внесення)
@@ -2488,7 +2488,7 @@ class Component extends DCLogic {
         lastSyncAt: cfg.lastSyncAt || 0, lastPull: cfg.lastPull || 0, autoSync: cfg.autoSync !== false,
         notify: cfg.notify === true, closedAt: cfg.closedAt || 0, deletes: cfg.deletes || {},
         periodKey: cfg.periodKey || '', periodAt: cfg.periodAt || 0, swaps: cfg.swaps || {},
-        purgeBefore: cfg.purgeBefore || '', purgeAt: cfg.purgeAt || 0 });
+        purgeBefore: cfg.purgeBefore || '', purgeAt: cfg.purgeAt || 0, baseAt: cfg.baseAt || 0 });
       if (migrated) this._saveSettings({ route, contacts });
     }).catch(() => {});
     this._idbGet().then(saved => {
@@ -2519,7 +2519,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.23'; }
+  static get APP_VERSION(){ return '2026.11.24'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -3038,6 +3038,20 @@ class Component extends DCLogic {
       const resp = await this._apiFetch('/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const data = await resp.json();
+      // На сервері опубліковано новішу базу (новий прилад, правки паспорта, № акта)
+      // — доливаємо прилади, НЕ чіпаючи показань. Робимо це ДО злиття показань:
+      // інакше показання нового приладу не знайшли б, до кого прив'язатись.
+      let baseMerged = null;
+      if (data.hasBase && Number(data.baseAt) > (Number(this.state.baseAt) || 0)) {
+        try {
+          const br = await this._apiFetch('/base', { cache: 'no-store' });
+          if (br.ok) { const bd = await br.json();
+            if (Array.isArray(bd.houses) && bd.houses.length) {
+              baseMerged = this._mergeBaseHouses(bd.houses, bd.boilers);
+              this.state.baseAt = Number(bd.baseAt) || Number(data.baseAt) || 0;
+            } }
+        } catch (e) { /* наступна синхронізація спробує знову */ }
+      }
       const res = this._mergeReadings(data.readings || []);
       this.db.readings.forEach(r => { if (r.src === 'field') r.synced = true; });
       // розподіл: зводимо по ключах (новіша мітка перемагає) — і старші теж, щоб
@@ -3087,9 +3101,10 @@ class Component extends DCLogic {
       const patch = { cloudBusy: false, rev: this.state.rev + 1 };
       // тихо (автосинхронізація): без спливаючого повідомлення й без закриття панелі,
       // але дашборд оновиться сам (rev++). Показуємо тост лише коли є що показати.
-      if (!silent || res.added > 0 || push.length > 0) {
+      if (!silent || res.added > 0 || push.length > 0 || (baseMerged && baseMerged.added > 0)) {
         patch.importOpen = true; patch.importName = 'Синхронізація з сервером';
-        patch.importMeta = 'надіслано ' + push.length + ' · отримано +' + res.added + ' нових' + (data.warnBase ? ' · ⚠ інша база' : '');
+        patch.importMeta = 'надіслано ' + push.length + ' · отримано +' + res.added + ' нових' + (data.warnBase ? ' · ⚠ інша база' : '')
+          + (baseMerged && (baseMerged.added || baseMerged.updated) ? ' · довідник: +' + baseMerged.added + ' приладів' : '');
         if (!silent) patch.settingsOpen = false;
       }
       this.setState(patch);
@@ -3217,8 +3232,17 @@ class Component extends DCLogic {
   }
   disableNotify(){ this._saveSettings({ notify: false }); this.setState({ importOpen: true, importName: 'Нагадування', importMeta: 'вимкнено' }); }
   toggleNotify(){ if (this.state.notify) this.disableNotify(); else this.enableNotify(); }
+  // дочекатися кінця поточної синхронізації (автосинхронізація, збереження
+  // картки) — щоб дія користувача не губилась мовчки, поки «зайнято»
+  async _waitCloudIdle(ms){
+    const end = Date.now() + (ms || 15000);
+    while (this.state.cloudBusy && Date.now() < end) await new Promise(r => setTimeout(r, 150));
+    return !this.state.cloudBusy;
+  }
   async cloudPublishBase(){
-    if (!this.db || this.state.cloudBusy) return;
+    if (!this.db) return;
+    if (this.state.cloudBusy && !(await this._waitCloudIdle())) {
+      this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте опублікувати ще раз' }); return; }
     this.setState({ cloudBusy: true, importError: '' });
     try {
       // Разом із довідником публікуємо БАЗОВІ (архівні/імпортовані з книги ЗБЛ)
@@ -3234,6 +3258,7 @@ class Component extends DCLogic {
         body: JSON.stringify({ houses: this.db.houses, boilers: this.db.boilers, readings: baseReadings, contacts: this.state.contacts || {}, routes: this.state.route || {}, baseSig: this._baseSig(), savedAt: this.db.savedAt }) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const d = await resp.json();
+      if (d.baseAt) { this.state.baseAt = Number(d.baseAt); this._saveSettings({ baseAt: this.state.baseAt }); }
       const rc = (d.readings != null) ? (' · ' + d.readings + ' показань') : '';
       this._mergeContacts(d.contacts); this._mergeRoutes(d.routes);
       this._saveSettings({ contacts: this.state.contacts, route: this.state.route });
@@ -3241,7 +3266,7 @@ class Component extends DCLogic {
     } catch (err) { this.setState({ cloudBusy: false, importError: 'Не вдалося опублікувати базу: ' + (err && err.message ? err.message : err) }); }
   }
   async cloudLoadBase(){
-    if (this.state.cloudBusy) return;
+    if (this.state.cloudBusy && !(await this._waitCloudIdle())) { this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте ще раз' }); return; }
     // ЗАПОБІЖНИК: заміна бази стирає локальні показання. Якщо є незвигружена
     // черга — вимагаємо явного підтвердження, інакше один хибний тап знищить
     // день роботи (введене в підвалі ще не на сервері!).
@@ -3258,6 +3283,7 @@ class Component extends DCLogic {
       const d = await resp.json();
       if (!d.hasBase) throw new Error('на сервері ще немає бази — старший має її опублікувати');
       this.db = { houses: d.houses, readings: [], boilers: d.boilers || [], baseSig: d.baseSig, baseDate: this._todayISO(), savedAt: Date.now() };
+      this.state.baseAt = Number(d.baseAt) || 0;
       this._persist();
       // нова база — скидаємо позначку інкрементальної синхронізації, щоб перша
       // синхронізація підтягнула всі показання з сервера
@@ -3269,7 +3295,7 @@ class Component extends DCLogic {
       { const assign = d.assignments || {}, at = { ...(d.assignmentsAt || {}) };
         Object.keys(assign).forEach(k => { if (!at[k]) at[k] = 1; });
         this._mergeAssignments(assign, at); }
-      this._saveSettings({ lastPull: 0, assignments: this.state.assignments, assignmentsAt: this.state.assignmentsAt || {}, contacts: this.state.contacts, route: this.state.route });
+      this._saveSettings({ lastPull: 0, baseAt: this.state.baseAt || 0, assignments: this.state.assignments, assignmentsAt: this.state.assignmentsAt || {}, contacts: this.state.contacts, route: this.state.route });
       this.setState({ cloudBusy: false, hasData: true, booting: false, tab: 'overview', settingsOpen: false,
         importOpen: true, importName: 'База з сервера', importMeta: d.houses.length + ' будинків' });
       // База містить лише довідник (без показань). Одразу підтягуємо показання з
@@ -3281,7 +3307,7 @@ class Component extends DCLogic {
   // завантажити ЛИШЕ розподіл (завдання) із сервера — не чіпаючи базу й локальну
   // чергу показань. Робітник підтягує оновлене завдання від старшого.
   async cloudLoadAssign(){
-    if (this.state.cloudBusy) return;
+    if (this.state.cloudBusy && !(await this._waitCloudIdle())) { this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте ще раз' }); return; }
     this.setState({ cloudBusy: true, importError: '' });
     try {
       const resp = await this._apiFetch('/base', { cache: 'no-store' });
@@ -3299,7 +3325,7 @@ class Component extends DCLogic {
   }
   _saveSettings(patch){
     const s = this.state;
-    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, deletes: s.deletes || {}, swaps: s.swaps || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, baseAt: s.baseAt || 0, deletes: s.deletes || {}, swaps: s.swaps || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
     this.setState(patch || {});
     this._idbSetKey('settings', cfg).catch(() => {});
   }
@@ -3434,7 +3460,8 @@ class Component extends DCLogic {
   }
   // опублікувати завдання на сервер негайно (інакше піде автосинхронізацією)
   async cloudPublishAssign(){
-    if (!this.state.cloud || this.state.cloudBusy) return;
+    if (!this.state.cloud) return;
+    if (this.state.cloudBusy && !(await this._waitCloudIdle())) { this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте ще раз' }); return; }
     this.setState({ cloudBusy: true, importError: '' });
     try {
       const resp = await this._apiFetch('/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -4846,6 +4873,41 @@ class Component extends DCLogic {
       per: null, hid: null, mc: new Map(), rfm: new Map(), last: new Map(), bc: new Map() };
     return this._dc;
   }
+  // Злиття ДОВІДНИКА з сервера в локальний (без показань). Прилад зіставляємо за
+  // особовим + № лічильника, далі за id з тим самим особовим (після заміни № на
+  // сервері ще може бути старим — заміни/повірки потім доведе _applySwaps). Поля
+  // паспорта беремо з сервера; нові прилади додаємо (id без конфліктів);
+  // локальні, яких на сервері немає, лишаємо.
+  _mergeBaseHouses(srv, boilers){
+    if (!this.db || !Array.isArray(srv)) return { added: 0, updated: 0 };
+    const n = (x) => this._normAddr(x);
+    const local = this.db.houses;
+    const byKey = new Map(), byId = new Map();
+    local.forEach(h => { const k = n(h.account) + '|' + n(h.meterNo); if (!byKey.has(k)) byKey.set(k, h); byId.set(String(h.id), h); });
+    const used = new Set();
+    let maxId = local.reduce((m, h) => Math.max(m, h.id || 0), 0);
+    let added = 0, updated = 0;
+    srv.forEach(S => {
+      if (!S || typeof S !== 'object') return;
+      let L = byKey.get(n(S.account) + '|' + n(S.meterNo));
+      if (!L || used.has(L)) { const c = byId.get(String(S.id)); L = (c && !used.has(c) && n(c.account) === n(S.account)) ? c : null; }
+      if (L) {
+        used.add(L);
+        let ch = false;
+        Object.keys(S).forEach(k => { if (k === 'id') return;
+          if (JSON.stringify(L[k]) !== JSON.stringify(S[k])) { L[k] = S[k]; ch = true; } });
+        if (ch) updated++;
+      } else {
+        const id = byId.has(String(S.id)) ? ++maxId : S.id;
+        maxId = Math.max(maxId, Number(id) || 0);
+        const h = Object.assign({}, S, { id });
+        local.push(h); byId.set(String(id), h); used.add(h); added++;
+      }
+    });
+    if (Array.isArray(boilers)) boilers.forEach(b => { if (b && !(this.db.boilers || []).includes(b)) this.db.boilers = [...(this.db.boilers || []), b]; });
+    if (added || updated) this._persist();
+    return { added, updated };
+  }
   // множина номерів актів бази (нормалізованих) — для пріоритету точного № акта
   _actSet(){
     const c = this._dcache();
@@ -4954,6 +5016,19 @@ class Component extends DCLogic {
     const h = this._houseById(houseId);
     return h && h.prevObc ? h.prevObc : 0;
   }
+  // «Попереднє» для води/наробітку/простою/водоміра. Довідник (h.prevVoda…)
+  // оновлюється лише на пристрої, де зняли показання, — на інших пристроях він
+  // відставав. Тому беремо значення з НАЙСВІЖІШОГО показання поточного приладу,
+  // де це поле є (показання синхронізуються), а довідник — запасний варіант.
+  _prevX(h, key, hKey){
+    if (!h) return '';
+    let best = null;
+    this._curMeterReadings(h.id).forEach(r => {
+      if (r[key] == null || r[key] === '' || !r.date) return;
+      if (!best || r.date > best.date || (r.date === best.date && ((r.swapIn ? 1 : 0) - (best.swapIn ? 1 : 0) || r.id - best.id) > 0)) best = r;
+    });
+    return best ? best[key] : h[hKey];
+  }
   _extractPhone(text){
     const m = String(text || '').match(/\d[\d\s().-]{7,}\d/);
     return m ? m[0] : '';
@@ -4983,8 +5058,8 @@ class Component extends DCLogic {
       mTspZavod: h.tspZavod || '', mTspPovirka: h.tspPovirka || '',
       mKomOblik: h.komOblik !== false, mFop: !!h.fop,
       // --- попередні показники з довідника (стають «попередніми» у таблиці) ---
-      tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(h.prevVoda), tblNarPrev: sv(h.prevRobota),
-      tblProstPrev: sv(h.prevProstiy), tblVod2Prev: sv(h.prevVodomir),
+      tblKilkPrev: sv(this._prevEnergy(h.id)), tblVodPrev: sv(this._prevX(h, 'voda', 'prevVoda')), tblNarPrev: sv(this._prevX(h, 'robota', 'prevRobota')),
+      tblProstPrev: sv(this._prevX(h, 'prostiy', 'prevProstiy')), tblVod2Prev: sv(this._prevX(h, 'vodomir', 'prevVodomir')),
       tblKilkCur: '', tblVodCur: '', tblNarCur: '', tblProstCur: '', tblVod2Cur: '',
       sVytraty: '', sPotuzhnist: '', sTempVhid: '', sTempVyhid: '',
       // тривалість рахується автоматично від попереднього до поточного вимірювання

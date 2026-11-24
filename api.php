@@ -63,7 +63,7 @@ function read_body() {
 function empty_db() {
     return array('houses' => array(), 'boilers' => array(), 'readings' => array(),
                  'assignments' => new stdClass(), 'assignmentsAt' => new stdClass(), 'contacts' => new stdClass(), 'routes' => new stdClass(),
-                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0,
+                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0, 'baseAt' => 0,
                  'deletes' => new stdClass(), 'swaps' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
 }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
@@ -159,6 +159,7 @@ function load_db() {
     if (isset($j['periodAt'])) $d['periodAt'] = $j['periodAt'];
     if (isset($j['purgeBefore'])) $d['purgeBefore'] = $j['purgeBefore'];
     if (isset($j['purgeAt'])) $d['purgeAt'] = $j['purgeAt'];
+    if (isset($j['baseAt'])) $d['baseAt'] = $j['baseAt'];
     if (isset($j['deletes'])) $d['deletes'] = $j['deletes'];
     if (isset($j['swaps'])) $d['swaps'] = $j['swaps'];
     return $d;
@@ -410,7 +411,7 @@ if ($path === 'base' && $method === 'GET') {
         'boilers' => $db['boilers'], 'assignments' => assign_out($db['assignments']), 'assignmentsAt' => assign_out($db['assignmentsAt'] ?? array()),
         'contacts' => assign_out($db['contacts'] ?? array()),
         'routes' => assign_out($db['routes'] ?? array()),
-        'baseSig' => $db['baseSig'], 'savedAt' => $db['savedAt']));
+        'baseSig' => $db['baseSig'], 'savedAt' => $db['savedAt'], 'baseAt' => (float)($db['baseAt'] ?? 0)));
 }
 // POST /base — старший публікує довідник (показання й розподіл зберігаються)
 if ($path === 'base' && $method === 'POST') {
@@ -420,6 +421,8 @@ if ($path === 'base' && $method === 'POST') {
     $db['houses']  = $body['houses'];
     $db['boilers'] = $body['boilers'] ?? array();
     $db['baseSig'] = $body['baseSig'] ?? '';
+    // мітка версії ДОВІДНИКА — пристрої бригади доливають нові прилади під час синхронізації
+    $db['baseAt'] = round(microtime(true) * 1000);
     // Базові (архівні/імпортовані) показання — щоб робітник, який завантажить
     // базу, одразу бачив попередню історію споживання. Зливаємо у db.readings
     // (ідемпотентно: повторна публікація не дублює наявні показання).
@@ -435,7 +438,8 @@ if ($path === 'base' && $method === 'POST') {
     $db['savedAt'] = round(microtime(true) * 1000);
     save_db($db);
     send_json(200, array('ok' => true, 'houses' => count($db['houses']), 'readings' => count($db['readings']), 'baseAdded' => $baseAdded,
-        'contacts' => assign_out($db['contacts'] ?? array()), 'routes' => assign_out($db['routes'] ?? array())));
+        'contacts' => assign_out($db['contacts'] ?? array()), 'routes' => assign_out($db['routes'] ?? array()),
+        'baseAt' => (float)$db['baseAt']));
 }
 // POST /sync — push черги + опційно розподіл; повертає ЛИШЕ показання новіші за since
 if ($path === 'sync' && $method === 'POST') {
@@ -498,6 +502,7 @@ if ($path === 'sync' && $method === 'POST') {
         'closedAt' => (float)($db['closedAt'] ?? 0),
         'periodKey' => (string)($db['periodKey'] ?? ''), 'periodAt' => (float)($db['periodAt'] ?? 0),
         'purgeBefore' => (string)($db['purgeBefore'] ?? ''), 'purgeAt' => (float)($db['purgeAt'] ?? 0),
+        'baseAt' => (float)($db['baseAt'] ?? 0),
         'swaps' => assign_out($db['swaps'] ?? array()),
         'deletes' => assign_out($db['deletes'] ?? array()),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));

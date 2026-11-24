@@ -28,5 +28,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Рендер-тест застосунку
         run: node tests/render-check.js
+      # Два пристрої (ПК старшого й телефон робітника, окремі сховища, частина часу
+      # офлайн) проти справжнього server.js на тимчасовій теці даних.
+      - name: Тест синхронізації між пристроями
+        run: node tests/sync-check.js
       - name: Лінт api.php
         run: php -l api.php
