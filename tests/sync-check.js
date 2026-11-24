@@ -59,9 +59,12 @@ async function device(browser, label) {
   const run = (fn, arg) => page.evaluate(([src, a]) => (new Function('a', 'arg', 'return (' + src + ')(a, arg)'))(window.__arm, a), [fn.toString(), arg]);
   return { ctx, page, run, errors, label };
 }
+// Дочекатися фонової синхронізації (заміна, повірка, збереження картки самі її
+// запускають) і синхронізувати ще раз — інакше виклик під час «зайнято» мовчки
+// пропускається, і інший пристрій синхронізувався б раніше, ніж зміна дійшла
 async function syncNow(d) {
-  await d.run(async (a) => { await a.cloudSync(true); });
-  await wait(300);
+  await d.run(async (a) => { await a._waitCloudIdle(15000); await a.cloudSync(true); await a._waitCloudIdle(15000); });
+  await wait(150);
 }
 
 (async () => {
@@ -170,14 +173,14 @@ async function syncNow(d) {
     await A.run(async (a) => {
       const h = a.db.houses.find(q => q.meterNo === '10000002');
       a.openPovirka(h.id); await new Promise(r => setTimeout(r, 50));
-      a.setState({ povDate: '2026-11-18', povChanged: true, povOffDate: '2026-11-10', povInstDate: '2026-11-20',
-        povOffEn: '208', povNewEn: '0', povNewVoda: '0', povNewNar: '0', povNewProst: '0' });
+      a.setState({ povDate: '2026-11-18', povChanged: true, povInstDate: '2026-11-20',
+        povNewEn: '0', povNewVoda: '0', povNewNar: '0', povNewProst: '0' });
       await new Promise(r => setTimeout(r, 50)); a.savePovirka();
     });
     await wait(300); await syncNow(A); await syncNow(B);
     const pvB = await B.run(a => { const h = a.db.houses.find(q => q.meterNo === '10000002');
       return { pov: h.obcPovirka, prev: a._prevEnergy(h.id), recs: a._houseReadings(h.id).filter(r => r.povirka).length, hist: (h.meterPovirky || []).length }; });
-    check('повірка: у робітника нова дата, записи й «попередній»', pvB.pov === '2026-11-18' && pvB.recs === 2 && pvB.prev === 0 && pvB.hist === 1, JSON.stringify(pvB));
+    check('повірка: у робітника нова дата, запис «після повірки» й «попередній»', pvB.pov === '2026-11-18' && pvB.recs === 1 && pvB.prev === 0 && pvB.hist === 1, JSON.stringify(pvB));
     await A.run(async (a) => { const h = a.db.houses.find(q => q.meterNo === '10000002'); a.undoPovirka(h.id, h.meterPovirky[0].at); });
     await wait(300); await syncNow(A); await syncNow(B);
     const pvU = await B.run(a => { const h = a.db.houses.find(q => q.meterNo === '10000002');
