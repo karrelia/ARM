@@ -305,6 +305,12 @@ window.addEventListener('appinstalled', function () {
             <button onClick="{{ ov.toggleUnsub }}" style="font-size:var(--t120);font-weight:700;color:var(--primary);background:none;border:none;cursor:pointer">Список →</button>
             </sc-if>
           </div>
+          <sc-if value="{{ ov.lateShow }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:11px;padding:10px 11px;border-radius:11px;background:var(--debtTint);border:1px solid var(--debt)">
+            <div style="font-size:var(--t113);font-weight:700;color:var(--ink);line-height:1.35;margin-bottom:8px">{{ ov.lateTxt }}</div>
+            <button onClick="{{ ov.lateFix }}" style="height:34px;padding:0 13px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:var(--t113);font-weight:800;cursor:pointer">Зарахувати за датою зняття</button>
+          </div>
+          </sc-if>
           <sc-if value="{{ ov.showUnsub }}" hint-placeholder-val="{{ false }}">
           <div class="scrl" style="max-height:230px;overflow-y:auto;margin-top:11px;display:flex;flex-direction:column;gap:6px">
             <sc-for list="{{ ov.unsubList }}" as="u" hint-placeholder-count="3">
@@ -1515,7 +1521,7 @@ window.addEventListener('appinstalled', function () {
               <span style="display:block;font-size:var(--t110);font-weight:700;color:var(--muted);margin-bottom:5px">Звітний місяць</span>
               <div style="position:relative">
                 <select value="{{ ePeriod }}" onChange="{{ onEPeriod }}" style="width:100%;height:44px;padding:0 30px 0 11px;border-radius:12px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t123);appearance:none;-webkit-appearance:none">
-                  <option value="">— поточний період —</option>
+                  <option value="">— автоматично (за датою зняття) —</option>
                   <sc-for list="{{ monthOpts }}" as="mo" hint-placeholder-count="12">
                     <option value="{{ mo.value }}">{{ mo.label }}</option>
                   </sc-for>
@@ -2630,7 +2636,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.25.2'; }
+  static get APP_VERSION(){ return '2026.11.25.3'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -4062,7 +4068,7 @@ class Component extends DCLogic {
     const rByHouse = new Map();
     this.db.readings.forEach(r => { if (r.isControl) return; const k = String(r.houseId);
       if (!rByHouse.has(k)) rByHouse.set(k, []); rByHouse.get(k).push(r); });
-    const period = this._openPeriod();   // період веде «Закриття місяця», не дата у файлі
+    const period = this._periodForDate(dateISO);   // поточний період, або місяць дати, якщо вона з минулого
     const now = Date.now();
     const by = this.state.me || 'імпорт';
     let maxId = this.db.readings.reduce((m, r) => Math.max(m, r.id || 0), 0);
@@ -5132,6 +5138,14 @@ class Component extends DCLogic {
   _openPeriod(){
     const p = this.state.periodKey;
     return /^\d{4}-\d{2}$/.test(p || '') ? p : this._monthKey(this._todayISO());
+  }
+  // Звітний період для показання з датою date. Внесене ІЗ ЗАПІЗНЕННЯМ (акт за
+  // липень, набраний у листопаді) належить місяцю своєї дати; зняте в поточному
+  // місяці чи пізніше — відкритому періоду (як і було: початок місяця до закриття
+  // попереднього лишається в ньому).
+  _periodForDate(date){
+    const op = this._openPeriod(), m = this._monthKey(date);
+    return (m && op && m < op) ? m : op;
   }
   _prevMonthKey(k){
     const m = /^(\d{4})-(\d{2})$/.exec(k || '');
@@ -6268,7 +6282,7 @@ class Component extends DCLogic {
     const s = this.state; const w = [];
     if (!h || !pv || !pv.valid) return w;
     // дублікат показання за той самий звітний місяць
-    const period = s.ePeriod || this._openPeriod();
+    const period = s.ePeriod || this._periodForDate(s.eDate);
     if (!s.eControl && period && this._houseReadings(h.id).some(r => !r.isControl && (r.period === period || this._monthKey(r.date) === period)))
       w.push('За цей місяць уже є показання для цього лічильника — збереження створить ще один запис.');
     // приріст порівняно з типовим для цього лічильника (медіана попередніх)
@@ -6568,7 +6582,7 @@ class Component extends DCLogic {
     if (w.changed && w.init) { h.prevObc = w.init.en; this._setPrevX(h, w.init); }
     if (own && w.changed && w.init) {
       let maxId = this.db.readings.reduce((m, r) => Math.max(m, r.id || 0), 0);
-      const period = this._openPeriod();
+      const period = this._periodForDate(w.instDate || w.povDate || w.offDate);
       const x = (cur, prev) => { const o = {};
         [['voda', 'vodaPrev'], ['robota', 'robotaPrev'], ['prostiy', 'prostiyPrev']].forEach(([k, kp]) => {
           if (cur && cur[k] != null) o[k] = cur[k]; if (prev && prev[k] != null && prev[k] !== '') o[kp] = this.num(prev[k]); });
@@ -6722,7 +6736,7 @@ class Component extends DCLogic {
     const oldPrev = prevR ? this.num(prevR.cur) : (h.prevObc != null ? this.num(h.prevObc) : 0);
     if (oldLast < oldPrev) { this.setState({ swapErr: 'Показник старого (' + this.fmt(oldLast, 0) + ') менший за попередній (' + this.fmt(oldPrev, 0) + ')' }); return; }
     const now = Date.now();
-    const period = this._openPeriod();
+    const period = this._periodForDate(date);
     const by = this.state.me || '';
     let maxId = this.db.readings.reduce((m, r) => Math.max(m, r.id || 0), 0);
     const mk = (mno, cur, prev, extra, unit) => Object.assign({
@@ -6877,7 +6891,7 @@ class Component extends DCLogic {
     const id = (this.db.readings.reduce((m,r) => Math.max(m, r.id), 0) || 0) + 1;
     this.db.readings.push({
       id, houseId: h.id, date: s.eControl ? '' : (s.eDate || this._todayISO()),
-      time: s.eTime || '', isControl: s.eControl, period: s.ePeriod || this._openPeriod() || '',
+      time: s.eTime || '', isControl: s.eControl, period: s.ePeriod || this._periodForDate(s.eDate) || '',
       meterNo: h.meterNo || '',            // прилад, який стояв на момент зняття
       unit: h.unit || 'Гкал', cur: pv.cur, prev: pv.prev, delta: pv.delta, gcal: pv.gcal, gcalReal: true,
       // норматив і відхилення від нього (порожні, якщо не задано ТН/тривалість)
@@ -7100,6 +7114,24 @@ class Component extends DCLogic {
     this._persist();
     this._kickSync();
     this.setState({ importOpen: true, importError: '', importName: 'Період', importMeta: 'перенесено ' + rs.length + ' показань у ' + this._monthLabel(target), rev: this.state.rev + 1 });
+  }
+  // показання періоду key, дата яких — з раніших місяців
+  _lateReadings(key){
+    if (!this.db || !key) return [];
+    return this.db.readings.filter(r => r.date && this._rPeriod(r) === key && this._monthKey(r.date) && this._monthKey(r.date) < key);
+  }
+  fixLateReadings(key){
+    const late = this._lateReadings(key);
+    if (!late.length) return;
+    const byM = {}; late.forEach(r => { const m = this._monthKey(r.date); byM[m] = (byM[m] || 0) + 1; });
+    if (typeof window !== 'undefined' && window.confirm
+      && !window.confirm('Зарахувати ' + late.length + ' показань у місяці, коли їх зняли?\n\n'
+        + Object.keys(byM).sort().map(m => this._monthLabel(m) + ' — ' + byM[m]).join('\n')
+        + '\n\nДати не змінюються. Зміна дійде до всіх пристроїв.')) return;
+    late.forEach(r => { r.period = this._monthKey(r.date); r.at = (Number(r.at) || 0) + 1; if (r.src === 'field') r.synced = false; });
+    this._persist();
+    this._kickSync();
+    this.setState({ importOpen: true, importError: '', importName: 'Період', importMeta: 'зараховано за датою зняття: ' + late.length + ' показань', rev: this.state.rev + 1 });
   }
   // ---------- МЕТОД ПРОВЕДЕННЯ В 1С ----------
   // Кожен прилад у 1С проводиться одним із документів: «Акт» (Акт зняття показань
@@ -8059,7 +8091,7 @@ class Component extends DCLogic {
       // (не попереднє показання): у полі це єдиний орієнтир, чи введена цифра
       // взагалі схожа на правду.
       ...(() => {
-        const prevKey = this._prevMonthKey(s.ePeriod || this._openPeriod());
+        const prevKey = this._prevMonthKey(s.ePeriod || this._periodForDate(s.eDate));
         const mc = (eh && prevKey) ? this._monthConsumption(eh.id, prevKey) : null;
         return { entryPrevMonthLabel: prevKey ? this._monthShort(prevKey) : 'мин. міс.',
           entryPrevMonthGcal: mc ? this.fmt(mc.gcal, 3) : '—' };
@@ -8235,7 +8267,7 @@ class Component extends DCLogic {
         contactMore: c.extraCount > 0 ? ('+' + c.extraCount) : '', contactHasMore: c.extraCount > 0
       };
     } else { out.einfo = {}; }
-    out.ePeriod = s.ePeriod || this._openPeriod();
+    out.ePeriod = s.ePeriod || this._periodForDate(s.eDate);
     out.onEPeriod = this.setField('ePeriod');
 
     if (s.detailId) {
@@ -8349,6 +8381,10 @@ class Component extends DCLogic {
       meteredCom.forEach(h => { if (this._readingForMonth(h.id, curKey)) submitted++; else unsub.push(h); });
       const total = meteredCom.length, notSub = total - submitted;
       const controlCnt = this.db.readings.filter(r => r.isControl && this._rPeriod(r) === curKey).length;
+      // показання з датою МИНУЛИХ місяців, зараховані в цей (внесені із запізненням)
+      const late = this._lateReadings(curKey);
+      const lateMonths = [...new Set(late.map(r => this._monthKey(r.date)))].sort();
+      const canFix = !s.authUser || ['admin', 'lead'].includes(this._lvl(s.authUser));
       // найбільше споживання (по будинках)
       const consList = Object.values(curBld).filter(b => b.gcal > 0).sort((a, b) => b.gcal - a.gcal);
       // динаміка по місяцях — лише періоди з приростом споживання
@@ -8394,6 +8430,10 @@ class Component extends DCLogic {
         soPct: soPct != null ? this.pctTxt(soPct) : '—',
         soColor: soPct != null ? (soPct > 0 ? '#ffc4b8' : '#a8f0c8') : '#FBE3D2',
         submitted: String(submitted), total: String(total), notSub: String(notSub), controlCnt: String(controlCnt),
+        lateShow: late.length > 0 && canFix,
+        lateTxt: late.length + ' показань знято раніше (' + lateMonths.map(k => this._monthShort(k)).join(', ')
+          + '), але зараховано в ' + this._monthLabel(curKey) + ' — їх внесли із запізненням.',
+        lateFix: () => this.fixLateReadings(curKey),
         subW: Math.round(submitted / Math.max(1, total) * 100) + '%',
         showUnsub: !!s.ovShowUnsub, toggleUnsub: () => this.toggleUnsub(),
         hasUnsub: notSub > 0,
