@@ -292,6 +292,20 @@ window.addEventListener('appinstalled', function () {
         </div>
         </sc-if>
 
+        <sc-if value="{{ ov.archShow }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:12px 13px;margin-bottom:14px">
+          <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:9px">Архів показань (усі прилади)</div>
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted)">з</span>
+            <input id="ovArchFrom" type="date" value="{{ ov.archFrom }}" onInput="{{ ov.onArchFrom }}" style="height:34px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t113)">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted)">по</span>
+            <input id="ovArchTo" type="date" value="{{ ov.archTo }}" onInput="{{ ov.onArchTo }}" style="height:34px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t113)">
+            <button onClick="{{ ov.archXls }}" style="flex:1 1 130px;height:36px;border-radius:10px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t113);font-weight:800;cursor:pointer">⭳ Архів у Excel</button>
+          </div>
+          <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-top:8px">Кожне показання окремим рядком: ТЕ, вода, наробіток, простій, витрата, потужність, температури, водомір. {{ ov.archNote }}</div>
+        </div>
+        </sc-if>
+
         <!-- month closure -->
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -1557,7 +1571,46 @@ window.addEventListener('appinstalled', function () {
         <!-- ============ Архів (для обраного будинку) ============ -->
         <sc-if value="{{ eHouse }}" hint-placeholder-val="{{ false }}">
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px">
-          <div style="font-size:var(--t140);font-weight:800;color:var(--ink);margin-bottom:10px">Архів</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="flex:1;font-size:var(--t140);font-weight:800;color:var(--ink)">Архів</div>
+            <div style="display:flex;border:1px solid var(--line2);border-radius:10px;overflow:hidden">
+              <button onClick="{{ archShort }}" style="height:32px;padding:0 11px;border:none;background:{{ archShortBg }};color:{{ archShortFg }};font-size:var(--t110);font-weight:700;cursor:pointer">Коротко</button>
+              <button id="archFullBtn" onClick="{{ archFull }}" style="height:32px;padding:0 11px;border:none;background:{{ archFullBg }};color:{{ archFullFg }};font-size:var(--t110);font-weight:700;cursor:pointer">Детально</button>
+            </div>
+            <button onClick="{{ archXlsHouse }}" title="Архів цього приладу в Excel" style="height:32px;padding:0 11px;border-radius:10px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t110);font-weight:800;cursor:pointer">⭳ Excel</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted)">Період з</span>
+            <input id="archFrom" type="date" value="{{ archFrom }}" onInput="{{ onArchFrom }}" style="height:34px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t113)">
+            <span style="font-size:var(--t110);font-weight:700;color:var(--muted)">по</span>
+            <input id="archTo" type="date" value="{{ archTo }}" onInput="{{ onArchTo }}" style="height:34px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t113)">
+            <sc-if value="{{ archHasRange }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ archClear }}" style="height:34px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);color:var(--muted);font-size:var(--t108);font-weight:700;cursor:pointer">✕ увесь архів</button>
+            </sc-if>
+            <span class="tnum" style="margin-left:auto;font-size:var(--t108);font-weight:700;color:var(--muted2)">{{ archCnt }}</span>
+          </div>
+          <sc-if value="{{ archDetail }}" hint-placeholder-val="{{ false }}">
+          <div class="scrl" style="overflow-x:auto;border:1px solid var(--line);border-radius:11px">
+            <div style="min-width:{{ archGridW }}">
+              <div style="display:grid;grid-template-columns:{{ archCols }};background:var(--chipBg)">
+                <sc-for list="{{ archHead }}" as="hc" hint-placeholder-count="8">
+                <div style="padding:7px 7px;font-size:var(--t100);font-weight:800;color:var(--muted);text-align:{{ hc.al }};white-space:nowrap">{{ hc.t }}</div>
+                </sc-for>
+              </div>
+              <sc-for list="{{ archGrid }}" as="row" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:{{ archCols }};border-top:1px solid var(--line)">
+                <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="8">
+                <div class="tnum" style="padding:7px 7px;font-size:var(--t110);font-weight:{{ c.w }};color:{{ c.fg }};text-align:{{ c.al }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.t }}</div>
+                </sc-for>
+              </div>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ archGridEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="text-align:center;color:var(--muted);font-size:var(--t120);font-weight:600;padding:10px 0">За обраний період показань немає</div>
+          </sc-if>
+          </sc-if>
+          <sc-if value="{{ archShortView }}" hint-placeholder-val="{{ true }}">
           <div style="display:flex;flex-direction:column;gap:7px">
             <sc-for list="{{ entryArchive }}" as="a" hint-placeholder-count="3">
               <div style="background:var(--chipBg);border-radius:10px;padding:8px 12px">
@@ -1600,9 +1653,10 @@ window.addEventListener('appinstalled', function () {
               <button onClick="{{ toggleArchAll }}" style="width:100%;height:38px;border-radius:10px;border:1px dashed var(--line2);background:none;color:var(--primary);font-size:var(--t115);font-weight:700;cursor:pointer">Показати всі (ще {{ entryArchMoreN }}) ▾</button>
             </sc-if>
             <sc-if value="{{ entryArchiveEmpty }}" hint-placeholder-val="{{ false }}">
-              <div style="text-align:center;color:var(--muted);font-size:var(--t120);font-weight:600;padding:10px 0">Показань ще немає</div>
+              <div style="text-align:center;color:var(--muted);font-size:var(--t120);font-weight:600;padding:10px 0">{{ entryArchEmptyTxt }}</div>
             </sc-if>
           </div>
+          </sc-if>
         </div>
         </sc-if>
       </div>
@@ -2354,6 +2408,7 @@ class Component extends DCLogic {
     eHouse: '', eDate: new Date().toISOString().slice(0,10), eTime: '', ePeriod: '', ePrevSel: '', eControl: false, eDur: '', eTavg: '', eCur: '',
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '', entryArchAll: false,
+    archDetail: false, archFrom: '', archTo: '', ovArchFrom: '', ovArchTo: '',   // архів показань: режим і період
     eNoConsumption: false, entryPhotos: [], photoView: null, dovExpanded: false, eDetails: false,
     editReadId: null, editReadVal: '',
     swapHouseId: null, swapDate: '', swapOldLast: '', swapNewNo: '', swapNewInit: '0', swapErr: '',
@@ -2636,7 +2691,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.25.3'; }
+  static get APP_VERSION(){ return '2026.11.25.4'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -7299,6 +7354,96 @@ class Component extends DCLogic {
       this.setState({ importError: 'Не вдалося сформувати файл для 1С: ' + (e && e.message || e) });
     }
   }
+  // ---------- АРХІВ ПОКАЗАНЬ (усі параметри приладу за період) ----------
+  _archDate(v){ return /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : ''; }
+  _archIn(r, from, to){
+    const d = r && r.date || '';
+    if (!d) return false;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  }
+  _monthBounds(key){
+    const m = /^(\d{4})-(\d{2})$/.exec(key || '');
+    if (!m) return { from: '', to: '' };
+    const last = new Date(+m[1], +m[2], 0).getDate();
+    return { from: key + '-01', to: key + '-' + String(last).padStart(2, '0') };
+  }
+  _plural(n, one, few, many){ const a = Math.abs(n) % 100, b = a % 10;
+    return (a > 10 && a < 20) ? many : (b === 1 ? one : (b >= 2 && b <= 4 ? few : many)); }
+  _isNum(v){ return v !== '' && v != null && !isNaN(Number(v)); }
+  // усі параметри одного показання: поточне, попереднє, різниця
+  _archVals(r){
+    const n = (v) => this._isNum(v) ? Number(v) : null;
+    const d = (c, p) => (c != null && p != null) ? this.r3(c - p) : null;
+    const pair = (k) => { const c = n(r[k]), pv = n(r[k + 'Prev']); return { c, p: pv, d: d(c, pv) }; };
+    const te = { c: n(r.cur), p: n(r.prev), d: n(r.delta) != null ? n(r.delta) : d(n(r.cur), n(r.prev)) };
+    return { te, gcal: this._rowGcal(r), voda: pair('voda'), robota: pair('robota'), prostiy: pair('prostiy'), vodomir: pair('vodomir'),
+      vytraty: n(r.vytraty), potuzhnist: n(r.potuzhnist), tVhid: n(r.tVhid), tVyhid: n(r.tVyhid),
+      duration: n(r.duration), tAvg: n(r.tAvg) };
+  }
+  // детальна таблиця для картки «Архів» у «Вводі»
+  _archGrid(arch){
+    const C = [['Дата', 84, 'left'], ['ТЕ, поточ.', 90], ['ТЕ, різн.', 76], ['Гкал', 66], ['Вода, м³', 90], ['Δ вода', 74],
+      ['Наробіток', 90], ['Δ', 70], ['Простій', 80], ['Δ', 66], ['Витрата', 70], ['Потужн.', 70], ['t вх', 52], ['t вих', 52],
+      ['Водомір', 84], ['Δ', 66], ['Хто', 120, 'left']];
+    // що більше число, то менше знаків після коми — щоб уміщалось у колонку
+    const f = (v, dg) => v == null ? '—' : this.fmt(v, dg != null ? dg : (Math.abs(v) >= 10000 ? 1 : (Math.abs(v) >= 100 ? 2 : 3)));
+    const rows = arch.map(r => {
+      const v = this._archVals(r);
+      const t = [this._fmtDateUa(r.date) || '—', f(v.te.c), f(v.te.d), f(v.gcal, 3), f(v.voda.c), f(v.voda.d),
+        f(v.robota.c), f(v.robota.d), f(v.prostiy.c), f(v.prostiy.d), f(v.vytraty), f(v.potuzhnist), f(v.tVhid, 1), f(v.tVyhid, 1),
+        f(v.vodomir.c), f(v.vodomir.d), r.src === 'field' ? (r.by || '') : 'база'];
+      return { cells: t.map((x, i) => ({ t: x, al: C[i][2] || 'right', w: (i === 1 || i === 3) ? 800 : 600,
+        fg: x === '—' ? 'var(--muted2)' : 'var(--ink)' })) };
+    });
+    return { head: C.map(c => ({ t: c[0], al: c[2] || 'right' })), rows,
+      cols: C.map(c => c[1] + 'px').join(' '), w: C.reduce((a, c) => a + c[1], 0) + 'px' };
+  }
+  async exportArchive(houses, from, to){
+    if (!this.db || !houses || !houses.length) return;
+    try {
+      const XLSX = await this._ensureXlsx();
+      const ids = new Map(houses.map(h => [String(h.id), h]));
+      const rs = this.db.readings.filter(r => !r.isControl && ids.has(String(r.houseId)) && ((!from && !to) || this._archIn(r, from, to)));
+      const coll = this._coll();
+      rs.sort((a, b) => { const ha = ids.get(String(a.houseId)), hb = ids.get(String(b.houseId));
+        return this._cmpAddr(ha.address || '', hb.address || '', ha.owner, hb.owner) || coll.compare(String(ha.account || ''), String(hb.account || ''))
+          || (a.date < b.date ? -1 : (a.date > b.date ? 1 : a.id - b.id)); });
+      const x = (v) => v == null ? '' : v;
+      const aoa = [['Особовий рахунок', 'Адреса', 'Власник', '№ лічильника', 'Клас приладу', 'Дата зняття', 'Час', 'Звітний місяць',
+        'ТЕ попередній', 'ТЕ поточний', 'ТЕ різниця', 'Од. приладу', 'Спожито, Гкал',
+        'Вода попер., м³', 'Вода поточ., м³', 'Вода різн., м³', 'Наробіток попер.', 'Наробіток поточ.', 'Наробіток різн.',
+        'Простій попер., год', 'Простій поточ., год', 'Простій різн., год', 'Витрати теплоносія', 'Миттєва потужність',
+        'Температура вхід, °C', 'Температура вихід, °C', 'Водомір попер., м³', 'Водомір поточ., м³', 'Водомір різн., м³',
+        'Тривалість, год', 't сер., °C', 'Хто знімав', 'Метод 1С']];
+      rs.forEach(r => {
+        const h = ids.get(String(r.houseId)), v = this._archVals(r);
+        aoa.push([String(h.account || ''), String(h.address || ''), String(h.owner || ''), String(r.meterNo || h.meterNo || ''), this._kindLabel(h),
+          this._fmtDateUa(r.date), r.time || '', this._monthLabel(this._rPeriod(r)),
+          x(v.te.p), x(v.te.c), x(v.te.d), r.unit || h.unit || 'Гкал', x(v.gcal),
+          x(v.voda.p), x(v.voda.c), x(v.voda.d), x(v.robota.p), x(v.robota.c), x(v.robota.d),
+          x(v.prostiy.p), x(v.prostiy.c), x(v.prostiy.d), x(v.vytraty), x(v.potuzhnist), x(v.tVhid), x(v.tVyhid),
+          x(v.vodomir.p), x(v.vodomir.c), x(v.vodomir.d), x(v.duration), x(v.tAvg),
+          r.src === 'field' ? (r.by || '') : 'база', h.m1c || '']);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      for (let Rw = 1; Rw <= range.e.r; Rw++) [0, 3].forEach(c => { const cell = ws[XLSX.utils.encode_cell({ r: Rw, c })]; if (cell) { cell.t = 's'; cell.v = String(cell.v); cell.z = '@'; } });
+      ws['!cols'] = aoa[0].map((hd, i) => ({ wch: [16, 30, 26, 14, 12, 11, 7, 14][i] || Math.max(10, Math.min(18, hd.length)) }));
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Архів');
+      const tag = houses.length === 1 ? ('-' + String(houses[0].account || houses[0].meterNo || houses[0].id).replace(/[\\/:*?"<>|\s]+/g, '_')) : '';
+      const per = (from || to) ? ('-' + (from || '…') + '_' + (to || '…')) : '';
+      const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      this._downloadBlob(new Blob([out], { type: 'application/octet-stream' }), 'teplo-arhiv' + tag + per + '.xlsx');
+      this.setState({ importOpen: true, importError: '', importName: 'Архів показань', importMeta: 'вигружено ' + rs.length + ' ' + this._plural(rs.length, 'показання', 'показання', 'показань')
+        + ((from || to) ? ' за ' + (this._fmtDateUa(from) || '…') + ' – ' + (this._fmtDateUa(to) || '…') : '') });
+    } catch (e) {
+      this.setState({ importError: 'Не вдалося сформувати архів: ' + (e && e.message || e) });
+    }
+  }
   // Вигрузка звіту в XLSX. Потрібна саме тому, що Excel «виправляє» номери
   // лічильників у CSV: «00491654» стає 491654 (з'їдає нулі спереду), а довгий
   // номер — «2,01804E+11». У XLSX клітинка з номером записується як ТЕКСТ, тож
@@ -8111,10 +8256,25 @@ class Component extends DCLogic {
       dovExpanded: !!s.dovExpanded, toggleDov: () => this.toggleDov(), dovChevron: s.dovExpanded ? '▴' : '▾',
       eDetails: !!s.eDetails, toggleDetails: () => this.toggleDetails(), eDetailsChevron: s.eDetails ? '▴' : '▾',
       ...((() => {
-        const arch = eh ? this._houseReadings(eh.id).filter(r => !r.isControl)
+        const af = this._archDate(s.archFrom), at = this._archDate(s.archTo), ranged = !!(af || at);
+        const arch = eh ? this._houseReadings(eh.id).filter(r => !r.isControl && (!ranged || this._archIn(r, af, at)))
           .sort((a,b) => (a.date < b.date ? 1 : (a.date > b.date ? -1 : b.id - a.id))) : [];
-        const shown = s.entryArchAll ? arch : arch.slice(0, 6);
+        const shown = (s.entryArchAll || ranged) ? arch : arch.slice(0, 6);
+        const det = !!s.archDetail;
+        const grid = det ? this._archGrid(arch) : null;
         return {
+          archDetail: det, archShortView: !det,
+          archShortBg: det ? 'var(--surface)' : 'var(--primary)', archShortFg: det ? 'var(--ink)' : '#fff',
+          archFullBg: det ? 'var(--primary)' : 'var(--surface)', archFullFg: det ? '#fff' : 'var(--ink)',
+          archShort: () => this.setState({ archDetail: false }), archFull: () => this.setState({ archDetail: true }),
+          archFrom: s.archFrom || '', archTo: s.archTo || '',
+          onArchFrom: (e) => this.setState({ archFrom: e.target.value }), onArchTo: (e) => this.setState({ archTo: e.target.value }),
+          archHasRange: ranged, archClear: () => this.setState({ archFrom: '', archTo: '' }),
+          archCnt: arch.length ? (arch.length + ' ' + this._plural(arch.length, 'показання', 'показання', 'показань')) : '',
+          archXlsHouse: () => this.exportArchive(eh ? [eh] : [], af, at),
+          archHead: grid ? grid.head : [], archGrid: grid ? grid.rows : [], archCols: grid ? grid.cols : '', archGridW: grid ? grid.w : '0',
+          archGridEmpty: det && !arch.length,
+          entryArchEmptyTxt: ranged ? 'За обраний період показань немає' : 'Показань ще немає',
           entryArchive: shown.map(r => { const g = this._rowGcal(r);
             const canDel = r.src === 'field' && (s.role === 'lead' || !r.by || !s.me || r.by === s.me);
             const hasPh = !!(r.photos && r.photos.length);
@@ -8150,7 +8310,7 @@ class Component extends DCLogic {
           toggleArchAll: () => this.setState(st => ({ entryArchAll: !st.entryArchAll }))
         };
       })()),
-      entryArchiveEmpty: !eh || !this.db.readings.some(r => r.houseId === eh.id && !r.isControl)
+      entryArchiveEmpty: !eh || !this._houseReadings(eh.id).some(r => !r.isControl && ((!this._archDate(s.archFrom) && !this._archDate(s.archTo)) || this._archIn(r, this._archDate(s.archFrom), this._archDate(s.archTo))))
     });
     {
       let entryNav = { show: false };
@@ -8404,6 +8564,18 @@ class Component extends DCLogic {
       out.ov = {
         monthLabel: this._monthLabel(curKey),
         exportMonth: () => this.exportMonth(), exportMonthXlsx: () => this.exportMonthXlsx(), canExport: curAgg.n > 0,
+        ...(() => {
+          const mb = this._monthBounds(curKey);
+          const from = this._archDate(s.ovArchFrom) || mb.from, to = this._archDate(s.ovArchTo) || mb.to;
+          const n = (from || to) ? this.db.readings.filter(r => !r.isControl && this._archIn(r, from, to)).length : 0;
+          return {
+            archShow: !this._m1cHidden() && this.db.readings.length > 0,
+            archFrom: from, archTo: to,
+            onArchFrom: (e) => this.setState({ ovArchFrom: e.target.value }), onArchTo: (e) => this.setState({ ovArchTo: e.target.value }),
+            archXls: () => this.exportArchive(this.db.houses, from, to),
+            archNote: 'За період: ' + n + ' ' + this._plural(n, 'показання', 'показання', 'показань') + '.'
+          };
+        })(),
         ...(() => {
           const c = (curKey && !this._m1cHidden()) ? this._m1cCounts(curKey) : null;
           const tot = c ? c['Акт'] + c['Опалення'] + c['Ввід'] + c.none + c.noAcc : 0;
