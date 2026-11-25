@@ -280,6 +280,17 @@ window.addEventListener('appinstalled', function () {
         </div>
         <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.35;margin-bottom:14px">Для Excel беріть <b>Excel (XLSX)</b>: у CSV Excel сам «виправляє» номери приладів — з'їдає нулі спереду (00491654 → 491654) і робить з довгих номерів 2,01804E+11.</div>
         </sc-if>
+        <sc-if value="{{ ov.show1c }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:12px 13px;margin-bottom:14px">
+          <div style="font-size:var(--t120);font-weight:800;color:var(--ink);margin-bottom:9px">Для 1С за {{ ov.monthLabel }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <sc-for list="{{ ov.m1cBtns }}" as="x" hint-placeholder-count="4">
+            <button onClick="{{ x.tap }}" style="flex:1 1 120px;height:40px;border-radius:11px;border:1px solid {{ x.bd }};background:{{ x.bg }};color:{{ x.fg }};font-size:var(--t115);font-weight:800;cursor:pointer">{{ x.label }}</button>
+            </sc-for>
+          </div>
+          <div style="font-size:var(--t105);font-weight:600;color:{{ ov.m1cNoteColor }};line-height:1.35;margin-top:8px">{{ ov.m1cNote }}</div>
+        </div>
+        </sc-if>
 
         <!-- month closure -->
         <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:14px">
@@ -539,9 +550,19 @@ window.addEventListener('appinstalled', function () {
             </sc-if>
           </div>
           </sc-if>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
-            <div class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--muted)">{{ houseCount }} будинків</div>
-            <div style="display:flex;gap:7px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px">
+            <div class="tnum" style="flex-shrink:0;font-size:var(--t120);font-weight:700;color:var(--muted)">{{ houseCount }} будинків</div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:7px">
+              <sc-if value="{{ showM1c }}" hint-placeholder-val="{{ false }}">
+              <select id="m1cFilter" value="{{ m1cSel }}" onChange="{{ onM1cSel }}" title="Метод проведення в 1С" style="font-size:var(--t120);font-weight:700;color:{{ m1cFg }};background:{{ m1cBg }};border:1px solid var(--line2);border-radius:10px;padding:7px 9px;cursor:pointer;appearance:none;-webkit-appearance:none">
+                <option value="">1С: усі</option>
+                <option value="Акт">1С: Акт</option>
+                <option value="Опалення">1С: Опалення</option>
+                <option value="Ввід">1С: Ввід</option>
+                <option value="Акт+Ввід">1С: Акт+Ввід</option>
+                <option value="-">1С: без мітки</option>
+              </select>
+              </sc-if>
               <sc-if value="{{ showMyFilter }}" hint-placeholder-val="{{ false }}">
               <button onClick="{{ toggleMyOnly }}" style="font-size:var(--t120);font-weight:700;color:{{ myOnlyFg }};background:{{ myOnlyBg }};border:1px solid var(--line2);border-radius:10px;padding:7px 11px;cursor:pointer">Тільки мої</button>
               </sc-if>
@@ -593,7 +614,7 @@ window.addEventListener('appinstalled', function () {
                 <sc-if value="{{ m.ordShow }}" hint-placeholder-val="{{ false }}">
                 <div style="display:inline-block;font-size:var(--t112);font-weight:800;color:var(--primary);background:var(--primTint);border:1px solid var(--primBd);border-radius:8px;padding:2px 9px;margin-bottom:5px">{{ m.ordTxt }}</div>
                 </sc-if>
-                <div class="tnum" style="font-size:var(--t115);font-weight:600;color:var(--muted2);margin-bottom:3px">Особовий {{ m.code }} · № лічил. {{ m.meterNo }}</div>
+                <div class="tnum" style="font-size:var(--t115);font-weight:600;color:var(--muted2);margin-bottom:3px">{{ m.idLine }}</div>
                 <div class="tnum" style="font-size:var(--t120);font-weight:700;color:var(--ink)">{{ m.factTxt }}</div>
               </button>
             </sc-for>
@@ -1171,6 +1192,19 @@ window.addEventListener('appinstalled', function () {
           <label style="display:block;margin-bottom:10px">
             <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">№ обчислювача</span>
             <input value="{{ mObcZavod }}" onInput="{{ onMObcZavod }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 11px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+          </label>
+          <label style="display:block;margin-bottom:10px">
+            <span style="display:block;font-size:var(--t115);font-weight:700;color:var(--muted);margin-bottom:5px">Метод 1С</span>
+            <div style="position:relative">
+              <select id="m1cSelect" value="{{ mM1c }}" onChange="{{ onMM1c }}" disabled="{{ dovLock }}" style="width:100%;height:42px;padding:0 28px 0 11px;border-radius:11px;border:1px solid var(--inputBd);background:var(--inputBg);color:var(--ink);font-size:var(--t125);appearance:none;-webkit-appearance:none">
+                <option value="">— не вказано —</option>
+                <option value="Акт">Акт (акт зняття показань)</option>
+                <option value="Опалення">Опалення (ввід показань, опалення)</option>
+                <option value="Ввід">Ввід (ввід показань приладів обліку)</option>
+                <option value="Акт+Ввід">Акт + Ввід</option>
+              </select>
+              <span style="position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted2);pointer-events:none">▾</span>
+            </div>
           </label>
 
           <!-- паспорт вузла обліку ТЕ: обчислювач + витратомір + ТСП -->
@@ -2352,6 +2386,7 @@ class Component extends DCLogic {
     mObcZavod: '', mObcPovirka: '', mObcTip: '', mObcChastka: '', mObcUnit: '', mHeatLoad: '',
     mVodZavod: '', mVodPovirka: '', mVodTip: '', mVodDN: '',
     mTspZavod: '', mTspPovirka: '', mKomOblik: false, mFop: false, mContact: '', mPhone: '',
+    mM1c: '', m1cSel: '',                  // метод проведення в 1С (картка) і фільтр списку
     mMeterKind: 'kom', mKom: true,          // клас приладу: комерційний / розподільчий
     savedDovidnyk: false, dovErr: '',
     // --- додаткові поля показань/розрахунку (заглушки) ---
@@ -2440,6 +2475,7 @@ class Component extends DCLogic {
       h.meterNo = newNo;
       if (ch('mAkt')) h.act = String(s.mAkt || '').trim();
       if (ch('mKomOblik')) h.komOblik = s.mKomOblik !== false;   // комерційний / розподільчий прилад
+      if (ch('mM1c')) h.m1c = this._m1cNorm(s.mM1c);                // метод проведення в 1С
       if (ch('mFop')) h.fop = !!s.mFop;
       // паспорт вузла обліку ТЕ
       if (ch('mObcUnit')) h.unit = s.mObcUnit || h.unit || 'Гкал';
@@ -2586,7 +2622,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.24.4'; }
+  static get APP_VERSION(){ return '2026.11.25.1'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -4598,6 +4634,9 @@ class Component extends DCLogic {
           // Таблиця АКТІВ (без «Довідників» книги ЗБЛ) базу не замінює, а
           // доповнює: прилади + показання, з підсумком перед застосуванням
           if (!wb.SheetNames.some(n => /довідник/i.test(n))) {
+            // перелік «Метод 1С» (особовий · № лічильника · метод) — лише мітки приладів
+            const m1c = this._parseM1cList(wb);
+            if (m1c) { this._importM1c(m1c, f.name); return; }
             const acts = this._parseActs(wb);
             if (acts) { this._openActsPlan(acts, f.name); return; }
           }
@@ -5407,7 +5446,7 @@ class Component extends DCLogic {
     // знімок картки, як її відкрили: при збереженні пишемо ЛИШЕ змінені тут поля —
     // інакше відкрита на цьому пристрої застаріла картка затерла б правки з інших
     this._dovOrig = { houseId: h.id, vals: {} };
-    ["mAddress", "mOwner", "mAccount", "mSettlement", "mBoiler", "mObcZavod", "mAkt", "mKomOblik", "mFop", "mObcUnit", "mObcPovirka", "mObcTip", "mVodZavod", "mVodPovirka", "mVodTip", "mVodDN", "mTspZavod", "mTspPovirka", "mHeatLoad", "mObcChastka", "mContact", "mPhone"].forEach(k => { this._dovOrig.vals[k] = patch[k]; });
+    ["mAddress", "mOwner", "mAccount", "mSettlement", "mBoiler", "mObcZavod", "mAkt", "mM1c", "mKomOblik", "mFop", "mObcUnit", "mObcPovirka", "mObcTip", "mVodZavod", "mVodPovirka", "mVodTip", "mVodDN", "mTspZavod", "mTspPovirka", "mHeatLoad", "mObcChastka", "mContact", "mPhone"].forEach(k => { this._dovOrig.vals[k] = patch[k]; });
     return patch;
   }
   _entryPatchCalc(h){
@@ -5419,7 +5458,7 @@ class Component extends DCLogic {
     return {
       mAddress: h.address || '', mOwner: h.owner || '', mAccount: h.account || '',
       mSettlement: h.settlement || '', mBoiler: h.boiler || '', mObcZavod: h.meterNo || '',
-      mAkt: h.act || '', mMeterKind: this._meterKind(h), mKom: h.komOblik !== false,
+      mAkt: h.act || '', mM1c: h.m1c || '', mMeterKind: this._meterKind(h), mKom: h.komOblik !== false,
       mContact: c.name || this._stripPhone(h.contact),
       mPhone: c.hasPhone ? c.phone : (h.phone ? this._formatPhoneUa(h.phone) : this._formatPhoneUa(this._extractPhone(h.contact))),
       // --- паспорт приладів обліку ТЕ (обчислювач / витратомір / ТСП) ---
@@ -5712,6 +5751,7 @@ class Component extends DCLogic {
   _filteredBuildings(){
     const s = this.state; let list = this._buildings();
     if (s.boilerSel) list = list.filter(b => b.boiler === s.boilerSel);
+    if (s.m1cSel && !this._m1cHidden()) list = list.filter(b => b.meters.some(h => this._m1cMatch(h, s.m1cSel)));
     const q = s.searchQ.trim() ? (s.searchQd || '').trim() : '';
     if (q) { const sq = this._searchQuery(q); list = list.filter(b => this._buildingMatches(b, sq)); }
     const nq = (s.searchNo || '').trim() ? this._numQuery(s.searchNoD) : null;
@@ -7035,6 +7075,172 @@ class Component extends DCLogic {
     const csv = '﻿' + [this._monthReportHeader(), ...body].map(r => r.map(esc).join(';')).join('\r\n');
     this._downloadCsv(csv, 'teplo-zvit-' + key + '.csv');
   }
+  // ---------- МЕТОД ПРОВЕДЕННЯ В 1С ----------
+  // Кожен прилад у 1С проводиться одним із документів: «Акт» (Акт зняття показань
+  // теплолічильника), «Опалення» (Ввід показань приладів, опалення), «Ввід» (Ввід
+  // показань приладів обліку) або обома «Акт+Ввід». Мітка зберігається в приладі
+  // (h.m1c) і синхронізується разом із довідником.
+  _m1cNorm(v){
+    const t = String(v == null ? '' : v).replace(/ /g, ' ').trim().toLowerCase().replace(/\s+/g, '').replace(/ввод/g, 'ввід');
+    return ({ 'акт': 'Акт', 'опалення': 'Опалення', 'отопление': 'Опалення', 'ввід': 'Ввід', 'акт+ввід': 'Акт+Ввід', 'ввід+акт': 'Акт+Ввід' })[t] || '';
+  }
+  // прилад потрапляє у вигрузку документа: «Акт+Ввід» — і в «Акт», і у «Ввід»
+  _m1cIn(h, doc){ const m = h && h.m1c || ''; return m === doc || (m === 'Акт+Ввід' && (doc === 'Акт' || doc === 'Ввід')); }
+  // фільтр списку: точний метод або «-» (без мітки)
+  _m1cMatch(h, sel){ return sel === '-' ? !(h && h.m1c) : ((h && h.m1c || '') === sel); }
+  // робітнику мітки 1С не потрібні: ні фільтр, ні вигрузка (лише видно метод у картці будинку)
+  _m1cHidden(){ const s = this.state; return s.role === 'worker' || this._lvl(s.authUser) === 'worker'; }
+  _accNorm(v){ return String(v == null ? '' : v).replace(/ /g, ' ').trim().toUpperCase().replace(/\s+/g, ''); }
+  // Перелік з Excel: аркуш, де в шапці є «Особовий» і «Метод». № лічильника — необов'язковий.
+  _parseM1cList(wb){
+    for (const name of wb.SheetNames) {
+      const rows = window.XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: false, defval: '' });
+      for (let hr = 0; hr < Math.min(rows.length, 10); hr++) {
+        const hd = (rows[hr] || []).map(v => String(v || '').trim().toLowerCase());
+        const ci = hd.findIndex(v => /особов/.test(v)), cm = hd.findIndex(v => /метод/.test(v));
+        if (ci < 0 || cm < 0) continue;
+        const cn = hd.findIndex((v, i) => i !== ci && i !== cm && /лічильн|прилад|заводськ|обчислювач/.test(v));
+        const items = [];
+        for (let r = hr + 1; r < rows.length; r++) {
+          const row = rows[r] || [];
+          const acc = String(row[ci] || '').trim(), no = cn >= 0 ? String(row[cn] || '').trim() : '';
+          if (!acc && !no) continue;
+          items.push({ row: r + 1, acc, no, m: String(row[cm] || '').trim() });
+        }
+        return { sheet: name, items };
+      }
+    }
+    return null;
+  }
+  // План: рядок із № лічильника — точно на цей прилад (зокрема за № до заміни);
+  // рядок без № — на всі прилади особового, яким не задано окремо.
+  _m1cPlan(list){
+    const houses = (this.db && this.db.houses) || [];
+    const byAcc = new Map();
+    houses.forEach(h => { const k = this._accNorm(h.account); if (!k) return; if (!byAcc.has(k)) byAcc.set(k, []); byAcc.get(k).push(h); });
+    const set = new Map(), exact = new Set(), notFound = [], noMethod = [], conflicts = new Set();
+    const put = (h, m) => { if (set.has(h.id) && set.get(h.id) !== m) conflicts.add(h.account || h.meterNo); set.set(h.id, m); };
+    const accRows = [];
+    list.items.forEach(it => {
+      const m = this._m1cNorm(it.m);
+      if (!m) { noMethod.push(it); return; }
+      if (!it.no) { accRows.push({ it, m }); return; }
+      const cand = byAcc.get(this._accNorm(it.acc)) || [];
+      let h = cand.find(x => this._sameMeterNo(x.meterNo, it.no))
+        || cand.find(x => (x.meterSwaps || []).some(w => this._sameMeterNo(w && w.oldNo, it.no)));
+      if (!h) { const all = houses.filter(x => this._sameMeterNo(x.meterNo, it.no)); if (all.length === 1) h = all[0]; }
+      if (h) { put(h, m); exact.add(h.id); }
+      else if (cand.length) accRows.push({ it, m });
+      else notFound.push(it);
+    });
+    accRows.forEach(({ it, m }) => {
+      const cand = byAcc.get(this._accNorm(it.acc)) || [];
+      if (!cand.length) { notFound.push(it); return; }
+      cand.forEach(h => { if (!exact.has(h.id)) put(h, m); });
+    });
+    const changes = houses.filter(h => set.has(h.id) && (h.m1c || '') !== set.get(h.id));
+    const unmarked = houses.filter(h => !set.has(h.id) && !h.m1c);
+    return { set, changes, notFound, noMethod, conflicts: [...conflicts], unmarked };
+  }
+  _importM1c(list, fname){
+    if (!this.db || !this.db.houses.length) { this.setState({ importBusy: false, importError: 'Спершу завантажте базу приладів' }); return; }
+    if (this.state.cloud && this.state.authUser && !this._canManageBase()) {
+      this.setState({ importBusy: false, importError: 'Перелік методів 1С може завантажити старший або адміністратор' }); return; }
+    const pl = this._m1cPlan(list);
+    const uniq = (a) => [...new Set(a)];
+    const nf = uniq(pl.notFound.map(it => it.acc || it.no));
+    const cnt = {}; pl.set.forEach(m => { cnt[m] = (cnt[m] || 0) + 1; });
+    const msg = 'Перелік методів 1С («' + list.sheet + '», рядків: ' + list.items.length + ')\n\n'
+      + 'Позначено буде приладів: ' + pl.set.size + ' (' + Object.keys(cnt).map(k => k + ' — ' + cnt[k]).join(', ') + ')\n'
+      + 'Із них нових або змінених міток: ' + pl.changes.length + '\n'
+      + (nf.length ? 'Немає в застосунку: ' + nf.length + ' (' + nf.slice(0, 12).join(', ') + (nf.length > 12 ? '…' : '') + ')\n' : '')
+      + (pl.noMethod.length ? 'Рядків без методу (пропущено): ' + pl.noMethod.length + '\n' : '')
+      + (pl.conflicts.length ? 'Різні методи для одного приладу (взято останній): ' + pl.conflicts.join(', ') + '\n' : '')
+      + (pl.unmarked.length ? 'Без мітки лишиться приладів: ' + pl.unmarked.length + '\n' : '')
+      + '\nЗастосувати?';
+    if (typeof window !== 'undefined' && window.confirm && !window.confirm(msg)) { this.setState({ importBusy: false }); return; }
+    pl.changes.forEach(h => { h.m1c = pl.set.get(h.id); this._touchHouse(h); });
+    this._persist();
+    this._kickSync();
+    const parts = ['мітки 1С', pl.changes.length + ' змінено', pl.set.size + ' позначено'];
+    if (nf.length) parts.push(nf.length + ' немає в застосунку');
+    if (pl.unmarked.length) parts.push(pl.unmarked.length + ' без мітки');
+    this.setState({ importBusy: false, importOpen: true, importName: fname || 'Перелік методів 1С', importMeta: parts.join(' · '), rev: this.state.rev + 1 });
+  }
+  // Рядки вигрузки для 1С за місяць: усі прилади, показник — за місяць.
+  // Формат файлів — як читають форми «ЗагрузкаИзЕксель» у 1С: з 2-го рядка,
+  // A — особовий (Наименование), B — заводський № приладу, C — показник.
+  _m1cRows(key){
+    const rows = [];
+    (this.db.houses || []).forEach(h => {
+      const rm = this._readingForMonth(h.id, key);
+      const cur = rm && rm.cur != null && rm.cur !== '' ? Number(rm.cur) : null;
+      const sw = (Array.isArray(h.meterSwaps) ? h.meterSwaps : []).filter(w => w && w.oldNo && !this._sameMeterNo(w.oldNo, w.newNo || h.meterNo));
+      const last = sw[sw.length - 1];
+      const notes = [];
+      if (!h.account) notes.push('немає особового');
+      if (!h.meterNo) notes.push('немає № лічильника — 1С не знайде прилад');
+      if (!h.m1c) notes.push('метод 1С не вказано');
+      if (cur == null) notes.push('немає показника за місяць');
+      if (last) notes.push('лічильник замінено ' + this._fmtDateUa(last.date) + ' (був ' + last.oldNo + ') — перевірте № у 1С');
+      rows.push({ h, account: h.account || '', meterNo: h.meterNo || '', cur, m1c: h.m1c || '',
+        date: rm ? rm.date : '', by: rm ? (rm.by || '') : '', addr: h.address || '', kind: this._kindLabel(h),
+        swapNote: last ? ('замінено ' + this._fmtDateUa(last.date) + ', був ' + last.oldNo) : '', note: notes.join('; ') });
+    });
+    const coll = this._coll();
+    rows.sort((a, b) => coll.compare(a.account, b.account) || coll.compare(a.meterNo, b.meterNo));
+    return rows;
+  }
+  _fmtDateUa(d){ const m = String(d || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3] + '.' + m[2] + '.' + m[1]) : String(d || ''); }
+  _m1cCounts(key){
+    const c = { 'Акт': 0, 'Опалення': 0, 'Ввід': 0, none: 0, noAcc: 0 };
+    (this.db.houses || []).forEach(h => {
+      const rm = this._readingForMonth(h.id, key);
+      if (!rm || rm.cur == null || rm.cur === '') return;
+      if (!h.m1c) { c.none++; return; }
+      if (!h.account) { c.noAcc++; return; }        // без особового 1С прилад не знайде
+      ['Акт', 'Опалення', 'Ввід'].forEach(d => { if (this._m1cIn(h, d)) c[d]++; });
+    });
+    return c;
+  }
+  async exportFor1C(doc){
+    const key = this._curMonth();
+    if (!key || this._m1cHidden()) return;
+    try {
+      const XLSX = await this._ensureXlsx();
+      const all = this._m1cRows(key);
+      const txt = (ws, cols) => {
+        const range = XLSX.utils.decode_range(ws['!ref']);
+        for (let R = 1; R <= range.e.r; R++) cols.forEach(c => { const cell = ws[XLSX.utils.encode_cell({ r: R, c })]; if (cell) { cell.t = 's'; cell.v = String(cell.v); cell.z = '@'; } });
+      };
+      let aoa, cols, name, n;
+      if (doc === 'all') {
+        aoa = [['Особовий рахунок', '№ лічильника', 'Показник', 'Метод 1С', 'Дата зняття', 'Адреса', 'Клас приладу', 'Хто знімав', 'Примітка']];
+        all.forEach(r => aoa.push([r.account, r.meterNo, r.cur == null ? '' : r.cur, r.m1c, this._fmtDateUa(r.date), r.addr, r.kind, r.by, r.note]));
+        cols = [{ wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 34 }, { wch: 13 }, { wch: 18 }, { wch: 60 }];
+        name = 'teplo-1c-' + key + '-povnyi.xlsx'; n = all.length;
+      } else {
+        const sel = all.filter(r => r.cur != null && r.account && this._m1cIn(r.h, doc));
+        aoa = [['Особовий рахунок', '№ лічильника', 'Показник', 'Примітка']];
+        sel.forEach(r => aoa.push([r.account, r.meterNo, r.cur,
+          !r.meterNo ? 'немає № лічильника — 1С не знайде прилад' : (r.swapNote ? r.swapNote + ' — перевірте № у 1С' : '')]));
+        cols = [{ wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 50 }];
+        const tr = { 'Акт': 'akt', 'Опалення': 'opalennia', 'Ввід': 'vvid' };
+        name = 'teplo-1c-' + key + '-' + (tr[doc] || 'doc') + '.xlsx'; n = sel.length;
+        if (!n) { this.setState({ importOpen: true, importError: '', importName: 'Для 1С · ' + doc, importMeta: 'за ' + this._monthLabel(key) + ' немає показань із методом «' + doc + '»' }); return; }
+      }
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+      txt(ws, [0, 1]);                                   // особовий і № — текстом (нулі спереду)
+      ws['!cols'] = cols;
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, doc === 'all' ? 'Для 1С' : doc);
+      const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      this._downloadBlob(new Blob([out], { type: 'application/octet-stream' }), name);
+      this.setState({ importOpen: true, importError: '', importName: 'Для 1С · ' + (doc === 'all' ? 'повний' : doc), importMeta: 'вигружено ' + n + ' рядків за ' + this._monthLabel(key) });
+    } catch (e) {
+      this.setState({ importError: 'Не вдалося сформувати файл для 1С: ' + (e && e.message || e) });
+    }
+  }
   // Вигрузка звіту в XLSX. Потрібна саме тому, що Excel «виправляє» номери
   // лічильників у CSV: «00491654» стає 491654 (з'їдає нулі спереду), а довгий
   // номер — «2,01804E+11». У XLSX клітинка з номером записується як ТЕКСТ, тож
@@ -7946,6 +8152,7 @@ class Component extends DCLogic {
     out.mKomOblik = !!s.mKomOblik; out.mFop = !!s.mFop;
     out.onMKomOblik = (e) => this.setState({ mKomOblik: e.target.checked, mKom: e.target.checked, mMeterKind: e.target.checked ? 'kom' : 'rozp' });
     out.onMFop = (e) => this.setState({ mFop: e.target.checked });
+    out.mM1c = s.mM1c || ''; out.onMM1c = (e) => this.setState({ mM1c: e.target.value });
     // повна панель показників приладу — розгортається лише за потреби, щоб не
     // заважати швидкому вводу однієї цифри в підвалі
     // тривалість періоду й температури — основа нормативного розрахунку
@@ -8135,6 +8342,22 @@ class Component extends DCLogic {
       out.ov = {
         monthLabel: this._monthLabel(curKey),
         exportMonth: () => this.exportMonth(), exportMonthXlsx: () => this.exportMonthXlsx(), canExport: curAgg.n > 0,
+        ...(() => {
+          const c = (curKey && !this._m1cHidden()) ? this._m1cCounts(curKey) : null;
+          const tot = c ? c['Акт'] + c['Опалення'] + c['Ввід'] + c.none + c.noAcc : 0;
+          const btn = (doc, label, n) => ({ label: label + ' · ' + n, tap: () => this.exportFor1C(doc),
+            bg: n ? 'var(--primTint)' : 'var(--surface)', fg: n ? 'var(--primary)' : 'var(--muted2)', bd: n ? 'var(--primBd)' : 'var(--line2)' });
+          return {
+            show1c: tot > 0 || (!!c && this.db.houses.some(h => h.m1c)),
+            m1cBtns: c ? [btn('Акт', 'Акт', c['Акт']), btn('Опалення', 'Опалення', c['Опалення']), btn('Ввід', 'Ввід', c['Ввід']),
+              { label: 'Повний список', tap: () => this.exportFor1C('all'), bg: 'var(--surface)', fg: 'var(--ink)', bd: 'var(--line2)' }] : [],
+            m1cNote: !c ? '' : ((c.none || c.noAcc)
+              ? ([c.none ? ('без методу 1С: ' + c.none) : '', c.noAcc ? ('без особового: ' + c.noAcc) : ''].filter(Boolean).join(', ')
+                + ' прил. з показником — їх немає у файлах «Акт / Опалення / Ввід» (див. «Повний список»).')
+              : 'Файли відкриваються формою «Загрузка из Excel» у 1С: A — особовий, B — № лічильника, C — показник.'),
+            m1cNoteColor: c && (c.none || c.noAcc) ? '#B7791F' : 'var(--muted2)'
+          };
+        })(),
         totalGcal: this.fmt(curAgg.gcal, 0), consCnt: String(curAgg.n),
         subNote: curAgg.n > 0
           ? ('Гкал · за різницею показань · ' + curAgg.n + ' будинків')
@@ -8299,6 +8522,12 @@ class Component extends DCLogic {
       out.notDoneFg = s.notDone ? '#fff' : 'var(--ink)';
       out.notDoneBg = s.notDone ? '#D4A017' : 'var(--surface)';
       out.toggleNotDone = () => this.toggleNotDone();
+      // фільтр «Метод 1С» — коли в довіднику вже є мітки (або для старшого, щоб їх ставити)
+      out.showM1c = !this._m1cHidden() && (!!s.m1cSel || this._canManageBase() || this.db.houses.some(h => h.m1c));
+      out.m1cSel = s.m1cSel || '';
+      out.m1cFg = s.m1cSel ? '#fff' : 'var(--ink)';
+      out.m1cBg = s.m1cSel ? 'var(--primary)' : 'var(--surface)';
+      out.onM1cSel = (e) => this.setState({ m1cSel: e.target.value });
       if (s.notDone) buildings = buildings.filter(b => { const st = this._collectStatus(b, rmap).state; return st === 'none' || st === 'partial'; });
       // розбивка (тільки старший)
       out.collectLead = s.role === 'lead';
@@ -8374,6 +8603,7 @@ class Component extends DCLogic {
             ordShow: multi, ordTxt: 'Лічильник ' + (i + 1) + ' з ' + meters.length,
             code: h.account || h.code,
             meterNo: h.meterNo || '—', meterType: '',
+            idLine: 'Особовий ' + (h.account || h.code) + ' · № лічил. ' + (h.meterNo || '—') + (h.m1c ? ' · 1С: ' + h.m1c : ''),
             factTxt: l ? ('Спожито ' + this.fmt(l.gcal, 2) + ' Гкал · показник ' + this.fmt(l.cur, 2)) : 'Ще не знято',
             stColor: (m && m.base) ? (collected ? 'var(--over)' : 'var(--muted2)') : 'var(--line2)',
             badge: isRozp ? 'Розп.' : 'Ком.',
