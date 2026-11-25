@@ -350,6 +350,14 @@ window.addEventListener('appinstalled', function () {
                 </button>
                 <sc-if value="{{ w.expanded }}" hint-placeholder-val="{{ false }}">
                 <div style="padding:0 12px 10px;display:flex;flex-direction:column;gap:5px">
+                  <sc-if value="{{ w.canMove }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:7px;margin:2px 0 6px">
+                    <span style="font-size:var(--t110);font-weight:700;color:var(--muted)">Зараховано в період: <b style="color:var(--ink)">{{ w.perTxt }}</b></span>
+                    <sc-for list="{{ w.moves }}" as="mv" hint-placeholder-count="1">
+                    <button onClick="{{ mv.tap }}" style="height:28px;padding:0 10px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t108);font-weight:800;cursor:pointer;white-space:nowrap">{{ mv.label }}</button>
+                    </sc-for>
+                  </div>
+                  </sc-if>
                   <div style="font-size:var(--t100);font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin:2px 0 3px">За якими адресами зняв</div>
                   <sc-for list="{{ w.addrs }}" as="a" hint-placeholder-count="2">
                     <button onClick="{{ a.tap }}" style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:none;padding:3px 0;cursor:pointer;font-size:var(--t113);font-weight:600">
@@ -2622,7 +2630,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.25.1'; }
+  static get APP_VERSION(){ return '2026.11.25.2'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -7075,6 +7083,24 @@ class Component extends DCLogic {
     const csv = '﻿' + [this._monthReportHeader(), ...body].map(r => r.map(esc).join(';')).join('\r\n');
     this._downloadCsv(csv, 'teplo-zvit-' + key + '.csv');
   }
+  // Перенести показання в інший звітний період. Дата зняття не змінюється —
+  // лише період, до якого їх зараховано (r.period). Мітку часу r.at зсуваємо на
+  // 1 мс: за нею сервер і інші пристрої визнають запис новішим і беруть зміну.
+  moveReadingsPeriod(ids, target, what){
+    if (!this.db || !/^\d{4}-\d{2}$/.test(target || '')) return;
+    const lvl = this._lvl(this.state.authUser);
+    if (this.state.authUser && lvl !== 'admin' && lvl !== 'lead') return;
+    const set = new Set(ids || []);
+    const rs = this.db.readings.filter(r => set.has(r.id) && this._rPeriod(r) !== target);
+    if (!rs.length) return;
+    if (typeof window !== 'undefined' && window.confirm
+      && !window.confirm('Перенести ' + rs.length + ' показань (' + (what || '') + ') у період «' + this._monthLabel(target) + '»?\n\n'
+        + 'Дата зняття лишиться та сама — зміниться лише місяць, у якому їх враховано (закриття місяця, звіт, вигрузка для 1С).')) return;
+    rs.forEach(r => { r.period = target; r.at = (Number(r.at) || 0) + 1; if (r.src === 'field') r.synced = false; });
+    this._persist();
+    this._kickSync();
+    this.setState({ importOpen: true, importError: '', importName: 'Період', importMeta: 'перенесено ' + rs.length + ' показань у ' + this._monthLabel(target), rev: this.state.rev + 1 });
+  }
   // ---------- МЕТОД ПРОВЕДЕННЯ В 1С ----------
   // Кожен прилад у 1С проводиться одним із документів: «Акт» (Акт зняття показань
   // теплолічильника), «Опалення» (Ввід показань приладів, опалення), «Ввід» (Ввід
@@ -8434,15 +8460,16 @@ class Component extends DCLogic {
         field.forEach(r => {
           if (r.date !== selDay) return;
           const w = (r.by || '').trim() || '(без підпису)';
-          const o = byW[w] || (byW[w] = { n: 0, vol: 0, addrs: {} });
+          const o = byW[w] || (byW[w] = { n: 0, vol: 0, addrs: {}, rs: [], per: {} });
           o.n++; dTotal++;
+          o.rs.push(r); const pk = this._rPeriod(r); o.per[pk] = (o.per[pk] || 0) + 1;
           const g = this._rowGcal(r); if (g > 0) { o.vol += g; dVol += g; }
           // за якою адресою зняв (для розкриття по кожному виконавцю); зберігаємо
           // houseId, щоб тап по адресі відкривав картку будинку
           const h = hById[r.houseId]; const addr = h ? (h.address || h.code || '') : '';
           if (addr) { const e = o.addrs[addr] || (o.addrs[addr] = { cnt: 0, hid: r.houseId }); e.cnt++; }
         });
-        const wrows = Object.keys(byW).map(w => ({ w, n: byW[w].n, vol: byW[w].vol, addrs: byW[w].addrs }))
+        const wrows = Object.keys(byW).map(w => ({ w, n: byW[w].n, vol: byW[w].vol, addrs: byW[w].addrs, rs: byW[w].rs, per: byW[w].per }))
           .sort((a, b) => b.n - a.n || a.w.localeCompare(b.w, 'uk'));
         const maxN = Math.max(1, ...wrows.map(r => r.n));
         const fmtD = (iso) => { const m = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (!m) return iso;
@@ -8460,6 +8487,23 @@ class Component extends DCLogic {
           barW: Math.round(r.n / maxN * 100) + '%',
           expanded: selW === r.w, chevron: selW === r.w ? '▲' : '▼',
           tap: () => this.setState({ ovByWorker: this.state.ovByWorker === r.w ? '' : r.w }),
+          // перенесення в інший звітний період (лише адмін/старший): показання,
+          // внесені після початку місяця за МИНУЛИЙ місяць, бо його не закрили
+          ...(() => {
+            const pers = Object.keys(r.per).sort();
+            const main = pers.slice().sort((a, b) => r.per[b] - r.per[a])[0] || '';
+            const own = this._monthKey(selDay);                  // місяць за датою зняття
+            const tgts = [];
+            const prev = this._prevMonthKey(main);
+            if (prev) tgts.push(prev);
+            if (own && own !== main && tgts.indexOf(own) === -1) tgts.push(own);
+            return {
+              canMove: seeAll && !!main,
+              perTxt: pers.map(k => this._monthLabel(k) + (pers.length > 1 ? ' (' + r.per[k] + ')' : '')).join(', '),
+              moves: tgts.map(t => ({ label: (t === own ? '↩ у ' : '→ у ') + this._monthLabel(t),
+                tap: () => this.moveReadingsPeriod(r.rs.map(x => x.id), t, r.w + ' · ' + fmtD(selDay)) }))
+            };
+          })(),
           addrs: Object.keys(r.addrs).sort((a, b) => a.localeCompare(b, 'uk'))
             .map(a => ({ addr: a, cnt: r.addrs[a].cnt > 1 ? ('×' + r.addrs[a].cnt) : '',
               tap: () => this.openDetail(r.addrs[a].hid) })) }));

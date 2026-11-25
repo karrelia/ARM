@@ -413,6 +413,25 @@ async function syncNow(d) {
     check('дубль з’явився на обох (як у реальній ситуації)', dup.n === 2 && dupB === 2, dup.n + ' / ' + dupB);
     check('«Видалити прилад» прибрав дубль на обох пристроях, справжній лишився', afterDel.join() === '6666666' && afterDelA.join() === '6666666', JSON.stringify([afterDelA, afterDel]));
 
+    // ---------- 10й. перенесення показань у попередній період доходить до всіх ----------
+    const mv = await A.run(async (a) => {
+      const f = a.db.readings.filter(r => r.src === 'field' && r.date && !r.isControl);
+      if (!f.length) return null;
+      const day = f[0].date, rs = f.filter(r => r.date === day);
+      const from = a._rPeriod(rs[0]), to = a._prevMonthKey(from);
+      a.moveReadingsPeriod(rs.map(r => r.id), to, 'тест');
+      const sig = (r) => r.date + '|' + (r.meterNo || '') + '|' + r.cur;
+      return { sigs: rs.map(sig), from, to, localA: rs.map(r => a._rPeriod(r)) };
+    });
+    check('є польові показання для переносу', !!mv);
+    if (mv) {
+      for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+      const onB = await B.run((a, sigs) => a.db.readings
+        .filter(r => sigs.includes(r.date + '|' + (r.meterNo || '') + '|' + r.cur)).map(r => a._rPeriod(r)), mv.sigs);
+      check('перенос у ' + mv.to + ' — у старшого', mv.localA.every(p => p === mv.to), JSON.stringify(mv.localA));
+      check('перенос у ' + mv.to + ' дійшов до робітника, без дублів', onB.length === mv.sigs.length && onB.every(p => p === mv.to), JSON.stringify(onB));
+    }
+
     // ---------- 11. помилок JS немає ----------
     check('немає JS-помилок (старший)', A.errors.length === 0, A.errors.slice(0, 2).join(' | '));
     check('немає JS-помилок (робітник)', B.errors.length === 0, B.errors.slice(0, 2).join(' | '));
