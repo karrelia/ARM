@@ -1075,7 +1075,7 @@ window.addEventListener('appinstalled', function () {
                 </div>
                 <div style="width:34%;max-width:180px;flex-shrink:0;display:flex;align-items:center;gap:6px;background:var(--inputBg);border:1px solid var(--inputBd);border-radius:12px;padding:0 11px;height:46px">
                   <span style="color:var(--muted2);font-size:var(--t130);font-weight:800">№</span>
-                  <input onFocus="{{ onEntryNoFocus }}" onInput="{{ onEntryNo }}" value="{{ entryNo }}" placeholder="акт, ліч." title="№ акта, № лічильника, особовий рахунок або телефон" class="tnum" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t130);font-weight:700;color:var(--ink)">
+                  <input id="entryNoInput" onFocus="{{ onEntryNoFocus }}" onInput="{{ onEntryNo }}" onKeyDown="{{ onEntryNoKey }}" value="{{ entryNo }}" placeholder="акт, ліч." title="№ акта, № лічильника, особовий рахунок або телефон" class="tnum" style="flex:1;min-width:0;border:none;outline:none;background:none;font-size:var(--t130);font-weight:700;color:var(--ink)">
                 </div>
               </div>
               <sc-if value="{{ entrySearchOpen }}" hint-placeholder-val="{{ false }}">
@@ -1238,6 +1238,9 @@ window.addEventListener('appinstalled', function () {
 
           <div style="display:flex;align-items:center;gap:10px">
             <button onClick="{{ saveDovidnyk }}" style="height:42px;padding:0 16px;border-radius:12px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer">Зберегти довідник</button>
+            <sc-if value="{{ canDeleteMeter }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ deleteMeterHere }}" title="Видалити прилад (напр. дубль) — для всієї бригади" style="margin-left:auto;height:42px;padding:0 14px;border-radius:12px;border:1px solid var(--debt);background:var(--debtTint);color:var(--debt);font-size:var(--t115);font-weight:800;cursor:pointer">🗑 Видалити прилад</button>
+            </sc-if>
             <sc-if value="{{ savedDovidnyk }}" hint-placeholder-val="{{ false }}">
               <span style="font-size:var(--t115);font-weight:700;color:var(--over)">✓ Збережено</span>
             </sc-if>
@@ -1348,7 +1351,7 @@ window.addEventListener('appinstalled', function () {
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
             <span style="font-size:var(--t120);font-weight:600;color:var(--ink)">Кількість ТЕ, {{ eUnit }}</span>
             <input inputmode="decimal" tabindex="-1" value="{{ tblKilkPrev }}" onInput="{{ onTblKilkPrev }}" disabled="{{ prevLock }}" style="width:100%;height:38px;padding:0 8px;border:1px solid var(--inputBd);border-radius:9px;background:var(--inputBg);color:var(--ink);font-size:var(--t115);text-align:center">
-            <input inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" placeholder="0" style="width:100%;height:38px;padding:0 8px;border:2px solid var(--primary);border-radius:9px;background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
+            <input id="entryCurEnergy" inputmode="decimal" class="curFld" enterkeyhint="next" value="{{ eCur }}" onInput="{{ onECur }}" onFocus="{{ onECurFocus }}" onKeyDown="{{ onCurKey }}" placeholder="0" style="width:100%;height:38px;padding:0 8px;border:2px solid var(--primary);border-radius:9px;background:var(--surface);color:var(--ink);font-size:var(--t125);font-weight:800;text-align:center">
             <div class="tnum" style="text-align:center;font-size:var(--t120);font-weight:700;color:var(--muted2)">{{ diffKilkTe }}</div>
           </div>
           <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:8px 10px;align-items:center;margin-bottom:8px">
@@ -1988,6 +1991,21 @@ window.addEventListener('appinstalled', function () {
           <sc-if value="{{ roleIsLead }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ cloudPublishBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤴ Опублікувати базу на сервер</button>
           </sc-if>
+          <!-- стан даних: цей пристрій проти сервера — щоб бачити, де розійшлось -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:11px 13px;margin-bottom:9px">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="flex:1;min-width:0;font-size:var(--t120);font-weight:800;color:var(--ink)">Стан даних</span>
+              <span class="tnum" style="font-size:var(--t105);font-weight:700;color:var(--muted2)">версія {{ appVersion }}</span>
+            </div>
+            <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted);line-height:1.5">{{ diagLocalTxt }}</div>
+            <sc-if value="{{ diagHas }}" hint-placeholder-val="{{ false }}">
+            <div class="tnum" style="font-size:var(--t110);font-weight:600;color:var(--muted);line-height:1.5">{{ diagSrvTxt }}</div>
+            <div style="font-size:var(--t110);font-weight:800;color:{{ diagFg }};line-height:1.4;margin-top:4px">{{ diagHint }}</div>
+            </sc-if>
+            <button onClick="{{ cloudCompare }}" disabled="{{ diagBusy }}" style="width:100%;height:38px;border-radius:11px;border:1px solid var(--line2);background:var(--chipBg);color:var(--ink);font-size:var(--t115);font-weight:700;cursor:pointer;margin-top:8px">{{ diagBtn }}</button>
+          </div>
+          <!-- довідник (прилади, № актів, паспорт) з сервера БЕЗ втрати показань — для будь-кого -->
+          <button onClick="{{ cloudRefreshBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t120);font-weight:800;cursor:pointer;margin-bottom:9px">⟳ Оновити довідник з сервера</button>
           <sc-if value="{{ roleIsWorker }}" hint-placeholder-val="{{ false }}">
           <button onClick="{{ cloudLoadBase }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити базу з сервера</button>
           <button onClick="{{ cloudLoadAssign }}" disabled="{{ cloudBusy }}" style="width:100%;height:44px;border-radius:13px;border:1px solid var(--line2);background:var(--surface);color:var(--ink);font-size:var(--t120);font-weight:700;cursor:pointer;margin-bottom:9px">⤵ Завантажити завдання з сервера</button>
@@ -2304,6 +2322,7 @@ class Component extends DCLogic {
     // бригадне очищення попередніх періодів: показання з періодом < purgeBefore,
     // створені до purgeAt, прибираються на всіх пристроях (мітка йде через сервер)
     purgeBefore: '', purgeAt: 0, purgeKey: '', baseAt: 0,
+    diag: null, diagBusy: false, srvBase: null, baseDirty: false, houseDels: {},
     // імпорт актів зняття показників (.xlsx): план перед застосуванням
     actsPlan: null, actsClear: true,
     // новий прилад обліку (ручне внесення)
@@ -2390,17 +2409,25 @@ class Component extends DCLogic {
     const s = this.state;
     // Робітник у полі редагує лише контактні дані абонента; решту (адреса, №
     // лічильника, тип води) веде старший — щоб дані не розходились у базі.
+    const o = (this._dovOrig && this._dovOrig.houseId === h.id) ? this._dovOrig.vals : null;
+    const ch = (k) => !o || String(s[k] == null ? '' : s[k]) !== String(o[k] == null ? '' : o[k]);
+    // ключ приладу ДО правки (особовий + №): якщо зміниться — запам'ятаємо його, щоб
+    // сервер і інші пристрої впізнали той самий прилад, а не завели дубль
+    const keyBefore = this._houseKey(h);
     if (s.role !== 'worker') {
       // порядковий № акта має бути унікальним — інакше два бланки з одним номером
-      const dupAct = this._actNoDup(s.mAkt, h.id);
+      const dupAct = ch('mAkt') ? this._actNoDup(s.mAkt, h.id) : null;
       if (dupAct) { this.setState({ savedDovidnyk: false, dovErr: this._actNoDupMsg(s.mAkt, dupAct) }); return; }
-      h.address = s.mAddress || ''; h.owner = s.mOwner || ''; h.account = s.mAccount || '';
+      if (ch('mAddress')) h.address = s.mAddress || '';
+      if (ch('mOwner')) h.owner = s.mOwner || '';
+      if (ch('mAccount')) h.account = s.mAccount || '';
       if (!h.code) h.code = h.account || h.address;
-      h.settlement = s.mSettlement || ''; h.boiler = s.mBoiler || s.mSettlement || '';
+      if (ch('mSettlement')) h.settlement = s.mSettlement || '';
+      if (ch('mBoiler') || ch('mSettlement')) h.boiler = s.mBoiler || s.mSettlement || '';
       // Зміна № лічильника тут — це ПЕРЕЙМЕНУВАННЯ (виправлення друкарської
       // помилки), а не заміна приладу: закривного показання не буде й спожите до
       // заміни не зарахується. Якщо на приладі вже є показання — попереджаємо.
-      const newNo = s.mObcZavod || '';
+      const newNo = ch('mObcZavod') ? (s.mObcZavod || '') : (h.meterNo || '');
       if (!this._sameMeterNo(newNo, h.meterNo) && (h.meterNo || '') !== newNo) {
         const hasReadings = this._houseReadings(h.id).some(r => !r.isControl);
         if (hasReadings && typeof window !== 'undefined' && window.confirm
@@ -2410,24 +2437,36 @@ class Component extends DCLogic {
           this.setState({ savedDovidnyk: false }); return;
         }
       }
-      h.meterNo = newNo; h.act = String(s.mAkt || '').trim();
-      h.komOblik = s.mKomOblik !== false;   // комерційний / розподільчий прилад
-      h.fop = !!s.mFop;
+      h.meterNo = newNo;
+      if (ch('mAkt')) h.act = String(s.mAkt || '').trim();
+      if (ch('mKomOblik')) h.komOblik = s.mKomOblik !== false;   // комерційний / розподільчий прилад
+      if (ch('mFop')) h.fop = !!s.mFop;
       // паспорт вузла обліку ТЕ
-      h.unit = s.mObcUnit || h.unit || 'Гкал';
-      h.obcPovirka = s.mObcPovirka || '';
-      h.meterType = s.mObcTip || '';
-      h.vodZavod = s.mVodZavod || ''; h.vodPovirka = s.mVodPovirka || '';
-      h.vodTip = s.mVodTip || ''; h.dn = s.mVodDN || '';
-      h.tspZavod = s.mTspZavod || ''; h.tspPovirka = s.mTspPovirka || '';
-      if (s.mHeatLoad !== '') h.heatLoad = this.num(s.mHeatLoad);
-      if (s.mObcChastka !== '') h.share = this.num(s.mObcChastka) || 1;
+      if (ch('mObcUnit')) h.unit = s.mObcUnit || h.unit || 'Гкал';
+      if (ch('mObcPovirka')) h.obcPovirka = s.mObcPovirka || '';
+      if (ch('mObcTip')) h.meterType = s.mObcTip || '';
+      if (ch('mVodZavod')) h.vodZavod = s.mVodZavod || '';
+      if (ch('mVodPovirka')) h.vodPovirka = s.mVodPovirka || '';
+      if (ch('mVodTip')) h.vodTip = s.mVodTip || '';
+      if (ch('mVodDN')) h.dn = s.mVodDN || '';
+      if (ch('mTspZavod')) h.tspZavod = s.mTspZavod || '';
+      if (ch('mTspPovirka')) h.tspPovirka = s.mTspPovirka || '';
+      if (ch('mHeatLoad') && s.mHeatLoad !== '') h.heatLoad = this.num(s.mHeatLoad);
+      if (ch('mObcChastka') && s.mObcChastka !== '') h.share = this.num(s.mObcChastka) || 1;
     }
-    h.contact = s.mContact || ''; h.phone = s.mPhone || '';
+    if (this._houseKey(h) !== keyBefore && keyBefore !== '|') h.prevKeys = (Array.isArray(h.prevKeys) ? h.prevKeys : []).filter(k => k !== this._houseKey(h)).concat([keyBefore]).slice(-10);
+    const contactChanged = ch('mContact') || ch('mPhone');
+    if (ch('mContact')) h.contact = s.mContact || '';
+    if (ch('mPhone')) h.phone = s.mPhone || '';
+    if (s.role !== 'worker') this._touchHouse(h);
     this._persist();
     // контактну особу дублюємо у СПІЛЬНУ мапу маршруту — щоб зміну з картки
-    // абонента одразу бачив «Маршрут» і решта бригади (двобічна синхронізація)
-    this._writeSharedContact(h, s.mContact || '', s.mPhone || '');
+    // абонента одразу бачив «Маршрут» і решта бригади (двобічна синхронізація).
+    // Лише якщо контакт тут справді змінили — не затираємо свіжіший з інших пристроїв.
+    if (contactChanged) this._writeSharedContact(h, s.mContact || '', s.mPhone || '');
+    // збережене стає новою точкою відліку для наступного збереження
+    if (this._dovOrig && this._dovOrig.houseId === h.id) Object.keys(this._dovOrig.vals).forEach(k => { this._dovOrig.vals[k] = s[k]; });
+    this._kickSync();
     this.setState({ savedDovidnyk: true, dovErr: '', rev: this.state.rev + 1 });
   }
   // інший прилад із тим самим порядковим № акта (порожній номер — не дубль)
@@ -2516,7 +2555,7 @@ class Component extends DCLogic {
         lastSyncAt: cfg.lastSyncAt || 0, lastPull: cfg.lastPull || 0, autoSync: cfg.autoSync !== false,
         notify: cfg.notify === true, closedAt: cfg.closedAt || 0, deletes: cfg.deletes || {},
         periodKey: cfg.periodKey || '', periodAt: cfg.periodAt || 0, swaps: cfg.swaps || {},
-        purgeBefore: cfg.purgeBefore || '', purgeAt: cfg.purgeAt || 0, baseAt: cfg.baseAt || 0 });
+        purgeBefore: cfg.purgeBefore || '', purgeAt: cfg.purgeAt || 0, baseAt: cfg.baseAt || 0, baseDirty: cfg.baseDirty === true, houseDels: cfg.houseDels || {} });
       if (migrated) this._saveSettings({ route, contacts });
     }).catch(() => {});
     this._idbGet().then(saved => {
@@ -2547,7 +2586,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.24.3'; }
+  static get APP_VERSION(){ return '2026.11.24.4'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -3067,8 +3106,9 @@ class Component extends DCLogic {
     this.setState({ cloudBusy: true, importError: '' });
     try {
       const km = this._houseKeyMap();
-      const push = this.db.readings.filter(r => r.src === 'field' && !r.synced)
-        .map(r => this._mapReadingOut(r, km));
+      const pushSrc = this.db.readings.filter(r => r.src === 'field' && !r.synced);
+      const push = pushSrc.map(r => this._mapReadingOut(r, km));
+      const pushIds = pushSrc.map((r, i) => ({ r, id: { account: push[i].account, wt: push[i].wt, meterNo: push[i].meterNo } }));
       // Розподіл штовхають на сервер лише ті, хто ним керує (адмін/старший).
       // Але тепер це НЕ ціла-мапа-перезапис: разом із assignments шлемо
       // assignmentsAt (мітка на кожен ключ), а сервер зводить по ключах — новіша
@@ -3082,6 +3122,7 @@ class Component extends DCLogic {
         periodKey: this.state.periodKey || '', periodAt: this.state.periodAt || 0,   // відкритий звітний період — бригадний
         purgeBefore: this.state.purgeBefore || '', purgeAt: this.state.purgeAt || 0, // очищення попередніх періодів — бригадне
         deletes: this.state.deletes || {},      // тумбстоуни видалених показань
+        houseDels: this.state.houseDels || {},  // видалені прилади — бригадні
         swaps: this.state.swaps || {} };        // заміни приладів — бригадні
       if (canManageAsg) { payload.assignments = this.state.assignments || {}; payload.assignmentsAt = this.state.assignmentsAt || {}; }
       const resp = await this._apiFetch('/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -3091,7 +3132,15 @@ class Component extends DCLogic {
       // — доливаємо прилади, НЕ чіпаючи показань. Робимо це ДО злиття показань:
       // інакше показання нового приладу не знайшли б, до кого прив'язатись.
       let baseMerged = null;
-      if (data.hasBase && Number(data.baseAt) > (Number(this.state.baseAt) || 0)) {
+      // довідник на сервері (кількість приладів і № актів) — для «Стану даних»
+      // і автоматичного вирівнювання: якщо на пристрої інакше, а своїх
+      // неопублікованих правок немає — довантажуємо (один раз на стан сервера)
+      if (data.baseN != null) this.state.srvBase = { n: Number(data.baseN) || 0, acts: Number(data.baseActs) || 0, baseAt: Number(data.baseAt) || 0, hasBase: !!data.hasBase, at: Date.now() };
+      const Ls = this._localStats();
+      const srvSig = data.baseAt + '|' + data.baseN + '|' + data.baseActs;
+      const differs = data.baseN != null && !this.state.baseDirty && (Ls.n !== Number(data.baseN) || Ls.acts !== Number(data.baseActs)) && this._baseFixSig !== srvSig;
+      if (data.hasBase && (Number(data.baseAt) > (Number(this.state.baseAt) || 0) || differs)) {
+        this._baseFixSig = srvSig;
         try {
           const br = await this._apiFetch('/base', { cache: 'no-store' });
           if (br.ok) { const bd = await br.json();
@@ -3103,6 +3152,7 @@ class Component extends DCLogic {
       }
       const res = this._mergeReadings(data.readings || []);
       this.db.readings.forEach(r => { if (r.src === 'field') r.synced = true; });
+      pushIds.forEach(({ r, id }) => { if (!r.srvId && id.account) r.srvId = id; });
       // розподіл: зводимо по ключах (новіша мітка перемагає) — і старші теж, щоб
       // бригада сходилась, а не воювала цілими мапами
       this._mergeAssignments(data.assignments, data.assignmentsAt);
@@ -3117,6 +3167,8 @@ class Component extends DCLogic {
       // бо отримані з сервера старі показання теж мусять піти під очищення
       this._mergePurge(data.purgeBefore, data.purgeAt);
       this._applyPurge(this.state.purgeBefore, this.state.purgeAt);
+      // видалені прилади (дублі тощо) — злити мітки й прибрати в себе
+      if (this._mergeHouseDels(data.houseDels) || Object.keys(this.state.houseDels || {}).length) this._applyHouseDels();
       // тумбстоуни: злити мітки видалення й прибрати локальні показання під ними
       this._mergeDeletes(data.deletes);
       this._applyDeletes(this.state.deletes);
@@ -3134,12 +3186,23 @@ class Component extends DCLogic {
         const srvKeys = new Set(data.keys), km2 = this._houseKeyMap();
         this.db.readings = this.db.readings.filter(r => {
           if (r.src !== 'field' || !r.synced) return true;            // база / offline-черга — лишаємо
+          if (r.srvId && r.srvId.account) {                            // відома серверна адреса
+            const d = r.srvId;
+            return srvKeys.has(this._readKey(d.account, r.date, d.wt, r.isControl, d.meterNo))
+              || srvKeys.has(this._legacyReadKey(d.account, r.date, d.wt, r.isControl));
+          }
           const k = km2[r.houseId]; if (!k || !k.account) return true; // не можемо звірити — лишаємо
           // приймаємо і новий ключ (з № лічильника), і старий — інакше клієнт із
           // новим ключем проти ще не оновленого api.php вирішив би, що всі його
           // показання видалені, і стер би їх у себе
-          return srvKeys.has(this._readKey(k.account, r.date, k.wt, r.isControl, this._readMeterNo(r, km2)))
-            || srvKeys.has(this._legacyReadKey(k.account, r.date, k.wt, r.isControl));
+          const mno = this._readMeterNo(r, km2);
+          if (srvKeys.has(this._readKey(k.account, r.date, k.wt, r.isControl, mno))) { r.srvId = { account: k.account, wt: k.wt, meterNo: mno }; return true; }
+          if (srvKeys.has(this._legacyReadKey(k.account, r.date, k.wt, r.isControl))) return true;
+          // за поточними даними приладу не знайшли — можливо, змінився вид обліку:
+          // шукаємо під іншим видом, перш ніж вважати показання видаленим
+          const alt = k.wt === 'kom' ? 'rozp' : 'kom';
+          if (srvKeys.has(this._readKey(k.account, r.date, alt, r.isControl, mno))) { r.srvId = { account: k.account, wt: alt, meterNo: mno }; return true; }
+          return false;
         });
       }
       this._mergeContacts(data.contacts);
@@ -3157,6 +3220,9 @@ class Component extends DCLogic {
         if (!silent) patch.settingsOpen = false;
       }
       this.setState(patch);
+      // є неопубліковані правки довідника (картка, новий прилад, акти) — старший
+      // надсилає їх сам; сервер зводить прилад за приладом
+      if (this.state.baseDirty && this._canManageBase()) setTimeout(() => this.cloudPublishBase({ auto: true }), 0);
     } catch (err) {
       this.setState({ cloudBusy: false, ...(silent ? {} : { importError: 'Синхронізація не вдалася: ' + this._errText(err) }) });
     }
@@ -3281,6 +3347,13 @@ class Component extends DCLogic {
   }
   disableNotify(){ this._saveSettings({ notify: false }); this.setState({ importOpen: true, importName: 'Нагадування', importMeta: 'вимкнено' }); }
   toggleNotify(){ if (this.state.notify) this.disableNotify(); else this.enableNotify(); }
+  // Синхронізувати незабаром після локальної зміни (показання, картка, новий
+  // прилад), не чекаючи 20-секундного циклу: інші пристрої бачать її швидше.
+  _kickSync(){
+    if (!this.state.cloud || !this.state.authUser) return;
+    clearTimeout(this._kickT);
+    this._kickT = setTimeout(() => { if (this.state.cloudBusy) this._kickSync(); else this.cloudSync(true); }, 1200);
+  }
   // дочекатися кінця поточної синхронізації (автосинхронізація, збереження
   // картки) — щоб дія користувача не губилась мовчки, поки «зайнято»
   async _waitCloudIdle(ms){
@@ -3288,10 +3361,36 @@ class Component extends DCLogic {
     while (this.state.cloudBusy && Date.now() < end) await new Promise(r => setTimeout(r, 150));
     return !this.state.cloudBusy;
   }
-  async cloudPublishBase(){
+  _canManageBase(){ const l = this._lvl(this.state.authUser); return l === 'admin' || l === 'lead'; }
+  // позначити прилад зміненим (для автопублікації довідника з пристрою старшого)
+  _touchHouse(h){
+    if (!h) return;
+    h.upAt = Date.now();
+    if (this._canManageBase() && !this.state.baseDirty) { this.state.baseDirty = true; this._saveSettings({ baseDirty: true }); }
+  }
+  async cloudPublishBase(opts){
+    const auto = !!(opts && opts.auto);
     if (!this.db) return;
+    if (auto && (!this.state.cloud || !this.state.authUser || !this._canManageBase())) return;
     if (this.state.cloudBusy && !(await this._waitCloudIdle())) {
-      this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте опублікувати ще раз' }); return; }
+      if (!auto) this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте опублікувати ще раз' }); return; }
+    if (auto) {
+      // автопублікація: лише довідник, режим злиття, без показань і без тостів
+      this.setState({ cloudBusy: true });
+      try {
+        const resp = await this._apiFetch('/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+          // лише прилади з позначкою правки (upAt): незмінені не надсилаємо, щоб не
+          // перезаписати ними новіші серверні
+          body: JSON.stringify({ mode: 'merge', houses: this.db.houses.filter(h => Number(h.upAt) > 0), boilers: this.db.boilers, readings: [], baseSig: this._baseSig(), savedAt: this.db.savedAt }) });
+        if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+        const d = await resp.json();
+        this.state.baseDirty = false;
+        if (d.baseAt) this.state.baseAt = Number(d.baseAt);
+        this._saveSettings({ baseDirty: false, baseAt: this.state.baseAt || 0 });
+        this.setState({ cloudBusy: false, rev: this.state.rev + 1 });
+      } catch (e) { this.setState({ cloudBusy: false }); }   // правки лишаються позначеними — наступна синхронізація спробує знову
+      return;
+    }
     this.setState({ cloudBusy: true, importError: '' });
     try {
       // Разом із довідником публікуємо БАЗОВІ (архівні/імпортовані з книги ЗБЛ)
@@ -3307,7 +3406,10 @@ class Component extends DCLogic {
         body: JSON.stringify({ houses: this.db.houses, boilers: this.db.boilers, readings: baseReadings, contacts: this.state.contacts || {}, routes: this.state.route || {}, baseSig: this._baseSig(), savedAt: this.db.savedAt }) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
       const d = await resp.json();
-      if (d.baseAt) { this.state.baseAt = Number(d.baseAt); this._saveSettings({ baseAt: this.state.baseAt }); }
+      if (d.baseAt) { this.state.baseAt = Number(d.baseAt); }
+      this.state.baseDirty = false;
+      this._saveSettings({ baseAt: this.state.baseAt || 0, baseDirty: false });
+      this.state.diag = null;
       const rc = (d.readings != null) ? (' · ' + d.readings + ' показань') : '';
       this._mergeContacts(d.contacts); this._mergeRoutes(d.routes);
       this._saveSettings({ contacts: this.state.contacts, route: this.state.route });
@@ -3353,6 +3455,70 @@ class Component extends DCLogic {
       if (this.state.cloud) setTimeout(() => { if (this.db && !this.state.cloudBusy) this.cloudSync(true); }, 0);
     } catch (err) { this.setState({ cloudBusy: false, importError: 'Завантаження бази: ' + this._errText(err) }); }
   }
+  // ---- «Стан даних»: що на пристрої і що на сервері ----
+  _localStats(){
+    const hs = (this.db && this.db.houses) || [], rs = (this.db && this.db.readings) || [];
+    return { n: hs.length, acts: hs.filter(h => String(h.act || '').trim()).length, readings: rs.length,
+      pend: this._pendingCount(), baseAt: Number(this.state.baseAt) || 0 };
+  }
+  async cloudCompare(){
+    if (!this.state.cloud) { this.setState({ diag: { err: 'сервер недоступний — працюємо офлайн', at: Date.now() } }); return; }
+    this.setState({ diagBusy: true });
+    try {
+      const resp = await this._apiFetch('/base', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const d = await resp.json();
+      const hs = Array.isArray(d.houses) ? d.houses : [];
+      this.setState({ diagBusy: false, diag: { at: Date.now(), srv: { n: hs.length, acts: hs.filter(h => String((h && h.act) || '').trim()).length,
+        baseAt: Number(d.baseAt) || 0, hasBase: !!d.hasBase } } });
+    } catch (err) { this.setState({ diagBusy: false, diag: { err: this._errText(err), at: Date.now() } }); }
+  }
+  _diagView(){
+    const s = this.state, L = this._localStats();
+    // ручна перевірка (кнопка) або автоматично — з останньої синхронізації
+    const auto = s.srvBase ? { at: s.srvBase.at, srv: s.srvBase } : null;
+    const D = (s.diag && (!auto || (s.diag.at || 0) >= auto.at)) ? s.diag : auto;   // новіший із двох
+    const when = (t) => { if (!t) return 'ще не публікувалась'; if (t === 1) return 'старою версією сервера'; const d = new Date(t);
+      return this._dmy(d) + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    const out = { appVersion: Component.APP_VERSION, diagBusy: !!s.diagBusy, diagBtn: s.diagBusy ? 'Перевіряю…' : '⇄ Порівняти з сервером',
+      diagLocalTxt: 'На пристрої: ' + L.n + ' приладів · з № акта ' + L.acts + ' · показань ' + L.readings + (L.pend ? ' · не вигружено ' + L.pend : ''),
+      diagHas: !!D, diagSrvTxt: '', diagHint: '', diagFg: 'var(--muted)' };
+    if (!D) return out;
+    if (D.err) { out.diagSrvTxt = 'Сервер: ' + D.err; out.diagFg = 'var(--debt)'; return out; }
+    const S = D.srv, lead = (l => l === 'admin' || l === 'lead')(this._lvl(s.authUser));
+    out.diagSrvTxt = 'На сервері: ' + S.n + ' приладів · з № акта ' + S.acts + ' · база опублікована ' + when(S.baseAt);
+    if (s.baseDirty && this._canManageBase()) { out.diagHint = '⟳ Ваші правки довідника надсилаються на сервер автоматично…'; out.diagFg = 'var(--primary)'; }
+    else if (!S.hasBase) { out.diagHint = lead ? 'На сервері немає бази — натисніть «Опублікувати базу на сервер».' : 'На сервері немає бази — старший має її опублікувати.'; out.diagFg = 'var(--debt)'; }
+    else if (L.n === S.n && L.acts === S.acts) { out.diagHint = '✓ Довідник збігається з сервером.'; out.diagFg = 'var(--over)'; }
+    else if (lead && (L.acts > S.acts || L.n > S.n)) { out.diagHint = 'На цьому пристрої даних більше, ніж на сервері — натисніть «Опублікувати базу на сервер», тоді їх отримають інші.'; out.diagFg = 'var(--debt)'; }
+    else { out.diagHint = 'Довідник відрізняється — вирівнюється автоматично під час синхронізації (або «⟳ Оновити довідник з сервера»).'; out.diagFg = 'var(--primary)'; }
+    return out;
+  }
+  // Оновити ДОВІДНИК з сервера (нові прилади, № актів, паспорт) без заміни бази:
+  // показання й черга лишаються. На відміну від автоматичного оновлення за міткою
+  // версії бази, працює завжди — напр. коли базу опублікували ще до оновлення
+  // сервера (мітки тоді немає, і пристрої не знали, що довідник змінився).
+  async cloudRefreshBase(){
+    if (!this.db) { return this.cloudLoadBase(); }
+    if (this.state.cloudBusy && !(await this._waitCloudIdle())) { this.setState({ importError: 'Сервер зайнятий синхронізацією — спробуйте ще раз' }); return; }
+    this.setState({ cloudBusy: true, importError: '' });
+    try {
+      const resp = await this._apiFetch('/base', { cache: 'no-store' });
+      if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
+      const d = await resp.json();
+      if (!d.hasBase || !Array.isArray(d.houses)) throw new Error('на сервері ще немає бази — старший має її опублікувати');
+      const m = this._mergeBaseHouses(d.houses, d.boilers);
+      if (d.baseAt) this.state.baseAt = Number(d.baseAt);
+      this.state.diag = null;
+      this._applySwaps();          // заміни/повірки поверх довідника (якщо база старша за них)
+      this._persist();
+      this._saveSettings({ baseAt: this.state.baseAt || 0 });
+      const acts = this.db.houses.filter(h => String(h.act || '').trim()).length;
+      this.setState({ cloudBusy: false, settingsOpen: false, rev: this.state.rev + 1, importOpen: true, importName: 'Довідник з сервера',
+        importMeta: 'нових приладів ' + m.added + ' · оновлено ' + m.updated + ' · з № акта: ' + acts + ' з ' + this.db.houses.length });
+      if (this.state.cloud && this.state.authUser) setTimeout(() => this.cloudSync(true), 300);
+    } catch (err) { this.setState({ cloudBusy: false, importError: 'Оновлення довідника: ' + this._errText(err) }); }
+  }
   // завантажити ЛИШЕ розподіл (завдання) із сервера — не чіпаючи базу й локальну
   // чергу показань. Робітник підтягує оновлене завдання від старшого.
   async cloudLoadAssign(){
@@ -3374,7 +3540,7 @@ class Component extends DCLogic {
   }
   _saveSettings(patch){
     const s = this.state;
-    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, baseAt: s.baseAt || 0, deletes: s.deletes || {}, swaps: s.swaps || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, baseAt: s.baseAt || 0, baseDirty: !!s.baseDirty, houseDels: s.houseDels || {}, deletes: s.deletes || {}, swaps: s.swaps || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
     this.setState(patch || {});
     this._idbSetKey('settings', cfg).catch(() => {});
   }
@@ -3430,10 +3596,16 @@ class Component extends DCLogic {
     const a = this.state.assignments || {};
     if (!h) return '';
     // лічильник: поточний №, далі номери до заміни (призначення не губиться після заміни)
-    const nos = [h.meterNo].concat((Array.isArray(h.meterSwaps) ? h.meterSwaps : []).map(w => w.oldNo).reverse());
+    // (поточний № може бути порожнім — «?» в акті: ключ тоді «#особовий|», і його
+    // теж треба читати, інакше призначення такого лічильника ніде не видно)
+    const nos = [h.meterNo || ''].concat((Array.isArray(h.meterSwaps) ? h.meterSwaps : []).map(w => w.oldNo).filter(Boolean).reverse());
     for (const no of nos) {
-      if (!no) continue;
       const v = a[this._meterAsgKey(h, no)];
+      if (v !== undefined) return v === '__none' ? '' : v;
+    }
+    // після правки особового / № у картці — призначення під попереднім ключем
+    if (Array.isArray(h.prevKeys)) for (let i = h.prevKeys.length - 1; i >= 0; i--) {
+      const v = a['#' + h.prevKeys[i]];
       if (v !== undefined) return v === '__none' ? '' : v;
     }
     const b = a['@' + this._normAddr(h.address)];
@@ -3514,6 +3686,10 @@ class Component extends DCLogic {
       (Array.isArray(h.meterSwaps) ? h.meterSwaps : []).forEach(w => { if (w.oldNo) delete a[this._meterAsgKey(h, w.oldNo)]; });
       if (worker === '__inherit') delete a[k];
       else a[k] = worker ? worker : '__none';
+      // адреса з ОДНИМ лічильником — дублюємо на рівень адреси: це те саме, а
+      // пристрої зі старішою версією застосунку читають лише цей рівень
+      const ak = '@' + this._normAddr(h.address);
+      if (ak !== '@' && worker !== '__inherit' && this._addrMeters(h).length === 1) a[ak] = worker || '';
     });
     this._saveAssign(a);
   }
@@ -4164,6 +4340,7 @@ class Component extends DCLogic {
         if (r.kind && this._meterKind(h) !== r.kind
           && !(rByHouse.get(h.id) || []).some(x => x.src === 'field' && x.synced)) h.komOblik = r.kind !== 'rozp';
       }
+      this._touchHouse(h);
       if (r.cur == null) { st.noCur++; return; }
       const list = rByHouse.get(h.id) || [];
       // показання цього приладу за той самий період замінює акт — інакше місяць
@@ -4175,7 +4352,7 @@ class Component extends DCLogic {
         removed.add(x.id); st.replaced++;
         if (x.src !== 'field' || x.synced) {          // локальна неспинхронізована — тумбстоун не потрібен
           const k = km[x.houseId] || { account: '', wt: 'kom', mno: '' };
-          dels[this._readKey(k.account, x.date, k.wt, x.isControl, this._readMeterNo(x, km))] = now; delsChanged = true;
+          dels[this._ridKey(x, km)] = now; delsChanged = true;
         }
       });
       let prev = r.prev;
@@ -4378,6 +4555,8 @@ class Component extends DCLogic {
       unit: s.nmUnit || 'Гкал', meterNo, meterType: '', act, komOblik: s.nmKind !== 'rozp', heatLoad: 0, share: 1,
       contact: '', phone: '', prevObc: prevRaw ? this._cellNum(prevRaw) : 0, addedAt: Date.now(), addedBy: s.me || '' };
     this.db.houses.push(h);
+    this._touchHouse(h);
+    this._kickSync();
     if (boiler && !(this.db.boilers || []).includes(boiler)) this.db.boilers = [...(this.db.boilers || []), boiler];
     this._persist();
     // одразу — у «Ввід» на цей прилад: перший показник можна внести тут же
@@ -4516,10 +4695,21 @@ class Component extends DCLogic {
     const k = (km || {})[r && r.houseId];
     return (k && k.mno) || '';
   }
+  // «Серверна адреса» показання: особовий + вид обліку + № лічильника, під якими
+  // воно лежить на сервері. Фіксується при першій синхронізації (r.srvId) і далі
+  // НЕ залежить від поточних даних приладу. Раніше ключ щоразу рахувався з картки
+  // приладу: змінили вид обліку чи особовий — ключ «з'їжджав», звірка з сервером
+  // не знаходила показання й стирала його на пристроях, ніби його видалили.
+  _rid(r, km){
+    if (r && r.srvId && r.srvId.account != null) return r.srvId;
+    const k = (km || this._houseKeyMap())[r.houseId] || { account: '', wt: 'kom', mno: '' };
+    return { account: k.account, wt: k.wt, meterNo: this._readMeterNo(r, km) };
+  }
+  _ridKey(r, km){ const d = this._rid(r, km); return this._readKey(d.account, r.date, d.wt, r.isControl, d.meterNo); }
   _mapReadingOut(r, km){
-    const k = km[r.houseId] || { account: '', wt: 'kom', mno: '' };
-    const o = { ...r, account: k.account, wt: k.wt, meterNo: this._readMeterNo(r, km) };
-    delete o.houseId;
+    const d = this._rid(r, km);
+    const o = { ...r, account: d.account, wt: d.wt, meterNo: d.meterNo };
+    delete o.houseId; delete o.srvId;
     return o;
   }
   // Ключ показання. № лічильника — ОБОВ'ЯЗКОВА частина: у будинку буває два
@@ -4535,16 +4725,19 @@ class Component extends DCLogic {
     // (для старих показань без wt та книг з одним лічильником на рахунок)
     // будинки за (особовий + тип води + № лічильника) — щоб два прилади з одним
     // особовим не злилися в один; далі запасні ключі (особовий+тип, лише особовий)
-    const byAccWtM = {}, byAccWt = {}, byAcc = {};
+    const byAccWtM = {}, byAccWt = {}, byAcc = {}, byAccM = {};
     this.db.houses.forEach(h => { const a = this._normAddr(h.account); if (a){
+      // особовий + № без виду обліку: вид могли змінити після того, як показання зняли
+      if (!byAccM[a + '|' + this._normAddr(h.meterNo)]) byAccM[a + '|' + this._normAddr(h.meterNo)] = h;
+      (Array.isArray(h.meterSwaps) ? h.meterSwaps : []).forEach(w => { const k2 = a + '|' + this._normAddr(w && w.oldNo); if (w && w.oldNo && !byAccM[k2]) byAccM[k2] = h; });
       byAccWtM[a + '|' + this._meterKind(h) + '|' + this._normAddr(h.meterNo)] = h;
       if (!byAccWt[a + '|' + this._meterKind(h)]) byAccWt[a + '|' + this._meterKind(h)] = h;
       if (!byAcc[a]) byAcc[a] = h; } });
     let added = 0, updated = 0, conflicts = 0, skipped = 0;
     const index = {}, legacyIndex = {};
-    this.db.readings.forEach(r => { const k = km[r.houseId] || { account: '', wt: 'kom', mno: '' };
-      index[this._readKey(k.account, r.date, k.wt, r.isControl, this._readMeterNo(r, km))] = r;
-      const lk = this._legacyReadKey(k.account, r.date, k.wt, r.isControl);
+    this.db.readings.forEach(r => { const d = this._rid(r, km);
+      index[this._readKey(d.account, r.date, d.wt, r.isControl, d.meterNo)] = r;
+      const lk = this._legacyReadKey(d.account, r.date, d.wt, r.isControl);
       if (!legacyIndex[lk]) legacyIndex[lk] = r; });
     // наступний id — лічильником, а не reduce по всій базі на КОЖНЕ нове показання
     // (перша повна синхронізація на 10 тис. показань інакше робила ~10⁸ операцій)
@@ -4553,20 +4746,23 @@ class Component extends DCLogic {
       const iwt = inc.wt || 'kom';
       const a = this._normAddr(inc.account);
       const h = byAccWtM[a + '|' + iwt + '|' + this._normAddr(inc.meterNo)]
+        || (inc.meterNo ? byAccM[a + '|' + this._normAddr(inc.meterNo)] : null)
         || byAccWt[a + '|' + iwt] || byAcc[a];
       if (!h) { skipped++; return; }                                  // абонента немає в базі
       // ключ — за номером САМОГО показання (після заміни приладу на будинку
       // лежать записи двох різних лічильників, і номер будинку тут не годиться)
       const incMno = inc.meterNo || h.meterNo;
-      const k = this._readKey(inc.account, inc.date, (this._meterKind(h) || iwt), inc.isControl, incMno);
+      // ключ — за СЕРВЕРНОЮ адресою показання (вид обліку з сервера, а не з картки)
+      const k = this._readKey(inc.account, inc.date, iwt, inc.isControl, incMno);
       // старий запис (до появи № у ключі) підхоплюємо за старим ключем, щоб не
       // створити дубль тієї самої дати
-      const ex = index[k] || (inc.meterNo ? null : legacyIndex[this._legacyReadKey(inc.account, inc.date, (this._meterKind(h) || iwt), inc.isControl)]);
+      const ex = index[k] || (inc.meterNo ? null : legacyIndex[this._legacyReadKey(inc.account, inc.date, iwt, inc.isControl)]);
       // meterNo НЕ видаляємо (на відміну від account/wt, які беруться з будинку):
       // він належить самому показанню. Інакше після синхронізації обидва записи
       // заміни ставали «нічийними», і «попереднім» для нового приладу міг стати
       // закривний показник старого (28 126 замість 6 900).
-      const rec = { ...inc, houseId: h.id, synced: true, meterNo: incMno || '' };
+      const rec = { ...inc, houseId: h.id, synced: true, meterNo: incMno || '',
+        srvId: { account: inc.account || '', wt: inc.wt || 'kom', meterNo: inc.meterNo || '' } };
       delete rec.account; delete rec.wt;
       if (!ex) {
         rec.id = ++maxId;
@@ -4972,12 +5168,29 @@ class Component extends DCLogic {
     const used = new Set();
     let maxId = local.reduce((m, h) => Math.max(m, h.id || 0), 0);
     let added = 0, updated = 0;
+    const hd = this.state.houseDels || {};
     srv.forEach(S => {
       if (!S || typeof S !== 'object') return;
+      const dAt = Number(hd[this._houseDelKey(S)]) || 0;
+      if (dAt && dAt >= (Number(S.upAt) || 0)) return;      // прилад видалили — не повертаємо
       let L = byKey.get(n(S.account) + '|' + n(S.meterNo));
-      if (!L || used.has(L)) { const c = byId.get(String(S.id)); L = (c && !used.has(c) && n(c.account) === n(S.account)) ? c : null; }
+      if (!L || used.has(L)) {
+        // особовий / № змінили в картці на одному з боків — за попередніми ключами
+        const sk = n(S.account) + '|' + n(S.meterNo), spk = Array.isArray(S.prevKeys) ? S.prevKeys : [];
+        L = local.find(h => !used.has(h) && (spk.includes(n(h.account) + '|' + n(h.meterNo))
+          || (Array.isArray(h.prevKeys) && h.prevKeys.includes(sk)))) || null;
+      }
+      if (!L || used.has(L)) {
+        // прилад замінили на одному з боків: зіставляємо за № до заміни (не за id —
+        // id на різних пристроях можуть збігтися в різних приладів одного особового)
+        const sOld = (S.meterSwaps || []).map(w => n(w && w.oldNo)), acc = n(S.account);
+        L = local.find(h => !used.has(h) && n(h.account) === acc
+          && (sOld.includes(n(h.meterNo)) || (h.meterSwaps || []).some(w => n(w && w.oldNo) === n(S.meterNo)))) || null;
+      }
       if (L) {
         used.add(L);
+        // локальна правка новіша за серверну (ще не опублікована) — не затираємо
+        if ((Number(L.upAt) || 0) > (Number(S.upAt) || 0)) return;
         let ch = false;
         Object.keys(S).forEach(k => { if (k === 'id') return;
           if (JSON.stringify(L[k]) !== JSON.stringify(S[k])) { L[k] = S[k]; ch = true; } });
@@ -4992,6 +5205,72 @@ class Component extends DCLogic {
     if (Array.isArray(boilers)) boilers.forEach(b => { if (b && !(this.db.boilers || []).includes(b)) this.db.boilers = [...(this.db.boilers || []), b]; });
     if (added || updated) this._persist();
     return { added, updated };
+  }
+  _houseKey(h){ return this._normAddr(h && h.account) + '|' + this._normAddr(h && h.meterNo); }
+  _houseDelKey(h){ const k = this._houseKey(h); return k !== '|' ? k : ('@' + this._normAddr(h && h.address) + '#' + (h && h.id)); }
+  // ---------- видалення приладу (адмін/старший): бригадне ----------
+  // Потрібне, щоб прибрати дубль або помилково внесений прилад. Мітка видалення
+  // (ключ приладу → час) іде через сервер на всі пристрої. Показання видаленого
+  // переходять до приладу з тим самим особовим, у якого цей ключ — попередній
+  // (дубль після правки №), або до єдиного іншого приладу цього особового; інакше
+  // показання видаленого приладу прибираються.
+  deleteMeter(houseId){
+    if (!this._canManageBase() || !this.db) return;
+    const h = this.db.houses.find(x => String(x.id) === String(houseId)); if (!h) return;
+    const rs = this._houseReadings(h.id).length;
+    const heir = this._houseHeir(h);
+    if (typeof window !== 'undefined' && window.confirm && !window.confirm('Видалити прилад «' + (h.address || h.code) + '»'
+      + (h.meterNo ? ', № ' + h.meterNo : ', без №') + (h.owner ? ' (' + h.owner + ')' : '') + '?\n\n'
+      + (rs ? (heir ? 'Його показання (' + rs + ') перейдуть до приладу № ' + (heir.meterNo || '—') + ' того самого особового.'
+                    : 'Його показання (' + rs + ') буде видалено разом із ним.') + '\n\n' : '')
+      + 'Видалення розійдеться на всю бригаду.')) return;
+    // точний двійник (той самий особовий і №) — прибираємо лише тут: бригадна мітка
+    // за цим ключем видалила б і справжній прилад; на сервері такий прилад один
+    const twin = this.db.houses.find(x => x !== h && this._houseDelKey(x) === this._houseDelKey(h));
+    if (twin) {
+      this.db.readings.forEach(r => { if (String(r.houseId) === String(h.id)) r.houseId = twin.id; });
+      this.db.houses = this.db.houses.filter(x => x !== h);
+      this._persist();
+      this.setState({ eHouse: '', housesBuilding: null, detailId: null, tab: 'houses', rev: this.state.rev + 1,
+        importOpen: true, importName: 'Дубль прибрано', importMeta: (h.address || h.code) + ' · показання перенесено до двійника' });
+      return;
+    }
+    const dels = { ...(this.state.houseDels || {}) };
+    dels[this._houseDelKey(h)] = Date.now();
+    this.state.houseDels = dels;
+    this._applyHouseDels();
+    this._saveSettings({ houseDels: dels });
+    this.setState({ eHouse: '', housesBuilding: null, detailId: null, tab: 'houses', rev: this.state.rev + 1,
+      importOpen: true, importName: 'Прилад видалено', importMeta: (h.address || h.code) + (h.meterNo ? ' · № ' + h.meterNo : '') + ' · розійдеться бригаді' });
+    this._kickSync();
+  }
+  // до якого приладу перейдуть показання видаленого
+  _houseHeir(h){
+    const k = this._houseKey(h), acc = this._normAddr(h.account);
+    const others = (this.db.houses || []).filter(x => x !== h && acc && this._normAddr(x.account) === acc);
+    return others.find(x => Array.isArray(x.prevKeys) && x.prevKeys.includes(k)) || (others.length === 1 ? others[0] : null);
+  }
+  _mergeHouseDels(inc){
+    if (!inc || typeof inc !== 'object') return false;
+    const d = { ...(this.state.houseDels || {}) }; let ch = false;
+    Object.keys(inc).forEach(k => { const at = Number(inc[k]) || 0; if (at > (Number(d[k]) || 0)) { d[k] = at; ch = true; } });
+    if (ch) this.state.houseDels = d;
+    return ch;
+  }
+  _applyHouseDels(){
+    const d = this.state.houseDels || {};
+    if (!this.db || !Object.keys(d).length) return false;
+    const gone = this.db.houses.filter(h => { const at = Number(d[this._houseDelKey(h)]) || 0; return at && at >= (Number(h.upAt) || 0); });
+    if (!gone.length) return false;
+    gone.forEach(h => {
+      const heir = this._houseHeir(h);
+      this.db.readings.forEach(r => { if (String(r.houseId) === String(h.id)) r.houseId = heir ? heir.id : null; });
+    });
+    const ids = new Set(gone.map(h => String(h.id)));
+    this.db.houses = this.db.houses.filter(h => !ids.has(String(h.id)));
+    this.db.readings = this.db.readings.filter(r => r.houseId != null);
+    this._persist();
+    return true;
   }
   // множина номерів актів бази (нормалізованих) — для пріоритету точного № акта
   _actSet(){
@@ -5124,6 +5403,14 @@ class Component extends DCLogic {
   // паспорт + попередні показники обраного абонента → патч стану форми «Ввід»
   _entryPatchFor(h){
     if (!h) return {};
+    const patch = this._entryPatchCalc(h);
+    // знімок картки, як її відкрили: при збереженні пишемо ЛИШЕ змінені тут поля —
+    // інакше відкрита на цьому пристрої застаріла картка затерла б правки з інших
+    this._dovOrig = { houseId: h.id, vals: {} };
+    ["mAddress", "mOwner", "mAccount", "mSettlement", "mBoiler", "mObcZavod", "mAkt", "mKomOblik", "mFop", "mObcUnit", "mObcPovirka", "mObcTip", "mVodZavod", "mVodPovirka", "mVodTip", "mVodDN", "mTspZavod", "mTspPovirka", "mHeatLoad", "mObcChastka", "mContact", "mPhone"].forEach(k => { this._dovOrig.vals[k] = patch[k]; });
+    return patch;
+  }
+  _entryPatchCalc(h){
     // контактну особу беремо з ЕФЕКТИВНОГО контакту (спільна мапа маршруту →
     // резервно база), щоб редактор і картка абонента показували те саме, що маршрут
     const b = this._buildings().find(x => x.meters.some(m => m.id === h.id));
@@ -5770,7 +6057,9 @@ class Component extends DCLogic {
   onEHouse(e){ const id = e.target.value; const h = this.db.houses.find(x => String(x.id) === String(id)); this.setState({ eHouse: id, ...this._entryPatchFor(h) }); }
   onEntrySearchFocus(){ clearTimeout(this._esT); this.setState({ entrySearchOpen: true, entrySearchQ: '', entrySearchQd: '' }); }
   // поле «№» у «Вводі» — відкриває той самий список, фільтр за номером
-  onEntryNoFocus(){ if (!this.state.entrySearchOpen) this.setState({ entrySearchOpen: true, entrySearchQ: '', entrySearchQd: '' }); }
+  // список відкриваємо, лише коли в полі вже щось є (набір теж відкриває його) —
+  // інакше фокус після «Зберегти» на ПК вивалював би весь перелік приладів
+  onEntryNoFocus(){ if (!this.state.entrySearchOpen && String(this.state.entryNo || '').trim()) this.setState({ entrySearchOpen: true, entrySearchQ: '', entrySearchQd: '' }); }
   onEntryNo(e){
     const v = e.target.value;
     this.setState({ entrySearchOpen: true, entryNo: v });
@@ -5783,7 +6072,33 @@ class Component extends DCLogic {
   }
   closeEntrySearch(){ this.setState({ entrySearchOpen: false }); }
   clearEntryBoilerFilter(){ this.setState({ boilerSel: '' }); }
-  selectEntryHouse(h){ clearTimeout(this._esT); clearTimeout(this._enT); this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '', entrySearchQd: '', entryNo: '', entryNoD: '' }); }
+  selectEntryHouse(h){ clearTimeout(this._esT); clearTimeout(this._enT);
+    this.setState({ eHouse: String(h.id), ...this._entryPatchFor(h), entrySearchOpen: false, entrySearchQ: '', entrySearchQd: '', entryNo: '', entryNoD: '' },
+      () => { if (this.state.wide) this._focusEl('entryCurEnergy'); });
+  }
+  // Enter у полі «№»: якщо номер однозначно вказує на один прилад (точний № акта,
+  // або єдиний збіг лічильника/особового) — обираємо його одразу, без миші
+  onEntryNoKey(e){
+    if (!e || e.key !== 'Enter') return;
+    e.preventDefault && e.preventDefault();
+    const nq = this._numQuery(e.target ? e.target.value : '');
+    if (!nq || !this.db) return;
+    const bf = this.state.boilerSel;
+    const hits = this.db.houses.filter(h => (!bf || h.boiler === bf) && this._numberMatch(h, nq));
+    if (hits.length === 1) this.selectEntryHouse(hits[0]);
+    else this.setState({ entrySearchOpen: true, entryNo: e.target.value, entryNoD: e.target.value });
+  }
+  // фокус + виділення поля після рендера (ПК-сценарій «зберіг → № акта → показник»)
+  _focusEl(id){
+    if (typeof document === 'undefined') return;
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); }
+      try { el.select(); } catch (e) {}
+      try { el.scrollIntoView({ block: 'center' }); } catch (e) {}
+    }, 80);
+  }
   addNewHouse(){
     const id = (this.db.houses.reduce((m, h) => Math.max(m, h.id), 0) || 0) + 1;
     const h = { id, code: '', account: '', owner: '', address: '', settlement: '', boiler: '', unit: 'Гкал',
@@ -6449,11 +6764,7 @@ class Component extends DCLogic {
     if (this.state.cloud && this.state.authUser) this.cloudSync(true);
   }
   // ключ показання за вмістом (як на сервері keyOf) — для тумбстоунів видалення
-  _readingTombKey(r){
-    const km = this._houseKeyMap();
-    const k = km[r.houseId] || { account: '', wt: 'kom', mno: '' };
-    return this._readKey(k.account, r.date, k.wt, r.isControl, this._readMeterNo(r, km));
-  }
+  _readingTombKey(r){ return this._ridKey(r, this._houseKeyMap()); }
   // злиття тумбстоунів (мапа ключ→час; перемагає новіший)
   _mergeDeletes(incoming){
     if (!incoming || typeof incoming !== 'object') return false;
@@ -6468,10 +6779,10 @@ class Component extends DCLogic {
     if (!deletes || !this.db) return false;
     const km = this._houseKeyMap(); const before = this.db.readings.length;
     this.db.readings = this.db.readings.filter(r => {
-      const k = km[r.houseId] || { account: '', wt: 'kom', mno: '' };
+      const d = this._rid(r, km);
       // мітка може бути як нового формату (з №), так і старого — перевіряємо обидві
-      const delAt = Math.max(Number(deletes[this._readKey(k.account, r.date, k.wt, r.isControl, this._readMeterNo(r, km))]) || 0,
-                             Number(deletes[this._legacyReadKey(k.account, r.date, k.wt, r.isControl)]) || 0);
+      const delAt = Math.max(Number(deletes[this._readKey(d.account, r.date, d.wt, r.isControl, d.meterNo)]) || 0,
+                             Number(deletes[this._legacyReadKey(d.account, r.date, d.wt, r.isControl)]) || 0);
       return !(delAt && delAt >= (r.at || r.srvAt || 0));
     });
     return this.db.readings.length !== before;
@@ -6513,6 +6824,7 @@ class Component extends DCLogic {
   saveReading(){
     const h = this._entryHouse(); const pv = this._entryPreview();
     if (!h || !pv || !pv.valid) return;
+    this._kickSync();
     const s = this.state;
     const id = (this.db.readings.reduce((m,r) => Math.max(m, r.id), 0) || 0) + 1;
     this.db.readings.push({
@@ -6539,6 +6851,16 @@ class Component extends DCLogic {
       if (nz(s.tblVod2Cur)) h.prevVodomir = this.num(s.tblVod2Cur);
     }
     this._persist();
+    // ПК (широкий екран): оператор вносить акти один за одним — лишаємось у «Вводі»
+    // й ставимо курсор у поле «№»: наступний номер акта → Enter → «Кількість ТЕ»
+    if (this.state.wide) {
+      this._importAction = null;
+      this.setState({ ...this._entryPatchFor(h), eDate: this._todayISO(), eTime: this._nowHM(), eControl: false,
+        entrySearchOpen: false, entryNo: '', entryNoD: '',
+        importOpen: true, importName: h.code, importMeta: 'збережено · введіть № наступного акта', importActionLabel: '', rev: this.state.rev + 1 },
+        () => this._focusEl('entryNoInput'));
+      return;
+    }
     // робітник іде по підвалу лічильник за лічильником: якщо на цій адресі є ще
     // прилад — АВТОМАТИЧНО переходимо на нього; якщо це був останній — повертаємось
     // у маршрут (не лишаємось на порожній формі).
@@ -7232,7 +7554,8 @@ class Component extends DCLogic {
       pendingDot: this._pendingCount() > 0 ? '#D4A017' : 'var(--over)',
       lastSyncTxt: s.lastSyncAt ? this._agoTxt(s.lastSyncAt) : '',
       cloud: !!s.cloud, cloudBusy: !!s.cloudBusy,
-      cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(), cloudLoadAssign: () => this.cloudLoadAssign(),
+      cloudSync: () => this.cloudSync(), cloudPublishBase: () => this.cloudPublishBase(), cloudLoadBase: () => this.cloudLoadBase(), cloudRefreshBase: () => this.cloudRefreshBase(),
+      cloudCompare: () => this.cloudCompare(), ...this._diagView(), cloudLoadAssign: () => this.cloudLoadAssign(),
       cloudPublishAssign: () => this.cloudPublishAssign(),
       cloudOff: !s.cloud,
       // статус синхронізації для сторінки користувача
@@ -7431,7 +7754,7 @@ class Component extends DCLogic {
         clearEntryBoilerFilter: () => this.clearEntryBoilerFilter(),
         onEntrySearchFocus: () => this.onEntrySearchFocus(),
         onEntrySearch: (e) => this.onEntrySearch(e),
-        entryNo: s.entryNo || '', onEntryNo: (e) => this.onEntryNo(e), onEntryNoFocus: () => this.onEntryNoFocus(),
+        entryNo: s.entryNo || '', onEntryNo: (e) => this.onEntryNo(e), onEntryNoFocus: () => this.onEntryNoFocus(), onEntryNoKey: (e) => this.onEntryNoKey(e),
         closeEntrySearch: () => this.closeEntrySearch(),
         entrySearchOpen: !!s.entrySearchOpen,
         entrySearchDisplay: s.entrySearchOpen ? s.entrySearchQ : (eh ? (hName(eh) + (eh.code && eh.address ? ' · ' + eh.code : '')) : ''),
@@ -7586,6 +7909,8 @@ class Component extends DCLogic {
     }
     // порядковий № акта: перевірка дубля вже під час набору (червона рамка + текст)
     out.dovErr = s.dovErr || '';
+    out.canDeleteMeter = this._canManageBase() && !!this._entryHouse();
+    out.deleteMeterHere = () => { const eh2 = this._entryHouse(); if (eh2) this.deleteMeter(eh2.id); };
     out.mAktBd = s.dovErr ? 'var(--debt)' : 'var(--inputBd)';
     {
       const eh1 = this._entryHouse();

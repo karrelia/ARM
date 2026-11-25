@@ -33,7 +33,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
-function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, baseSig: '', savedAt: 0, baseAt: 0 }; }
+function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, houseDels: {}, baseSig: '', savedAt: 0, baseAt: 0 }; }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
 // мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
 // Міграція: наявним призначенням без мітки даємо базову «1» (живуть, але програють
@@ -288,6 +288,56 @@ function applyPurge(db){
   db.readings = db.readings.filter(r => !(periodOf(r) < key && (Number(r.at) || 0) <= lim));
   return before - db.readings.length;
 }
+// Зведення ДОВІДНИКА прилад за приладом (автопублікація з пристроїв старших):
+// ключ — особовий + № лічильника; після заміни приладу — за номером до заміни.
+// Новіша правка (upAt) перемагає, прилади, яких у пакеті нема, лишаються —
+// тож два старших не затирають довідник одне одного.
+function houseKey(h){ return norm(h && h.account) + '|' + norm(h && h.meterNo); }
+function mergeHouses(db, incoming){
+  if (!Array.isArray(db.houses)) db.houses = [];
+  const byKey = new Map(), byId = new Set(); let maxId = 0;
+  db.houses.forEach((h, i) => { byKey.set(houseKey(h), i); byId.add(String(h.id)); maxId = Math.max(maxId, Number(h.id) || 0); });
+  let added = 0, updated = 0;
+  const dels = db.houseDels || {};
+  (incoming || []).forEach(inc => {
+    if (!inc || typeof inc !== 'object') return;
+    const dAt = Number(dels[houseDelKey(inc)]) || 0;
+    if (dAt && dAt >= (Number(inc.upAt) || 0)) return;   // прилад видалили — не повертаємо
+    let i = byKey.get(houseKey(inc));
+    if (i === undefined) {                       // № / особовий змінили в картці: попередні ключі
+      const pk = Array.isArray(inc.prevKeys) ? inc.prevKeys : [];
+      for (let j = pk.length - 1; j >= 0 && i === undefined; j--) { const x = byKey.get(pk[j]); if (x !== undefined) i = x; }
+    }
+    if (i === undefined) {                       // прилад замінили: на сервері ще старий №
+      const olds = (Array.isArray(inc.meterSwaps) ? inc.meterSwaps : []).map(w => norm(w && w.oldNo));
+      i = db.houses.findIndex(h => norm(h.account) === norm(inc.account) && olds.includes(norm(h.meterNo)));
+      if (i < 0) i = undefined;
+    }
+    if (i !== undefined) {
+      const ex = db.houses[i];
+      if ((Number(inc.upAt) || 0) >= (Number(ex.upAt) || 0)) { db.houses[i] = Object.assign({}, inc, { id: ex.id }); byKey.set(houseKey(db.houses[i]), i); updated++; }
+    } else {
+      const rec = Object.assign({}, inc);
+      if (byId.has(String(rec.id))) rec.id = ++maxId; else maxId = Math.max(maxId, Number(rec.id) || 0);
+      db.houses.push(rec); byKey.set(houseKey(rec), db.houses.length - 1); byId.add(String(rec.id)); added++;
+    }
+  });
+  return { added, updated };
+}
+// ВИДАЛЕННЯ ПРИЛАДІВ — бригадні тумбстоуни: ключ приладу → час. Прилад, правлений
+// ПІСЛЯ видалення (upAt новіший), лишається. Ключ — як у клієнта (_houseDelKey).
+function houseDelKey(h){ const k = houseKey(h); return k !== '|' ? k : ('@' + norm(h && h.address) + '#' + (h && h.id)); }
+function mergeHouseDels(db, inc){
+  if (!db.houseDels || typeof db.houseDels !== 'object') db.houseDels = {};
+  if (inc && typeof inc === 'object') for (const k in inc) { const at = Number(inc[k]) || 0; if (at > (Number(db.houseDels[k]) || 0)) db.houseDels[k] = at; }
+}
+function applyHouseDels(db){
+  const d = db.houseDels || {}; if (!Object.keys(d).length || !Array.isArray(db.houses)) return 0;
+  const before = db.houses.length;
+  db.houses = db.houses.filter(h => { const at = Number(d[houseDelKey(h)]) || 0; return !(at && at >= (Number(h.upAt) || 0)); });
+  return before - db.houses.length;
+}
+function baseStats(db){ const hs = db.houses || []; return { baseN: hs.length, baseActs: hs.filter(h => String((h && h.act) || '').trim()).length }; }
 function maxSrvAt(db){ let m = 0; db.readings.forEach(r => { if ((r.srvAt || 0) > m) m = r.srvAt; }); return m; }
 
 // ---------- HTTP ----------
@@ -367,14 +417,21 @@ async function handleApi(req, res, url){
     ensureAsgStamps(db);
     return sendJson(res, 200, { hasBase: db.houses.length > 0, houses: db.houses, boilers: db.boilers,
       assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig, savedAt: db.savedAt,
-      baseAt: db.baseAt || 0 });
+      baseAt: db.baseAt || (db.houses.length ? 1 : 0) });
   }
   // POST /api/base — старший публікує довідник (показання й розподіл зберігаються)
   if (p === '/api/base' && req.method === 'POST') {
     const body = await readBody(req);
     if (!body.houses || !body.houses.length) return sendJson(res, 400, { error: 'порожня база' });
     const db = loadDb();
-    db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || '';
+    // mode 'merge' — автопублікація: зводимо прилад за приладом; інакше (кнопка
+    // «Опублікувати базу») — як і раніше, повна заміна довідника
+    if (body.mode === 'merge') {
+      mergeHouses(db, body.houses);
+      (body.boilers || []).forEach(b => { if (b && !(db.boilers || []).includes(b)) db.boilers = (db.boilers || []).concat([b]); });
+      if (body.baseSig) db.baseSig = body.baseSig;
+    } else { db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || ''; }
+    mergeHouseDels(db, body.houseDels); applyHouseDels(db);
     // мітка версії ДОВІДНИКА: пристрої бригади бачать її в /sync і самі
     // доливають нові прилади й правки паспорта, не чіпаючи своїх показань
     db.baseAt = Date.now();
@@ -407,6 +464,8 @@ async function handleApi(req, res, url){
     }
     // очищення попередніх періодів — бригадне; новіша мітка перемагає
     mergePurge(db, body); applyPurge(db);
+    // видалені прилади — бригадні
+    mergeHouseDels(db, body.houseDels); applyHouseDels(db);
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!db.deletes || typeof db.deletes !== 'object') db.deletes = {};
     if (body.deletes && typeof body.deletes === 'object') {
@@ -437,8 +496,8 @@ async function handleApi(req, res, url){
     return sendJson(res, 200, { ok: true, warnBase: !!warnBase, stats,
       readings: out, keys: db.readings.map(keyOf), maxSrvAt: maxSrvAt(db), assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig,
       closedAt: db.closedAt || 0, periodKey: db.periodKey || '', periodAt: db.periodAt || 0, swaps: db.swaps || {},
-      purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0, baseAt: db.baseAt || 0,
-      deletes: db.deletes || {}, hasBase: db.houses.length > 0 });
+      purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0, baseAt: db.baseAt || (db.houses.length ? 1 : 0), ...baseStats(db),
+      deletes: db.deletes || {}, houseDels: db.houseDels || {}, hasBase: db.houses.length > 0 });
   }
   return sendJson(res, 404, { error: 'невідомий маршрут' });
 }
@@ -482,4 +541,4 @@ if (require.main === module) {
     console.log('Ключ бригади: ' + brigadeKey());
   });
 }
-module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb, mergePurge, applyPurge, periodOf };
+module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb, mergePurge, applyPurge, periodOf, mergeHouses, mergeHouseDels, applyHouseDels };

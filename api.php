@@ -63,7 +63,7 @@ function read_body() {
 function empty_db() {
     return array('houses' => array(), 'boilers' => array(), 'readings' => array(),
                  'assignments' => new stdClass(), 'assignmentsAt' => new stdClass(), 'contacts' => new stdClass(), 'routes' => new stdClass(),
-                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0, 'baseAt' => 0,
+                 'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0, 'baseAt' => 0, 'houseDels' => new stdClass(),
                  'deletes' => new stdClass(), 'swaps' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
 }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
@@ -160,6 +160,7 @@ function load_db() {
     if (isset($j['purgeBefore'])) $d['purgeBefore'] = $j['purgeBefore'];
     if (isset($j['purgeAt'])) $d['purgeAt'] = $j['purgeAt'];
     if (isset($j['baseAt'])) $d['baseAt'] = $j['baseAt'];
+    if (isset($j['houseDels'])) $d['houseDels'] = $j['houseDels'];
     if (isset($j['deletes'])) $d['deletes'] = $j['deletes'];
     if (isset($j['swaps'])) $d['swaps'] = $j['swaps'];
     return $d;
@@ -369,6 +370,54 @@ function apply_purge(&$db) {
     $db['readings'] = $kept;
     return $n;
 }
+// Зведення ДОВІДНИКА прилад за приладом (автопублікація) — правила як у server.js
+function house_key($h) { return norm_s($h['account'] ?? '') . '|' . norm_s($h['meterNo'] ?? ''); }
+function merge_houses(&$db, $incoming) {
+    if (!isset($db['houses']) || !is_array($db['houses'])) $db['houses'] = array();
+    $byKey = array(); $byId = array(); $maxId = 0;
+    foreach ($db['houses'] as $i => $h) { $byKey[house_key($h)] = $i; $byId[(string)($h['id'] ?? '')] = true; $maxId = max($maxId, (int)($h['id'] ?? 0)); }
+    $dels = is_array($db['houseDels'] ?? null) ? $db['houseDels'] : array();
+    foreach (($incoming ?: array()) as $inc) {
+        if (!is_array($inc)) continue;
+        $dAt = (float)($dels[house_del_key($inc)] ?? 0);
+        if ($dAt && $dAt >= (float)($inc['upAt'] ?? 0)) continue;   // прилад видалили — не повертаємо
+        $k = house_key($inc);
+        $i = isset($byKey[$k]) ? $byKey[$k] : null;
+        if ($i === null) {      // № / особовий змінили в картці: попередні ключі
+            $pk = is_array($inc['prevKeys'] ?? null) ? $inc['prevKeys'] : array();
+            for ($j = count($pk) - 1; $j >= 0 && $i === null; $j--) { if (isset($byKey[(string)$pk[$j]])) $i = $byKey[(string)$pk[$j]]; }
+        }
+        if ($i === null) {
+            $olds = array();
+            foreach ((is_array($inc['meterSwaps'] ?? null) ? $inc['meterSwaps'] : array()) as $w) $olds[] = norm_s($w['oldNo'] ?? '');
+            foreach ($db['houses'] as $j => $h) {
+                if (norm_s($h['account'] ?? '') === norm_s($inc['account'] ?? '') && in_array(norm_s($h['meterNo'] ?? ''), $olds, true)) { $i = $j; break; }
+            }
+        }
+        if ($i !== null) {
+            $ex = $db['houses'][$i];
+            if ((float)($inc['upAt'] ?? 0) >= (float)($ex['upAt'] ?? 0)) { $inc['id'] = $ex['id'] ?? $inc['id']; $db['houses'][$i] = $inc; $byKey[house_key($inc)] = $i; }
+        } else {
+            if (isset($byId[(string)($inc['id'] ?? '')])) { $maxId++; $inc['id'] = $maxId; } else { $maxId = max($maxId, (int)($inc['id'] ?? 0)); }
+            $db['houses'][] = $inc; $byKey[$k] = count($db['houses']) - 1; $byId[(string)$inc['id']] = true;
+        }
+    }
+}
+// ВИДАЛЕННЯ ПРИЛАДІВ — бригадні тумбстоуни (правила як у server.js)
+function house_del_key($h) { $k = house_key($h); return $k !== '|' ? $k : ('@' . norm_s($h['address'] ?? '') . '#' . ($h['id'] ?? '')); }
+function merge_house_dels(&$db, $inc) {
+    if (!isset($db['houseDels']) || !is_array($db['houseDels'])) $db['houseDels'] = array();
+    if (is_array($inc)) foreach ($inc as $k => $at) { $at = (float)$at; if ($at > (float)($db['houseDels'][$k] ?? 0)) $db['houseDels'][$k] = $at; }
+}
+function apply_house_dels(&$db) {
+    $d = is_array($db['houseDels'] ?? null) ? $db['houseDels'] : array();
+    if (!count($d) || !is_array($db['houses'] ?? null)) return 0;
+    $kept = array(); $n = 0;
+    foreach ($db['houses'] as $h) { $at = (float)($d[house_del_key($h)] ?? 0); if ($at && $at >= (float)($h['upAt'] ?? 0)) { $n++; continue; } $kept[] = $h; }
+    $db['houses'] = $kept;
+    return $n;
+}
+function base_acts($db) { $n = 0; foreach (($db['houses'] ?? array()) as $h) if (trim((string)($h['act'] ?? '')) !== '') $n++; return $n; }
 function max_srv_at($db) {
     $m = 0;
     foreach ($db['readings'] as $r) if (($r['srvAt'] ?? 0) > $m) $m = $r['srvAt'];
@@ -411,16 +460,25 @@ if ($path === 'base' && $method === 'GET') {
         'boilers' => $db['boilers'], 'assignments' => assign_out($db['assignments']), 'assignmentsAt' => assign_out($db['assignmentsAt'] ?? array()),
         'contacts' => assign_out($db['contacts'] ?? array()),
         'routes' => assign_out($db['routes'] ?? array()),
-        'baseSig' => $db['baseSig'], 'savedAt' => $db['savedAt'], 'baseAt' => (float)($db['baseAt'] ?? 0)));
+        'baseSig' => $db['baseSig'], 'savedAt' => $db['savedAt'], 'baseAt' => (float)(($db['baseAt'] ?? 0) ?: (count($db['houses']) ? 1 : 0))));
 }
 // POST /base — старший публікує довідник (показання й розподіл зберігаються)
 if ($path === 'base' && $method === 'POST') {
     $body = read_body();
     if (empty($body['houses'])) send_json(400, array('error' => 'порожня база'));
     $db = load_db();
-    $db['houses']  = $body['houses'];
-    $db['boilers'] = $body['boilers'] ?? array();
-    $db['baseSig'] = $body['baseSig'] ?? '';
+    // mode 'merge' — автопублікація (прилад за приладом); інакше — повна заміна, як раніше
+    if (($body['mode'] ?? '') === 'merge') {
+        merge_houses($db, $body['houses']);
+        if (!isset($db['boilers']) || !is_array($db['boilers'])) $db['boilers'] = array();
+        foreach (($body['boilers'] ?? array()) as $b) if ($b !== '' && !in_array($b, $db['boilers'], true)) $db['boilers'][] = $b;
+        if (!empty($body['baseSig'])) $db['baseSig'] = $body['baseSig'];
+    } else {
+        $db['houses']  = $body['houses'];
+        $db['boilers'] = $body['boilers'] ?? array();
+        $db['baseSig'] = $body['baseSig'] ?? '';
+    }
+    merge_house_dels($db, $body['houseDels'] ?? null); apply_house_dels($db);
     // мітка версії ДОВІДНИКА — пристрої бригади доливають нові прилади під час синхронізації
     $db['baseAt'] = round(microtime(true) * 1000);
     // Базові (архівні/імпортовані) показання — щоб робітник, який завантажить
@@ -457,6 +515,8 @@ if ($path === 'sync' && $method === 'POST') {
     }
     // очищення попередніх періодів — бригадне; новіша мітка перемагає
     merge_purge($db, $body); apply_purge($db);
+    // видалені прилади — бригадні
+    merge_house_dels($db, $body['houseDels'] ?? null); apply_house_dels($db);
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!isset($db['deletes']) || !is_array($db['deletes'])) $db['deletes'] = array();
     if (isset($body['deletes']) && is_array($body['deletes'])) {
@@ -502,9 +562,11 @@ if ($path === 'sync' && $method === 'POST') {
         'closedAt' => (float)($db['closedAt'] ?? 0),
         'periodKey' => (string)($db['periodKey'] ?? ''), 'periodAt' => (float)($db['periodAt'] ?? 0),
         'purgeBefore' => (string)($db['purgeBefore'] ?? ''), 'purgeAt' => (float)($db['purgeAt'] ?? 0),
-        'baseAt' => (float)($db['baseAt'] ?? 0),
+        'baseAt' => (float)(($db['baseAt'] ?? 0) ?: (count($db['houses']) ? 1 : 0)),
+        'baseN' => count($db['houses']), 'baseActs' => base_acts($db),
         'swaps' => assign_out($db['swaps'] ?? array()),
         'deletes' => assign_out($db['deletes'] ?? array()),
+        'houseDels' => assign_out($db['houseDels'] ?? array()),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));
 }
 

@@ -286,6 +286,133 @@ async function syncNow(d) {
     check('призначення лічильника не губиться після заміни (обидва пристрої)', asgSwap.no === '50000005' && asgSwap.w === 'Інший Робітник'
       && asgSwapB.no === '50000005' && asgSwapB.w === 'Інший Робітник', JSON.stringify([asgSwap, asgSwapB]));
 
+    // ---------- 10г. «Оновити довідник з сервера»: № актів повертаються, показання лишаються ----------
+    const rf = await B.run(async (a) => {
+      const before = a.db.readings.length;
+      a.db.houses.forEach(h => { h.act = ''; });             // як пристрій, що не мав номерів актів
+      a._persist();
+      await a.cloudRefreshBase(); await a._waitCloudIdle(15000);
+      return { before, after: a.db.readings.length, acts: a.db.houses.filter(h => h.act).length, n: a.db.houses.length,
+        found: a.db.houses.filter(h => a._matchesSearch(h, 'акт 44')).map(h => h.meterNo) };
+    });
+    check('«Оновити довідник»: № актів повернулись, показання на місці', rf.acts === rf.n && rf.after === rf.before && rf.found.length === 1, JSON.stringify(rf));
+
+    // ---------- 10д. «Стан даних»: порівняння пристрою з сервером ----------
+    const dgB = await B.run(async (a) => { await a.cloudCompare(); return a._diagView(); });
+    check('«Стан даних» у робітника: збігається з сервером', /збігається/.test(dgB.diagHint), dgB.diagLocalTxt + ' | ' + dgB.diagSrvTxt);
+    const dgA = await A.run(async (a) => {
+      // на ПК додали прилад і НЕ опублікували базу — у старшого даних більше, ніж на сервері
+      a.openNewMeter(); await new Promise(r => setTimeout(r, 50));
+      a.setState({ nmAddress: 'вул.Тестова, 9', nmMeterNo: '10000009', nmAccount: 'Т009' }); await new Promise(r => setTimeout(r, 50));
+      a.saveNewMeter(); await new Promise(r => setTimeout(r, 100));
+      await a.cloudCompare(); return a._diagView();
+    });
+    check('«Стан даних» у старшого: неопубліковані правки видно (і вони підуть самі)', /Опублікувати базу|автоматично/.test(dgA.diagHint), dgA.diagHint);
+
+    // ---------- 10е. АВТОМАТИКА: правка довідника доходить без «Опублікувати базу» ----------
+    await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'Т002');
+      a.tapMeter(h); await new Promise(r => setTimeout(r, 100));
+      a.setState({ mAkt: '77' }); await new Promise(r => setTimeout(r, 50)); a.saveDovidnyk();
+    });
+    await syncNow(A); await syncNow(A); await syncNow(B);
+    const auto = await B.run(async (a) => {
+      const h2 = a.db.houses.find(q => q.account === 'Т002'), h9 = a.db.houses.find(q => q.account === 'Т009');
+      return { act2: h2 && h2.act, newMeter: !!h9, hint: a._diagView().diagHint };
+    });
+    const aDirty = await A.run(a => a.state.baseDirty);
+    check('автоматично: № акта з картки старшого дійшов до робітника', auto.act2 === '77', JSON.stringify(auto));
+    check('автоматично: новий прилад старшого дійшов до робітника', auto.newMeter, JSON.stringify(auto));
+    check('автоматично: «Стан даних» у робітника — збігається (без кнопки)', /збігається/.test(auto.hint), auto.hint);
+    check('автоматично: у старшого правки позначено надісланими', aDirty === false, String(aDirty));
+
+    // ---------- 10є. показання НЕ зникають, коли змінюються дані приладу ----------
+    // Ключ показання будується з даних приладу (особовий, вид обліку, №). Якщо вид
+    // обліку змінили, пристрої не мають «загубити» вже синхронізовані показання.
+    const cnt = (d) => d.run(a => { const h = a.db.houses.find(q => q.account === 'Т002'); return a._houseReadings(h.id).length; });
+    await enter(B, '10000002', 210);                       // свіже показання робітника
+    await syncNow(B); await syncNow(A);
+    const beforeA = await cnt(A), beforeB = await cnt(B);
+    await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'Т002');
+      a.tapMeter(h); await new Promise(r => setTimeout(r, 100));
+      a.setState({ mKomOblik: true }); await new Promise(r => setTimeout(r, 50)); a.saveDovidnyk();   // росп. → ком.
+    });
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    const afterA = await cnt(A), afterB = await cnt(B);
+    const kindB = await B.run(a => a._meterKind(a.db.houses.find(q => q.account === 'Т002')));
+    check('зміна виду обліку дійшла до робітника', kindB === 'kom', kindB);
+    check('показання не зникли після зміни даних приладу (обидва пристрої)', afterA === beforeA && afterB === beforeB,
+      'старший ' + beforeA + '→' + afterA + ', робітник ' + beforeB + '→' + afterB);
+
+    // ---------- 10ж. застаріла відкрита картка не затирає правку з іншого пристрою ----------
+    const stale = await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'Т005');
+      a.tapMeter(h); await new Promise(r => setTimeout(r, 100));          // картку відкрито (№ акта «44»)
+      h.act = '91';                                                          // тим часом прийшло з іншого пристрою
+      a.setState({ mPhone: '+380 50 111 22 33' }); await new Promise(r => setTimeout(r, 50));
+      a.saveDovidnyk(); await new Promise(r => setTimeout(r, 50));          // тут змінили лише телефон
+      return { act: h.act, phone: h.phone };
+    });
+    check('збереження картки пише лише змінені поля (чужий № акта не затерто)', stale.act === '91' && /111/.test(stale.phone), JSON.stringify(stale));
+
+    // ---------- 10з. показання доходить без ручної синхронізації ----------
+    await B.run(async (a) => { await a._waitCloudIdle(15000); });
+    await enter(B, '10000002', 215);                                         // saveReading сам запускає синхронізацію
+    await wait(4000);
+    await syncNow(A);
+    const fast = await A.run(a => { const h = a.db.houses.find(q => q.account === 'Т002'); const l = a._lastReading(h.id); return l ? l.cur : null; });
+    check('показання робітника пішло на сервер одразу після збереження', fast === 215, String(fast));
+
+    // ---------- 10и. виконавець для приладу БЕЗ № лічильника («?» в акті) ----------
+    const noNum = await A.run(async (a) => {
+      a.openNewMeter(); await new Promise(r => setTimeout(r, 50));
+      a.setState({ nmAddress: 'вул. Ігнатенка, 6', nmMeterNo: 'X', nmAccount: 'ІГНАТЕНКА6' }); await new Promise(r => setTimeout(r, 50));
+      a.saveNewMeter(); await new Promise(r => setTimeout(r, 100));
+      const h = a.db.houses.find(q => q.account === 'ІГНАТЕНКА6'); h.meterNo = ''; a._touchHouse(h); a._persist();   // номера немає
+      a.setState({ tab: 'route', routeTable: true }); await new Promise(r => setTimeout(r, 300));
+      const row = (a.renderVals().routeAll || []).find(r => /Ігнатенка, 6/.test(r.address));
+      row.onWorker({ target: { value: 'Кравченко В. І.' } }); await new Promise(r => setTimeout(r, 150));
+      return a._assignedWorker(h);
+    });
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    const noNumB = await B.run(a => { const h = a.db.houses.find(q => q.account === 'ІГНАТЕНКА6'); return h ? a._assignedWorker(h) : 'немає приладу'; });
+    check('виконавець приладу без № лічильника — видно на обох пристроях', noNum === 'Кравченко В. І.' && noNumB === 'Кравченко В. І.', noNum + ' / ' + noNumB);
+
+    // ---------- 10і. правка № лічильника й інших полів у картці доходить без дубля ----------
+    const nBefore = await B.run(a => a.db.houses.length);
+    await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'ІГНАТЕНКА6');
+      a.tapMeter(h); await new Promise(r => setTimeout(r, 100));
+      a.setState({ mObcZavod: '6666666', mAkt: '331', mSettlement: 'Ігнатенка, 6' }); await new Promise(r => setTimeout(r, 50));
+      a.saveDovidnyk();
+    });
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    const ren = await B.run(a => { const hs = a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6');
+      return { n: a.db.houses.length, same: hs.length, no: hs.map(h => h.meterNo), act: hs.map(h => h.act), st: hs.map(h => h.settlement),
+        w: hs.map(h => a._assignedWorker(h)) }; });
+    check('правка № лічильника в картці: у робітника той самий прилад, без дубля', ren.same === 1 && ren.n === nBefore && ren.no[0] === '6666666', JSON.stringify(ren));
+    check('правка картки: № акта й нас. пункт дійшли', ren.act[0] === '331' && ren.st[0] === 'Ігнатенка, 6', JSON.stringify(ren));
+    check('правка № лічильника: виконавець лишився', ren.w[0] === 'Кравченко В. І.', JSON.stringify(ren.w));
+
+    // ---------- 10ї. дубль приладу: видалення на одному пристрої прибирає його всюди ----------
+    const dup = await A.run(async (a) => {
+      // дубль, як після старої помилки: той самий особовий, старий № (порожній), без нас. пункту
+      const real = a.db.houses.find(q => q.account === 'ІГНАТЕНКА6');
+      const id = a.db.houses.reduce((m, h) => Math.max(m, h.id), 0) + 1;
+      const d = Object.assign({}, real, { id, meterNo: '', settlement: '', act: '', prevKeys: [], upAt: Date.now() - 1000 });
+      a.db.houses.push(d); a._touchHouse(d); d.upAt = Date.now() - 1000; a._persist();
+      return { id, n: a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6').length };
+    });
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    const dupB = await B.run(a => a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6').length);
+    await A.run(async (a, id) => { a.deleteMeter(id); }, dup.id);
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    const afterDel = await B.run(a => a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6').map(h => h.meterNo));
+    const afterDelA = await A.run(a => a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6').map(h => h.meterNo));
+    check('дубль з’явився на обох (як у реальній ситуації)', dup.n === 2 && dupB === 2, dup.n + ' / ' + dupB);
+    check('«Видалити прилад» прибрав дубль на обох пристроях, справжній лишився', afterDel.join() === '6666666' && afterDelA.join() === '6666666', JSON.stringify([afterDelA, afterDel]));
+
     // ---------- 11. помилок JS немає ----------
     check('немає JS-помилок (старший)', A.errors.length === 0, A.errors.slice(0, 2).join(' | '));
     check('немає JS-помилок (робітник)', B.errors.length === 0, B.errors.slice(0, 2).join(' | '));
