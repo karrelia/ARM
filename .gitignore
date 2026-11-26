@@ -10,3 +10,6 @@ package-lock.json
 # Збірка для сервера (publish.ps1) — копії файлів проєкту, у репозиторій не йде
 для публікації/
 ARM-onovlennia-*.zip
+
+# згенеровані вихідники обробки 1С (python 1c/build_epf_src.py)
+1c/epf/

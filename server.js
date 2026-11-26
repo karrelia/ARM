@@ -33,7 +33,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; cha
   '.webmanifest': 'application/manifest+json' };
 
 // ---------- сховище ----------
-function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, houseDels: {}, baseSig: '', savedAt: 0, baseAt: 0 }; }
+function emptyDb(){ return { houses: [], boilers: [], readings: [], assignments: {}, assignmentsAt: {}, contacts: {}, routes: {}, closedAt: 0, periodKey: '', periodAt: 0, purgeBefore: '', purgeAt: 0, deletes: {}, swaps: {}, houseDels: {}, fopMarks: {}, baseSig: '', savedAt: 0, baseAt: 0 }; }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
 // мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
 // Міграція: наявним призначенням без мітки даємо базову «1» (живуть, але програють
@@ -483,6 +483,15 @@ async function handleApi(req, res, url){
         if (!ex || (Number(inc.at) || 0) > (Number(ex.at) || 0)) db.swaps[k] = inc;
       }
     }
+    // мітки оператора ФОП «заведено в 1С» — на кожен ключ перемагає новіша
+    if (!db.fopMarks || typeof db.fopMarks !== 'object') db.fopMarks = {};
+    if (body.fopMarks && typeof body.fopMarks === 'object') {
+      for (const k in body.fopMarks) {
+        const inc = body.fopMarks[k]; if (!inc || typeof inc !== 'object') continue;
+        const ex = db.fopMarks[k];
+        if (!ex || (Number(inc.at) || 0) > (Number(ex.at) || 0)) db.fopMarks[k] = inc;
+      }
+    }
     mergeContacts(db, body.contacts);
     mergeRoutes(db, body.routes);
     db.savedAt = Date.now();
@@ -497,7 +506,7 @@ async function handleApi(req, res, url){
       readings: out, keys: db.readings.map(keyOf), maxSrvAt: maxSrvAt(db), assignments: db.assignments, assignmentsAt: db.assignmentsAt || {}, contacts: db.contacts || {}, routes: db.routes || {}, baseSig: db.baseSig,
       closedAt: db.closedAt || 0, periodKey: db.periodKey || '', periodAt: db.periodAt || 0, swaps: db.swaps || {},
       purgeBefore: db.purgeBefore || '', purgeAt: db.purgeAt || 0, baseAt: db.baseAt || (db.houses.length ? 1 : 0), ...baseStats(db),
-      deletes: db.deletes || {}, houseDels: db.houseDels || {}, hasBase: db.houses.length > 0 });
+      deletes: db.deletes || {}, houseDels: db.houseDels || {}, fopMarks: db.fopMarks || {}, hasBase: db.houses.length > 0 });
   }
   return sendJson(res, 404, { error: 'невідомий маршрут' });
 }

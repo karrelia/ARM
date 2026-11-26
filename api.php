@@ -64,7 +64,7 @@ function empty_db() {
     return array('houses' => array(), 'boilers' => array(), 'readings' => array(),
                  'assignments' => new stdClass(), 'assignmentsAt' => new stdClass(), 'contacts' => new stdClass(), 'routes' => new stdClass(),
                  'closedAt' => 0, 'periodKey' => '', 'periodAt' => 0, 'purgeBefore' => '', 'purgeAt' => 0, 'baseAt' => 0, 'houseDels' => new stdClass(),
-                 'deletes' => new stdClass(), 'swaps' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
+                 'deletes' => new stdClass(), 'swaps' => new stdClass(), 'fopMarks' => new stdClass(), 'baseSig' => '', 'savedAt' => 0);
 }
 // Розподіл зводиться по КЛЮЧАХ із мітками часу (як contacts/routes), а не цілою
 // мапою — інакше два старших/адміни затирають правки одне одного (розподіл «блимає»).
@@ -163,6 +163,7 @@ function load_db() {
     if (isset($j['houseDels'])) $d['houseDels'] = $j['houseDels'];
     if (isset($j['deletes'])) $d['deletes'] = $j['deletes'];
     if (isset($j['swaps'])) $d['swaps'] = $j['swaps'];
+    if (isset($j['fopMarks'])) $d['fopMarks'] = $j['fopMarks'];
     return $d;
 }
 // Спільні мапи бригади «будинок → запис із міткою часу»: contacts (контактна
@@ -536,6 +537,15 @@ if ($path === 'sync' && $method === 'POST') {
             if ((float)($inc['at'] ?? 0) > $exAt) $db['swaps'][$k] = $inc;
         }
     }
+    // мітки оператора ФОП «заведено в 1С» — на кожен ключ перемагає новіша
+    if (!isset($db['fopMarks']) || !is_array($db['fopMarks'])) $db['fopMarks'] = array();
+    if (isset($body['fopMarks']) && is_array($body['fopMarks'])) {
+        foreach ($body['fopMarks'] as $k => $inc) {
+            if (!is_array($inc)) continue;
+            $exAt = isset($db['fopMarks'][$k]['at']) ? (float)$db['fopMarks'][$k]['at'] : -1;
+            if ((float)($inc['at'] ?? 0) > $exAt) $db['fopMarks'][$k] = $inc;
+        }
+    }
     if (isset($body['contacts'])) merge_contacts($db, $body['contacts']);
     if (isset($body['routes'])) merge_routes($db, $body['routes']);
     $db['savedAt'] = round(microtime(true) * 1000);
@@ -565,6 +575,7 @@ if ($path === 'sync' && $method === 'POST') {
         'baseAt' => (float)(($db['baseAt'] ?? 0) ?: (count($db['houses']) ? 1 : 0)),
         'baseN' => count($db['houses']), 'baseActs' => base_acts($db),
         'swaps' => assign_out($db['swaps'] ?? array()),
+        'fopMarks' => assign_out($db['fopMarks'] ?? array()),
         'deletes' => assign_out($db['deletes'] ?? array()),
         'houseDels' => assign_out($db['houseDels'] ?? array()),
         'baseSig' => $db['baseSig'], 'hasBase' => count($db['houses']) > 0));

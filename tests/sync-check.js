@@ -432,6 +432,56 @@ async function syncNow(d) {
       check('перенос у ' + mv.to + ' дійшов до робітника, без дублів', onB.length === mv.sigs.length && onB.every(p => p === mv.to), JSON.stringify(onB));
     }
 
+    // ---------- 10к. оператор ФОП: лише особові «П», мітка «заведено» доходить до старшого ----------
+    await A.run(async (a) => { a.setState({ nuName: 'Оператор Тест', nuPin: '3333', nuLvl: 'operator' }); await new Promise(r => setTimeout(r, 50)); await a.addUser(); });
+    await wait(400);
+    // прилад з особовим «П…» і показанням — через ті самі акти
+    const xlsxP = await A.page.evaluate(() => {
+      const aoa = [
+        ['№', 'Дата', 'Адреса', 'Споживач', 'Особовий рахунок', '№ лічильника', 'Ком. облік (№ у рамці)', 'Вид обліку',
+          'Кількість теплової енергії по лічильнику', '', '', "Об'єм води по теплолічильнику, м3", '', 'Наробітка теплолічильника, дні/години', '', 'Простой теплолічильника, год.', ''],
+        ['', '', '', '', '', '', '', '', 'Од. виміру', 'Попереднє', 'Теперішнє', 'Попереднє', 'Теперішнє', 'Попереднє', 'Теперішнє', 'Попереднє', 'Теперішнє'],
+        [9, '27.03.2026', 'вул.Тестова, 21', 'ФОП Тест', 'П021', '20000021', 21, 'ком.', 'Гкал', 50, 57.5, 10, 12, 100, 200, 0, 0]
+      ];
+      const wb = window.XLSX.utils.book_new();
+      window.XLSX.utils.book_append_sheet(wb, window.XLSX.utils.aoa_to_sheet(aoa), 'Акти');
+      return Array.from(new Uint8Array(window.XLSX.write(wb, { type: 'array', bookType: 'xlsx' })));
+    });
+    await A.page.setInputFiles('#dbImportInput', { name: 'akty-p.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(xlsxP) });
+    await wait(1200);
+    await A.run(a => { a.setState({ actsClear: false }); });
+    await wait(100);
+    await A.run(a => a.confirmActsPlan());
+    await wait(400);
+    await A.run(async (a) => { await a.cloudPublishBase(); });
+    await wait(300);
+    await syncNow(A);
+    const O = await device(browser, 'ПК оператора ФОП');
+    await O.run(async (a, k) => { a.setState({ keyInput: k }); await new Promise(r => setTimeout(r, 50)); a.saveBrigadeKey(); }, key);
+    await wait(900);
+    await O.run(async (a) => { const u = a.state.users.find(x => x.name === 'Оператор Тест'); a.setState({ loginSel: u.id, loginPin: '3333' }); await new Promise(r => setTimeout(r, 50)); a.doLogin(); });
+    await wait(300);
+    await O.run(async (a) => { await a.cloudLoadBase(); });
+    await wait(1500);
+    await syncNow(O);
+    const op = await O.run(async (a) => {
+      a.setState({ fopMonth: '2026-03', fopFilter: 'all' }); await new Promise(r => setTimeout(r, 50));
+      const v = a.renderVals();
+      return { tab: a.state.tab, tabs: v.tabs.map(t => t.label), isFop: v.isFop,
+        accs: v.fopCards.map(c => c.fields.find(f => f.label === 'Особовий').val) };
+    });
+    check('оператор: лише вкладка ФОП', op.isFop && op.tabs.join() === 'ФОП', JSON.stringify(op));
+    check('оператор: показані лише особові «П» зняті за місяць', op.accs.join() === 'П021', JSON.stringify(op.accs));
+    await O.run(async (a) => { a.setState({ fopMonth: '2026-03', fopFilter: 'all' }); await new Promise(r => setTimeout(r, 30)); a.renderVals().fopCards[0].toggle(); });
+    await wait(200);
+    for (let i = 0; i < 2; i++) { await syncNow(O); await syncNow(A); }
+    const markA = await A.run(a => Object.entries(a.state.fopMarks || {}).map(([k, m]) => k + '=' + (m.v ? 'так' : 'ні') + '/' + m.by));
+    check('мітка «заведено» оператора дійшла до старшого', markA.length === 1 && /п021\|20000021\|2026-03=так\/Оператор Тест/i.test(markA[0]), JSON.stringify(markA));
+    const notYet = await O.run(async (a) => { a.setState({ fopFilter: 'todo' }); await new Promise(r => setTimeout(r, 30)); return a.renderVals().fopCards.length; });
+    check('оператор: заведений зник із «Не заведено»', notYet === 0, String(notYet));
+    check('немає JS-помилок (оператор)', O.errors.length === 0, O.errors.slice(0, 2).join(' | '));
+    await O.ctx.close();
+
     // ---------- 11. помилок JS немає ----------
     check('немає JS-помилок (старший)', A.errors.length === 0, A.errors.slice(0, 2).join(' | '));
     check('немає JS-помилок (робітник)', B.errors.length === 0, B.errors.slice(0, 2).join(' | '));

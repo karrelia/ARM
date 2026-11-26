@@ -655,6 +655,56 @@ window.addEventListener('appinstalled', function () {
       </sc-if>
 
       <!-- ============ ANALYTICS ============ -->
+      <!-- ============ ОПЕРАТОР ФОП: зняті за місяць по особових «П…» ============ -->
+      <sc-if value="{{ isFop }}" hint-placeholder-val="{{ false }}">
+      <div class="page" style="padding:16px 16px 28px">
+        <div style="font-size:var(--t150);font-weight:800;color:var(--ink);margin-bottom:3px">Оператор ФОП</div>
+        <div style="font-size:var(--t118);font-weight:600;color:var(--muted);margin-bottom:12px">Особові на «П», зняті за {{ fopMonthLabel }}. Натисніть на будь-яке поле — воно скопіюється.</div>
+        <div class="scrl" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px">
+          <sc-for list="{{ fopMonths }}" as="m" hint-placeholder-count="4">
+            <button onClick="{{ m.tap }}" style="flex-shrink:0;padding:7px 13px;border-radius:20px;border:1px solid {{ m.bd }};background:{{ m.bg }};color:{{ m.fg }};font-size:var(--t120);font-weight:700;cursor:pointer;white-space:nowrap">{{ m.label }}</button>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <sc-for list="{{ fopFilters }}" as="f" hint-placeholder-count="3">
+            <button onClick="{{ f.tap }}" style="height:36px;padding:0 13px;border-radius:11px;border:1px solid {{ f.bd }};background:{{ f.bg }};color:{{ f.fg }};font-size:var(--t118);font-weight:700;cursor:pointer">{{ f.label }}</button>
+          </sc-for>
+          <input id="fopSearch" value="{{ fopQ }}" onInput="{{ onFopQ }}" placeholder="Особовий, адреса, № лічильника" style="flex:1;min-width:180px;height:40px;padding:0 12px;border:1px solid var(--inputBd);border-radius:11px;background:var(--inputBg);color:var(--ink);font-size:var(--t125)">
+        </div>
+        <sc-if value="{{ fopEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 16px;text-align:center;color:var(--muted);font-size:var(--t125);font-weight:600">{{ fopEmptyTxt }}</div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ fopCards }}" as="c" hint-placeholder-count="3">
+          <div style="background:var(--surface);border:1px solid {{ c.bd }};border-radius:15px;padding:12px 13px">
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:9px">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:var(--t130);font-weight:800;color:var(--ink);user-select:text">{{ c.addr }}</div>
+                <div style="font-size:var(--t112);font-weight:600;color:var(--muted2);user-select:text">{{ c.owner }}</div>
+              </div>
+              <button onClick="{{ c.toggle }}" style="flex-shrink:0;height:38px;padding:0 13px;border-radius:11px;border:1px solid {{ c.markBd }};background:{{ c.markBg }};color:{{ c.markFg }};font-size:var(--t118);font-weight:800;cursor:pointer;white-space:nowrap">{{ c.markTxt }}</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px">
+              <sc-for list="{{ c.fields }}" as="f" hint-placeholder-count="6">
+              <button onClick="{{ f.copy }}" title="Натисніть, щоб скопіювати" style="text-align:left;background:var(--chipBg);border:1px solid var(--line);border-radius:9px;padding:6px 9px;cursor:copy;min-width:0">
+                <div style="font-size:var(--t100);font-weight:700;color:var(--muted2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.label }} ⧉</div>
+                <div class="tnum" style="font-size:var(--t122);font-weight:800;color:var(--ink);word-break:break-word;user-select:text">{{ f.val }}</div>
+              </button>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:9px">
+              <button onClick="{{ c.copyAll }}" style="height:32px;padding:0 11px;border-radius:9px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t110);font-weight:800;cursor:pointer">⧉ Копіювати все</button>
+              <span style="font-size:var(--t108);font-weight:600;color:var(--muted2)">{{ c.markInfo }}</span>
+            </div>
+          </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+      <sc-if value="{{ fopCopied }}" hint-placeholder-val="{{ false }}">
+      <div style="position:fixed;left:50%;bottom:88px;transform:translateX(-50%);max-width:86vw;background:#1F2937;color:#fff;padding:9px 15px;border-radius:11px;font-size:var(--t118);font-weight:700;z-index:9999;box-shadow:0 6px 20px rgba(0,0,0,.25);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">✓ Скопійовано: {{ fopCopiedTxt }}</div>
+      </sc-if>
+
       <sc-if value="{{ isAnalytics }}" hint-placeholder-val="{{ false }}">
       <div class="page" style="padding:16px 16px 28px">
         <sc-if value="{{ anDrill }}" hint-placeholder-val="{{ false }}">
@@ -1848,9 +1898,9 @@ window.addEventListener('appinstalled', function () {
           <input value="{{ nuName }}" onInput="{{ onNuName }}" placeholder="Ім'я (напр. Іван Коваль)" style="width:100%;height:46px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;font-size:var(--t135);background:var(--inputBg);color:var(--ink);outline:none;margin-bottom:10px" />
           <input value="{{ nuPin }}" onInput="{{ onNuPin }}" type="password" inputmode="numeric" placeholder="PIN (мін. 4 цифри)" style="width:100%;height:46px;border:1px solid var(--inputBd);border-radius:12px;padding:0 13px;font-size:var(--t135);background:var(--inputBg);color:var(--ink);outline:none;margin-bottom:10px" />
           <div style="font-size:var(--t112);font-weight:700;color:var(--muted);margin-bottom:6px">Рівень доступу</div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <sc-for list="{{ nuLvlOpts }}" as="lo" hint-placeholder-count="3">
-              <button onClick="{{ lo.tap }}" style="flex:1;height:42px;border-radius:11px;border:1px solid {{ lo.bd }};background:{{ lo.bg }};color:{{ lo.fg }};font-size:var(--t118);font-weight:700;cursor:pointer">{{ lo.label }}</button>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <sc-for list="{{ nuLvlOpts }}" as="lo" hint-placeholder-count="4">
+              <button onClick="{{ lo.tap }}" style="flex:1 1 120px;height:42px;border-radius:11px;border:1px solid {{ lo.bd }};background:{{ lo.bg }};color:{{ lo.fg }};font-size:var(--t118);font-weight:700;cursor:pointer">{{ lo.label }}</button>
             </sc-for>
           </div>
           <div style="font-size:var(--t105);font-weight:600;color:var(--muted2);line-height:1.4;margin-bottom:12px">Робітник — маршрут і ввід свого завдання. Старший — усе, крім резервної копії та користувачів. Адмін — повний доступ.</div>
@@ -2412,6 +2462,7 @@ class Component extends DCLogic {
     searchQ: '', sortKey: 'streetAsc', boilerSel: '',
     entrySearchOpen: false, entrySearchQ: '', entryArchAll: false,
     archDetail: false, archFrom: '', archTo: '', ovArchFrom: '', ovArchTo: '',   // архів показань: режим і період
+    fopMonth: '', fopFilter: 'todo', fopQ: '', fopMarks: {}, fopCopied: '',      // оператор ФОП
     eNoConsumption: false, entryPhotos: [], photoView: null, dovExpanded: false, eDetails: false,
     editReadId: null, editReadVal: '',
     swapHouseId: null, swapDate: '', swapOldLast: '', swapNewNo: '', swapNewInit: '0', swapErr: '',
@@ -2662,7 +2713,7 @@ class Component extends DCLogic {
         fontScale: cfg.fontScale || 1,
         lastSyncAt: cfg.lastSyncAt || 0, lastPull: cfg.lastPull || 0, autoSync: cfg.autoSync !== false,
         notify: cfg.notify === true, closedAt: cfg.closedAt || 0, deletes: cfg.deletes || {},
-        periodKey: cfg.periodKey || '', periodAt: cfg.periodAt || 0, swaps: cfg.swaps || {},
+        periodKey: cfg.periodKey || '', periodAt: cfg.periodAt || 0, swaps: cfg.swaps || {}, fopMarks: cfg.fopMarks || {},
         purgeBefore: cfg.purgeBefore || '', purgeAt: cfg.purgeAt || 0, baseAt: cfg.baseAt || 0, baseDirty: cfg.baseDirty === true, houseDels: cfg.houseDels || {} });
       if (migrated) this._saveSettings({ route, contacts });
     }).catch(() => {});
@@ -2694,7 +2745,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.26.1'; }
+  static get APP_VERSION(){ return '2026.11.26.5'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -3120,7 +3171,9 @@ class Component extends DCLogic {
   _lvl(u){ return u ? (u.lvl || (u.admin ? 'admin' : 'worker')) : ''; }
   _applyIdentity(u){
     const lvl = this._lvl(u);
-    this._saveSettings({ me: u.name, role: lvl === 'worker' ? 'worker' : 'lead' });
+    // оператор ФОП нічого не вносить і не керує — права робітника, окрема сторінка
+    this._saveSettings({ me: u.name, role: (lvl === 'worker' || lvl === 'operator') ? 'worker' : 'lead' });
+    if (lvl === 'operator') this.setState({ tab: 'fop' });
     // робітник за замовчуванням бачить лише своє завдання (фільтр можна зняти)
     if (lvl === 'worker') this.setState({ myOnly: true });
   }
@@ -3231,7 +3284,8 @@ class Component extends DCLogic {
         purgeBefore: this.state.purgeBefore || '', purgeAt: this.state.purgeAt || 0, // очищення попередніх періодів — бригадне
         deletes: this.state.deletes || {},      // тумбстоуни видалених показань
         houseDels: this.state.houseDels || {},  // видалені прилади — бригадні
-        swaps: this.state.swaps || {} };        // заміни приладів — бригадні
+        swaps: this.state.swaps || {},          // заміни приладів — бригадні
+        fopMarks: this.state.fopMarks || {} };  // мітки оператора ФОП «заведено»
       if (canManageAsg) { payload.assignments = this.state.assignments || {}; payload.assignmentsAt = this.state.assignmentsAt || {}; }
       const resp = await this._apiFetch('/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!resp.ok) throw new Error('сервер відповів ' + resp.status);
@@ -3283,6 +3337,7 @@ class Component extends DCLogic {
       // заміни приладів: злити й привести картки будинків у відповідність
       this._mergeSwaps(data.swaps);
       this._applySwaps();
+      if (this._mergeFopMarks(data.fopMarks)) this._saveSettings({ fopMarks: this.state.fopMarks });
       // СЕРВЕР — ЄДИНЕ ДЖЕРЕЛО ПРАВДИ. keys — повний набір ключів показань, що
       // ЗАРАЗ є на сервері. Будь-яке НАШЕ вже синхронізоване польове показання,
       // якого там немає, — видалене будь-ким у бригаді → прибираємо і в себе.
@@ -3648,7 +3703,7 @@ class Component extends DCLogic {
   }
   _saveSettings(patch){
     const s = this.state;
-    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, baseAt: s.baseAt || 0, baseDirty: !!s.baseDirty, houseDels: s.houseDels || {}, deletes: s.deletes || {}, swaps: s.swaps || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
+    const cfg = { role: s.role, me: s.me, assignments: s.assignments, assignmentsAt: s.assignmentsAt || {}, route: s.route, contacts: s.contacts, brigadeKey: s.brigadeKey, theme: s.theme, fontScale: s.fontScale, notify: s.notify, closedAt: s.closedAt || 0, periodKey: s.periodKey || '', periodAt: s.periodAt || 0, purgeBefore: s.purgeBefore || '', purgeAt: s.purgeAt || 0, baseAt: s.baseAt || 0, baseDirty: !!s.baseDirty, houseDels: s.houseDels || {}, deletes: s.deletes || {}, swaps: s.swaps || {}, fopMarks: s.fopMarks || {}, lastSyncAt: s.lastSyncAt, lastPull: s.lastPull, autoSync: s.autoSync, ...(patch || {}) };
     this.setState(patch || {});
     this._idbSetKey('settings', cfg).catch(() => {});
   }
@@ -4021,7 +4076,7 @@ class Component extends DCLogic {
   // ---------- header actions ----------
   toggleTheme(){ const theme = this.state.theme === 'dark' ? 'light' : 'dark'; this._saveSettings({ theme }); }
   cycleFont(){ const fontScale = this.state.fontScale >= 1.15 ? 0.9 : Math.round((this.state.fontScale + 0.12)*100)/100; this._saveSettings({ fontScale }); }
-  setTab(t){ this._monthScrollToken = null; this.setState({ tab: t, detailId: null, anBoiler: null, routeEditKey: null, contactEditKey: null }); }
+  setTab(t){ if (this._isOperator()) t = 'fop'; this._monthScrollToken = null; this.setState({ tab: t, detailId: null, anBoiler: null, routeEditKey: null, contactEditKey: null }); }
   goEntry(){ this.setState({ tab: 'entry' }); }
   goHouses(){ this.setState({ tab: 'houses' }); }
   setOvMonth(k){ this.setState({ ovMonth: k, ovShowUnsub: false }); }
@@ -7192,7 +7247,9 @@ class Component extends DCLogic {
           // «Прилад №» показує, до котрого саме належить рядок
           ord: mo.ord ? (mo.ord + ' з ' + mo.total) : '',
           kind: this._kindLabel(h), meterNo: h.meterNo || '',
-          prev: prevVal, cur: curVal, diff: diffVal, by
+          prev: prevVal, cur: curVal, diff: diffVal, by,
+          // відповідальні: особа будинку (контакт, як в акті) і призначений виконавець
+          resp: contact.name || '', respPhone: contact.phone || '', worker: this._assignedWorker(h) || ''
         });
       });
     });
@@ -7201,13 +7258,14 @@ class Component extends DCLogic {
   }
   _monthReportHeader(){
     return ['Особовий рахунок', 'Адреса', 'Прилад №', 'Клас приладу', 'Номер обчислювача',
-      'Попередній показник', 'Теперішній показник', 'Різниця, Гкал', 'Хто знімав'];
+      'Попередній показник', 'Теперішній показник', 'Різниця, Гкал', 'Хто знімав',
+      'Відповідальна особа', 'Телефон', 'Відповідальний виконавець'];
   }
   exportMonth(){
     const key = this._curMonth();
     if (!key) return;
     const rows = this._monthReportRows(key);
-    const body = rows.map(r => [r.account, r.addr, r.ord, r.kind, r.meterNo, r.prev, r.cur, r.diff, r.by]);
+    const body = rows.map(r => [r.account, r.addr, r.ord, r.kind, r.meterNo, r.prev, r.cur, r.diff, r.by, r.resp, r.respPhone, r.worker]);
     const esc = v => { const t = String(v == null ? '' : v); return /[",;\n]/.test(t) ? '"' + t.replace(/"/g,'""') + '"' : t; };
     const csv = '﻿' + [this._monthReportHeader(), ...body].map(r => r.map(esc).join(';')).join('\r\n');
     this._downloadCsv(csv, 'teplo-zvit-' + key + '.csv');
@@ -7247,6 +7305,124 @@ class Component extends DCLogic {
     this._persist();
     this._kickSync();
     this.setState({ importOpen: true, importError: '', importName: 'Період', importMeta: 'зараховано за датою зняття: ' + late.length + ' показань', rev: this.state.rev + 1 });
+  }
+  // ---------- ОПЕРАТОР ФОП ----------
+  // Окремий користувач: бачить лише прилади з особовим на «П», ЗНЯТІ за обраний
+  // місяць (незняті не показуються), може переглянути попередні місяці, ставить
+  // власну мітку «заведено» (синхронізується) і копіює будь-яке поле одним натиском.
+  _isOperator(){ return this._lvl(this.state.authUser) === 'operator'; }
+  _isFopAcc(acc){ return /^\s*[ПпPp]/.test(String(acc == null ? '' : acc)); }
+  _fopKey(h, r, period){ return this._normAddr(h.account) + '|' + this._normAddr((r && r.meterNo) || h.meterNo) + '|' + period; }
+  setFopMark(key, v){
+    const m = { ...(this.state.fopMarks || {}) };
+    m[key] = { v: !!v, at: Date.now(), by: this.state.me || '' };
+    this.setState({ fopMarks: m });
+    this._saveSettings({ fopMarks: m });
+    this._kickSync();
+  }
+  _mergeFopMarks(incoming){
+    if (!incoming || typeof incoming !== 'object') return false;
+    const local = { ...(this.state.fopMarks || {}) }; let changed = false;
+    Object.keys(incoming).forEach(k => {
+      const inc = incoming[k]; if (!inc || typeof inc !== 'object') return;
+      const ex = local[k];
+      if (!ex || (Number(inc.at) || 0) > (Number(ex.at) || 0)) { local[k] = inc; changed = true; }
+    });
+    if (changed) this.state.fopMarks = local;
+    return changed;
+  }
+  // копіювання в буфер (з запасним способом для старих WebView)
+  copyText(text, label){
+    const t = String(text == null ? '' : text);
+    const done = () => {
+      clearTimeout(this._copyT);
+      this.setState({ fopCopied: (label ? label + ': ' : '') + t.split('\n')[0] + (t.indexOf('\n') >= 0 ? ' …' : '') });
+      this._copyT = setTimeout(() => this.setState({ fopCopied: '' }), 1600);
+    };
+    const fallback = () => {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = t; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+      } catch (e) {}
+      done();
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback);
+      else fallback();
+    } catch (e) { fallback(); }
+  }
+  // число для копіювання: без розрядів, кома як десятковий знак (як у 1С / Excel UA)
+  _copyNum(v){ return (v == null || v === '' || isNaN(Number(v))) ? '' : String(Number(v)).replace('.', ','); }
+  _fopVals(){
+    const s = this.state, out = { isFop: true };
+    const open = this._openPeriod();
+    const fopHouses = (this.db.houses || []).filter(h => this._isFopAcc(h.account));
+    // місяці, у яких є зняті прилади «П»
+    const mk = this._monthsList().map(m => m.key).filter(k => fopHouses.some(h => this._readingForMonth(h.id, k)));
+    if (!mk.includes(open)) mk.push(open);
+    mk.sort();
+    const key = (s.fopMonth && mk.includes(s.fopMonth)) ? s.fopMonth : open;
+    const pill = (on) => ({ fg: on ? '#fff' : 'var(--ink)', bg: on ? 'var(--primary)' : 'var(--surface)', bd: on ? 'var(--primary)' : 'var(--line2)' });
+    out.fopMonths = mk.map(k => ({ label: this._monthShort(k) + (k === open ? ' · поточний' : ''), tap: () => this.setState({ fopMonth: k }), ...pill(k === key) }));
+    out.fopMonthLabel = this._monthLabel(key);
+    const marks = s.fopMarks || {};
+    let items = [];
+    fopHouses.forEach(h => {
+      const r = this._readingForMonth(h.id, key);
+      if (!r) return;                                   // не знято в цьому місяці — не показуємо
+      const k = this._fopKey(h, r, key), m = marks[k];
+      items.push({ h, r, k, m, done: !!(m && m.v) });
+    });
+    const coll = this._coll();
+    items.sort((a, b) => this._cmpAddr(a.h.address || '', b.h.address || '', a.h.owner, b.h.owner) || coll.compare(String(a.h.account || ''), String(b.h.account || '')));
+    const nAll = items.length, nDone = items.filter(x => x.done).length;
+    const flt = s.fopFilter || 'todo';
+    out.fopFilters = [['todo', 'Не заведено · ' + (nAll - nDone)], ['done', 'Заведено · ' + nDone], ['all', 'Усі · ' + nAll]]
+      .map(f => ({ label: f[1], tap: () => this.setState({ fopFilter: f[0] }), ...pill(flt === f[0]) }));
+    if (flt === 'todo') items = items.filter(x => !x.done);
+    else if (flt === 'done') items = items.filter(x => x.done);
+    const q = String(s.fopQ || '').trim().toLowerCase().replace(/\s+/g, '');
+    if (q) items = items.filter(x => [x.h.account, x.h.address, x.h.owner, x.r.meterNo || x.h.meterNo, x.h.act]
+      .some(v => String(v || '').toLowerCase().replace(/\s+/g, '').includes(q)));
+    out.fopQ = s.fopQ || '';
+    out.onFopQ = (e) => this.setState({ fopQ: e.target.value });
+    out.fopEmpty = items.length === 0;
+    out.fopEmptyTxt = nAll === 0 ? ('За ' + this._monthLabel(key) + ' ще немає знятих приладів з особовим на «П».')
+      : (flt === 'todo' && !q ? 'Усе заведено ✓' : 'Нічого не знайдено');
+    const f3 = (v) => v == null ? '' : this.fmt(v, 3);
+    // відповідальна особа будинку (контакт, як у звіті й акті); будинок шукаємо один раз
+    const bOf = new Map(); this._buildings().forEach(b => b.meters.forEach(m => bOf.set(m.id, b)));
+    const respOf = (h) => { const b = bOf.get(h.id); const c = b ? this._routeContact(b) : null;
+      return c ? [c.name, c.phone].filter(Boolean).join(', ') : ''; };
+    out.fopCards = items.map(x => {
+      const h = x.h, r = x.r, v = this._archVals(r), unit = r.unit || h.unit || 'Гкал';
+      const F = [];
+      const add = (label, shown, copy) => { if (shown === '' || shown == null) return;
+        F.push({ label, val: String(shown), copy: () => this.copyText(copy != null ? copy : shown, label), raw: copy != null ? copy : shown }); };
+      // лише те, що потрібно оператору ФОП: особовий, адреса, відповідальний і
+      // теплова енергія — попередній · поточний · різниця (в одиницях приладу) · спожито Гкал
+      const resp = respOf(h);
+      add('Особовий', h.account || '');
+      add('Адреса', h.address || '');
+      add('Відповідальний', resp || '—', resp);
+      add('Попередній', f3(v.te.p), this._copyNum(v.te.p));
+      add('Поточний', f3(v.te.c), this._copyNum(v.te.c));
+      add('Різниця, ' + unit, f3(v.te.d), this._copyNum(v.te.d));
+      add('Спожито, Гкал', f3(v.gcal), this._copyNum(v.gcal));
+      const all = F.map(f => f.label + ': ' + f.raw).join('\n');
+      const m = x.m;
+      return {
+        addr: h.address || '—', owner: [h.account, this._fmtDateUa(r.date)].filter(Boolean).join(' · знято '),
+        fields: F, copyAll: () => this.copyText(all, 'усе'),
+        bd: x.done ? 'var(--over)' : 'var(--line)',
+        markTxt: x.done ? '✓ Заведено' : 'Не заведено',
+        markBg: x.done ? 'var(--over)' : 'var(--surface)', markFg: x.done ? '#fff' : 'var(--ink)', markBd: x.done ? 'var(--over)' : 'var(--line2)',
+        toggle: () => this.setFopMark(x.k, !x.done),
+        markInfo: m ? ((m.v ? 'заведено ' : 'знято позначку ') + new Date(m.at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (m.by ? ' · ' + m.by : '')) : ''
+      };
+    });
+    return out;
   }
   // ---------- МЕТОД ПРОВЕДЕННЯ В 1С ----------
   // Кожен прилад у 1С проводиться одним із документів: «Акт» (Акт зняття показань
@@ -7356,7 +7532,7 @@ class Component extends DCLogic {
       if (!h.m1c) notes.push('метод 1С не вказано');
       if (cur == null) notes.push('немає показника за місяць');
       if (last) notes.push('лічильник замінено ' + this._fmtDateUa(last.date) + ' (був ' + last.oldNo + ') — перевірте № у 1С');
-      rows.push({ h, account: h.account || '', meterNo: h.meterNo || '', cur, m1c: h.m1c || '',
+      rows.push({ h, rm, account: h.account || '', meterNo: h.meterNo || '', cur, m1c: h.m1c || '',
         date: rm ? rm.date : '', by: rm ? (rm.by || '') : '', addr: h.address || '', kind: this._kindLabel(h),
         swapNote: last ? ('замінено ' + this._fmtDateUa(last.date) + ', був ' + last.oldNo) : '', note: notes.join('; ') });
     });
@@ -7388,9 +7564,17 @@ class Component extends DCLogic {
       };
       let aoa, cols, name, n;
       if (doc === 'all') {
-        aoa = [['Особовий рахунок', '№ лічильника', 'Показник', 'Метод 1С', 'Дата зняття', 'Адреса', 'Клас приладу', 'Хто знімав', 'Примітка']];
-        all.forEach(r => aoa.push([r.account, r.meterNo, r.cur == null ? '' : r.cur, r.m1c, this._fmtDateUa(r.date), r.addr, r.kind, r.by, r.note]));
-        cols = [{ wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 34 }, { wch: 13 }, { wch: 18 }, { wch: 60 }];
+        // + параметри вузла: їх переносить у «Акт» обробка 1С «Завантаження показників Теплооблік»
+        aoa = [['Особовий рахунок', '№ лічильника', 'Показник', 'Метод 1С', 'Дата зняття', 'Адреса', 'Клас приладу', 'Хто знімав', 'Примітка',
+          'Попередній показник', 'Вода попер., м³', 'Вода поточ., м³', 'Наробіток попер.', 'Наробіток поточ.', 'Простій попер., год', 'Простій поточ., год',
+          'Температура вхід, °C', 'Температура вихід, °C', 'Витрати теплоносія', 'Миттєва потужність']];
+        const e = (v) => v == null ? '' : v;
+        all.forEach(r => { const v = r.rm ? this._archVals(r.rm) : null;
+          aoa.push([r.account, r.meterNo, r.cur == null ? '' : r.cur, r.m1c, this._fmtDateUa(r.date), r.addr, r.kind, r.by, r.note,
+            v ? e(v.te.p) : '', v ? e(v.voda.p) : '', v ? e(v.voda.c) : '', v ? e(v.robota.p) : '', v ? e(v.robota.c) : '',
+            v ? e(v.prostiy.p) : '', v ? e(v.prostiy.c) : '', v ? e(v.tVhid) : '', v ? e(v.tVyhid) : '', v ? e(v.vytraty) : '', v ? e(v.potuzhnist) : '']); });
+        cols = [{ wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 11 }, { wch: 12 }, { wch: 34 }, { wch: 13 }, { wch: 18 }, { wch: 50 },
+          { wch: 12 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }, { wch: 11 }];
         name = 'teplo-1c-' + key + '-povnyi.xlsx'; n = all.length;
       } else {
         const sel = all.filter(r => r.cur != null && r.account && this._m1cIn(r.h, doc));
@@ -7519,7 +7703,8 @@ class Component extends DCLogic {
       rows.forEach(r => aoa.push([
         String(r.account || ''), String(r.addr || ''), String(r.ord || ''), String(r.kind || ''),
         String(r.meterNo || ''),                       // ТЕКСТ — нулі спереду збережуться
-        numOrText(r.prev), numOrText(r.cur), numOrText(r.diff), String(r.by || '')
+        numOrText(r.prev), numOrText(r.cur), numOrText(r.diff), String(r.by || ''),
+        String(r.resp || ''), String(r.respPhone || ''), String(r.worker || '')
       ]));
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       // колонку «Номер лічильника» позначаємо текстовою (@), щоб номер не став
@@ -7530,7 +7715,7 @@ class Component extends DCLogic {
         if (cell) { cell.t = 's'; cell.z = '@'; }
       }
       ws['!cols'] = [{ wch: 18 }, { wch: 34 }, { wch: 12 }, { wch: 10 }, { wch: 18 },
-                     { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 20 }];
+                     { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 20 }, { wch: 28 }, { wch: 18 }, { wch: 22 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Звіт');
       const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
@@ -7961,7 +8146,8 @@ class Component extends DCLogic {
         this.setState({ importOpen: false, importActionLabel: '' }); if (f) f(); },
       goEntry: () => this.goEntry(),
       goHouses: () => this.goHouses(),
-      isOverview: false, isHouses: false, isAnalytics: false, isEntry: false, isDetail: false, isRoute: false, isActs: false,
+      isOverview: false, isHouses: false, isAnalytics: false, isEntry: false, isDetail: false, isRoute: false, isActs: false, isFop: false,
+      fopCopied: !!s.fopCopied, fopCopiedTxt: s.fopCopied || '',
       ovRoute: { show: false },
       photoView: s.photoView || '', hasPhotoView: !!s.photoView, closePhoto: () => this.closePhoto(),
       // роль / ім'я виконавця (Фаза 1 бригадного збору)
@@ -8092,12 +8278,12 @@ class Component extends DCLogic {
       onPurgeKey: (e) => this.onPurgeKey(e), purgePeriods: () => this.purgePeriods(), clearPurge: () => this.clearPurge(),
       authError: s.authError || '',
       authUserName: s.authUser ? s.authUser.name : '',
-      authUserRole: ({ admin: 'Адміністратор (повний доступ)', lead: 'Старший', worker: 'Робітник' })[this._lvl(s.authUser)] || '',
+      authUserRole: ({ admin: 'Адміністратор (повний доступ)', lead: 'Старший', worker: 'Робітник', operator: 'Оператор ФОП (особові на «П»)' })[this._lvl(s.authUser)] || '',
       foName: s.foName, foPin: s.foPin, onFoName: this.setField('foName'), onFoPin: this.setField('foPin'),
       createFirstAdmin: () => this.createFirstAdmin(),
       loginSel: s.loginSel || ((s.users || [])[0] && s.users[0].id) || '', loginPin: s.loginPin,
       loginOpts: (s.users || []).map(u => { const l = this._lvl(u);
-        return { value: u.id, label: u.name + (l === 'admin' ? ' · адмін' : (l === 'lead' ? ' · старший' : '')) }; }),
+        return { value: u.id, label: u.name + (l === 'admin' ? ' · адмін' : (l === 'lead' ? ' · старший' : (l === 'operator' ? ' · оператор ФОП' : ''))) }; }),
       onLoginSel: this.setField('loginSel'), onLoginPin: this.setField('loginPin'),
       onLoginKey: (e) => { if (e && e.key === 'Enter') this.doLogin(); },
       doLogin: () => this.doLogin(), logout: () => this.logout(),
@@ -8105,14 +8291,14 @@ class Component extends DCLogic {
       userCount: (s.users || []).length,
       userList: (s.users || []).map(u => { const l = this._lvl(u);
         return { id: u.id, name: u.name, initial: (u.name || '?').trim().charAt(0).toUpperCase(),
-        roleTxt: l === 'admin' ? 'Адміністратор' : (l === 'lead' ? 'Старший' : 'Робітник'),
+        roleTxt: l === 'admin' ? 'Адміністратор' : (l === 'lead' ? 'Старший' : (l === 'operator' ? 'Оператор ФОП' : 'Робітник')),
         roleFg: l === 'admin' ? 'var(--debt)' : (l === 'lead' ? 'var(--primary)' : 'var(--muted2)'),
         roleBg: l === 'admin' ? 'var(--debtTint)' : (l === 'lead' ? 'var(--primTint)' : 'var(--chipBg)'),
         isReset: s.pinResetId === u.id, remove: () => this.removeUser(u.id), startReset: () => this.startPinReset(u.id) }; }),
       nuName: s.nuName, nuPin: s.nuPin,
       onNuName: this.setField('nuName'), onNuPin: this.setField('nuPin'),
       // вибір рівня доступу нового користувача (3 варіанти)
-      nuLvlOpts: [['worker','Робітник'],['lead','Старший'],['admin','Адмін']].map(o => ({
+      nuLvlOpts: [['worker','Робітник'],['lead','Старший'],['admin','Адмін'],['operator','Оператор ФОП']].map(o => ({
         label: o[1], on: (s.nuLvl || 'worker') === o[0],
         fg: (s.nuLvl || 'worker') === o[0] ? '#fff' : 'var(--ink)',
         bg: (s.nuLvl || 'worker') === o[0] ? 'var(--primary)' : 'var(--surface)',
@@ -8187,6 +8373,8 @@ class Component extends DCLogic {
         const todayISO = this._todayISO();
         const todayCnt = Object.values(s.route || {})
           .filter(r => r && r.mode === 'appt' && r.date === todayISO).length;
+        if (this._isOperator()) return [{ icon: '📋', label: 'ФОП', tap: () => this.setTab('fop'), badge: '',
+          color: cPrimary, op: '1', gray: '0' }];
         return [['overview','📊','Огляд'],['houses','🏢','Будинки'],['analytics','📈','Аналітика'],['route','🗺️','Маршрут'],['entry','✎','Ввід']]
           // «Акти» (друк/вигрузка) — робота за столом, показуємо лише в ПК-версії
           .concat(s.wide ? [['acts','🖨️','Акти']] : [])
@@ -8202,6 +8390,9 @@ class Component extends DCLogic {
     };
 
     if (s.booting || !s.hasData) return out;
+
+    // ----- ОПЕРАТОР ФОП: лише своя сторінка, незалежно від вкладки -----
+    if (this._isOperator() || s.tab === 'fop') { Object.assign(out, this._fopVals()); return out; }
 
     // ----- entry preview (доступно завжди) -----
     const hName = (h) => h.address || h.code;
