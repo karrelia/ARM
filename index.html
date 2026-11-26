@@ -2745,7 +2745,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.26.5'; }
+  static get APP_VERSION(){ return '2026.11.26.6'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -7406,6 +7406,7 @@ class Component extends DCLogic {
       add('Особовий', h.account || '');
       add('Адреса', h.address || '');
       add('Відповідальний', resp || '—', resp);
+      add('№ лічильника', r.meterNo || h.meterNo || '');
       add('Попередній', f3(v.te.p), this._copyNum(v.te.p));
       add('Поточний', f3(v.te.c), this._copyNum(v.te.c));
       add('Різниця, ' + unit, f3(v.te.d), this._copyNum(v.te.d));
