@@ -676,7 +676,10 @@ window.addEventListener('appinstalled', function () {
         </div>
 
         <div style="font-size:var(--t150);font-weight:800;color:var(--ink);margin-bottom:3px">{{ anTitle }}</div>
-        <div style="font-size:var(--t120);font-weight:600;color:var(--muted);margin-bottom:14px">{{ anSub }}</div>
+        <div style="font-size:var(--t120);font-weight:600;color:var(--muted);margin-bottom:10px">{{ anSub }}</div>
+        <sc-if value="{{ anCanXls }}" hint-placeholder-val="{{ false }}">
+        <button id="anXlsBtn" onClick="{{ anXls }}" style="display:flex;align-items:center;justify-content:center;gap:7px;width:100%;height:40px;border-radius:12px;border:1px solid var(--primBd);background:var(--primTint);color:var(--primary);font-size:var(--t118);font-weight:800;cursor:pointer;margin-bottom:14px">⭳ Excel — котельні й будинки за {{ anMonthLabel }}</button>
+        </sc-if>
 
         <sc-if value="{{ anEmpty }}" hint-placeholder-val="{{ false }}">
           <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 16px;text-align:center;color:var(--muted);font-size:var(--t125);font-weight:600">Приросту показань за цей період у базі немає</div>
@@ -2691,7 +2694,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.25.4'; }
+  static get APP_VERSION(){ return '2026.11.26.1'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -7059,6 +7062,63 @@ class Component extends DCLogic {
     return byB;
   }
   anBack(){ this.setState({ anBoiler: null }); }
+  // Вигрузка аналітики в Excel тими самими шарами, що на екрані: аркуш «Котельні»
+  // і по аркушу на кожну котельню з її будинками. Порядок — за обраною метрикою.
+  async exportAnalytics(key, isPyt){
+    if (!key) return;
+    try {
+      const XLSX = await this._ensureXlsx();
+      const byB = this._boilerConsumption(key);
+      const boilers = Object.values(byB);
+      const total = boilers.reduce((a, b) => a + b.fact, 0);
+      const pct = (v, base) => base > 0 ? this.r2(v / base * 100) : '';
+      const nz = (v) => v == null ? '' : v;
+      const sortB = (a, b) => isPyt ? ((b.pyt || 0) - (a.pyt || 0)) : (b.fact - a.fact);
+      const sortH = (a, b) => isPyt ? ((b.pyt || 0) - (a.pyt || 0)) : (b.gcal - a.gcal);
+      const title = (t) => [t + ' · ' + this._monthLabel(key) + ' · сортування: ' + (isPyt ? 'питомі' : 'обсяг')];
+      const wb = XLSX.utils.book_new();
+      const used = new Set();
+      const sheetName = (n) => {
+        let b = String(n || '—').replace(/[[\]:*?/\\]/g, ' ').trim().slice(0, 28) || '—', x = b, i = 2;
+        while (used.has(x.toLowerCase())) x = b.slice(0, 26) + ' ' + (i++);
+        used.add(x.toLowerCase()); return x;
+      };
+      const add = (name, aoa, cols) => {
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = cols.map(w => ({ wch: w }));
+        ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: cols.length - 1 } }];
+        XLSX.utils.book_append_sheet(wb, ws, sheetName(name));
+        return ws;
+      };
+      // шар 1 — котельні
+      const top = [title('Споживання по котельнях'), [],
+        ['№', 'Котельня / нас. пункт', 'Будинків', 'Спожито, Гкал', 'Частка, %', 'ТН, Гкал/год', 'Питомі, Гкал/од. ТН']];
+      boilers.slice().sort(sortB).forEach((b, i) => top.push([i + 1, b.boiler, b.n, b.fact, pct(b.fact, total), nz(b.load || null), nz(b.pyt)]));
+      const tLoad = boilers.reduce((a, b) => a + (b.load || 0), 0);
+      top.push([], ['', 'Разом', boilers.reduce((a, b) => a + b.n, 0), this.r2(total), total > 0 ? 100 : '', nz(tLoad ? this.r3(tLoad) : null), tLoad > 0 ? this.r3(total / tLoad) : '']);
+      add('Котельні', top, [5, 30, 10, 14, 10, 13, 18]);
+      // шар 2 — будинки кожної котельні
+      boilers.slice().sort(sortB).forEach(b => {
+        const aoa = [title(b.boiler), [],
+          ['№', 'Адреса', 'Особовий', 'Власник', '№ лічильника', 'Приладів', 'Спожито, Гкал', 'Частка в котельні, %', 'ТН, Гкал/год', 'Питомі, Гкал/од. ТН']];
+        b.buildings.slice().sort(sortH).forEach((x, i) => {
+          const h = x.house || {};
+          aoa.push([i + 1, x.address || h.address || '', String(h.account || h.code || ''), h.owner || '', String(h.meterNo || ''),
+            x.meters, x.gcal, pct(x.gcal, b.fact), nz(x.heatLoad || null), nz(x.pyt)]);
+        });
+        aoa.push([], ['', 'Разом', '', '', '', b.buildings.reduce((a, x) => a + x.meters, 0), b.fact, b.fact > 0 ? 100 : '', nz(b.load || null), nz(b.pyt)]);
+        const ws = add(b.boiler, aoa, [5, 32, 16, 34, 14, 9, 14, 12, 13, 18]);
+        // особовий і № лічильника — текстом (нулі спереду)
+        for (let r = 3; r < aoa.length; r++) [2, 4].forEach(c => { const cell = ws[XLSX.utils.encode_cell({ r, c })]; if (cell && cell.v !== '') { cell.t = 's'; cell.v = String(cell.v); cell.z = '@'; } });
+      });
+      const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      this._downloadBlob(new Blob([out], { type: 'application/octet-stream' }), 'teplo-analityka-' + key + '.xlsx');
+      this.setState({ importOpen: true, importError: '', importName: 'Аналітика', importMeta: 'вигружено: ' + boilers.length + ' котелень, '
+        + boilers.reduce((a, b) => a + b.n, 0) + ' будинків за ' + this._monthLabel(key) });
+    } catch (e) {
+      this.setState({ importError: 'Не вдалося сформувати Excel аналітики: ' + (e && e.message || e) });
+    }
+  }
   setAnMetric(m){ this.setState({ anMetric: m }); }
 
   // ---------- повірка обчислювачів ----------
@@ -8892,6 +8952,9 @@ class Component extends DCLogic {
       const monthTotal = boilers.reduce((s2, b) => s2 + b.fact, 0);
       out.anDrill = !!s.anBoiler;
       out.anBack = () => this.anBack();
+      out.anCanXls = boilers.length > 0;
+      out.anMonthLabel = this._monthLabel(curKey);
+      out.anXls = () => this.exportAnalytics(curKey, isPyt);
       out.anEmpty = boilers.length === 0;
 
       // Рядок аналітики. В режимі «Обсяг» довжина смуги — частка від найбільшого
