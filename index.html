@@ -2722,6 +2722,7 @@ class Component extends DCLogic {
         this.db = saved;
         this.setState({ booting: false, hasData: true });
         this._migrateStableKeys();
+        if (this._rebaseAfterOpen()) this._persist();   // показання, внесені до повірки/заміни
       } else {
         this.setState({ booting: false, hasData: false });
       }
@@ -2745,7 +2746,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.26.6'; }
+  static get APP_VERSION(){ return '2026.11.27.1'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -3337,6 +3338,7 @@ class Component extends DCLogic {
       // заміни приладів: злити й привести картки будинків у відповідність
       this._mergeSwaps(data.swaps);
       this._applySwaps();
+      if (this._rebaseAfterOpen()) this._persist();     // повірка/заміна прийшла пізніше за показання
       if (this._mergeFopMarks(data.fopMarks)) this._saveSettings({ fopMarks: this.state.fopMarks });
       // СЕРВЕР — ЄДИНЕ ДЖЕРЕЛО ПРАВДИ. keys — повний набір ключів показань, що
       // ЗАРАЗ є на сервері. Будь-яке НАШЕ вже синхронізоване польове показання,
@@ -5547,6 +5549,52 @@ class Component extends DCLogic {
     if (sel) { const found = rs.find(r => String(r.id) === String(sel)); if (found) return found; }
     return rs[0];
   }
+  // Показання, внесені ДО того, як з'явився запис «після повірки / заміни» з
+  // ранішою датою (повірку оформили пізніше або вона прийшла з іншого пристрою),
+  // лишались із «попереднім» від старого запису: різниця й Гкал виходили завищені
+  // (напр. 7327,4 → 7586,9 замість 7374,3 → 7586,9). Тут такі показання
+  // переводимо на відкривний запис (swapIn): попередні ТЕ/вода/наробіток/простій/
+  // водомір = його значення, різниця й Гкал — заново. at+1 — щоб зміна дійшла
+  // до сервера й інших пристроїв. Повертає кількість виправлених.
+  _rebaseAfterOpen(houseIds){
+    if (!this.db || !Array.isArray(this.db.readings)) return 0;
+    const only = houseIds ? new Set(houseIds.map(String)) : null;
+    const byHouse = new Map();
+    this.db.readings.forEach(r => {
+      if (r.isControl || !r.date) return;
+      const k = String(r.houseId); if (only && !only.has(k)) return;
+      let a = byHouse.get(k); if (!a) { a = []; byHouse.set(k, a); } a.push(r);
+    });
+    let n = 0;
+    byHouse.forEach((rs, k) => {
+      const opens = rs.filter(r => r.swapIn);
+      if (!opens.length) return;
+      const h = this._houseById(k);
+      rs.forEach(r => {
+        if (r.swapIn || r.swapOut) return;
+        // найближчий попередній запис того самого лічильника
+        let p = null;
+        rs.forEach(q => {
+          if (q === r || q.date > r.date || (q.date === r.date && !q.swapIn)) return;
+          if (r.meterNo && q.meterNo && !this._sameMeterNo(q.meterNo, r.meterNo)) return;
+          if (!p || q.date > p.date || (q.date === p.date && ((q.swapIn ? 1 : 0) - (p.swapIn ? 1 : 0) || q.id - p.id) > 0)) p = q;
+        });
+        if (!p || !p.swapIn) return;                       // лише після відкривного запису
+        const pc = Number(p.cur);
+        if (isNaN(pc) || Math.abs(Number(r.prev) - pc) < 0.0005) return;
+        r.prev = this.r3(pc);
+        r.delta = this.r3(Number(r.cur) - pc);
+        r.gcal = this.toGcal(r.delta, r.unit || (h && h.unit));
+        ['voda', 'robota', 'prostiy', 'vodomir'].forEach(x => {
+          if (p[x] != null && p[x] !== '' && r[x] != null && r[x] !== '') r[x + 'Prev'] = this.r3(Number(p[x]));
+        });
+        r.at = (Number(r.at) || 0) + 1;
+        if (r.src === 'field') r.synced = false;
+        n++;
+      });
+    });
+    return n;
+  }
   _prevEnergy(houseId){
     const r = this._prevReading(houseId);
     if (r) return r.cur;
@@ -6663,6 +6711,7 @@ class Component extends DCLogic {
       rec.instDate = s.povInstDate; rec.init = nw;
     }
     this._applyPovRecord(rec, true);
+    this._rebaseAfterOpen([h.id]);                      // уже внесені пізніші показання — від «після повірки»
     const sw = { ...(this.state.swaps || {}) };
     sw[this._povId(h, rec.instDate, rec.povDate)] = rec;
     this.state.swaps = sw;
@@ -6893,6 +6942,7 @@ class Component extends DCLogic {
       acc: h.account || '', wt: this._meterKind(h),
       oldNo, newNo, oldLast, init, date, prevBefore, initX, beforeX, newUnit, newPov, by, at: now, undone: false };
     this.state.swaps = sw;
+    this._rebaseAfterOpen([h.id]);                      // уже внесені пізніші показання — від нового приладу
     this._persist();
     this._saveSettings({ swaps: sw });
     this.setState({ swapHouseId: null, swapErr: '', rev: this.state.rev + 1, ...this._entryRefresh(h),
