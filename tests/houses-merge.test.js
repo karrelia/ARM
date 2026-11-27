@@ -64,3 +64,32 @@ test('видалений прилад прибирається й не пове�
   mergeHouses(db, [H({ id: 9, meterNo: '', upAt: 200 })]);       // свідомо створений пізніше
   assert.equal(db.houses.length, 2);
 });
+
+test('застаріла копія приладу ДО заміни не додається як новий прилад', () => {
+  const { isSwappedOut, dropSwapStale } = require('../server.js');
+  const db = emptyDb();
+  db.houses = [H({ id: 1, meterNo: '900', upAt: 50, meterSwaps: [{ oldNo: '100', newNo: '900', date: '2026-09-17' }] })];
+  mergeHouses(db, [H({ id: 7, meterNo: '100', upAt: 10 })]);           // старий пристрій шле картку зі старим №
+  assert.equal(db.houses.length, 1, 'дубль не з’явився');
+  assert.equal(db.houses[0].meterNo, '900');
+  // вже наявний дубль прибирається
+  db.houses.push(H({ id: 2, meterNo: '100', upAt: 5 }));
+  assert.equal(isSwappedOut(db.houses, db.houses[1]), true);
+  assert.equal(dropSwapStale(db), 1);
+  assert.deepEqual(db.houses.map(h => h.meterNo), ['900']);
+  // інший прилад того самого особового не чіпаємо
+  db.houses.push(H({ id: 3, meterNo: '555', upAt: 5 }));
+  assert.equal(dropSwapStale(db), 0);
+});
+
+test('стара копія після звичайної зміни № у картці не додається й прибирається', () => {
+  const { dropSwapStale } = require('../server.js');
+  const db = emptyDb();
+  db.houses = [H({ id: 1, account: 'ДАПОСТОЛА6', meterNo: '777', upAt: 50, prevKeys: ['дапостола6|111'] })];
+  mergeHouses(db, [H({ id: 9, account: 'ДАПОСТОЛА6', meterNo: '111', upAt: 99 })]);   // застарілий пристрій
+  assert.equal(db.houses.length, 1);
+  assert.equal(db.houses[0].meterNo, '777');
+  db.houses.push(H({ id: 2, account: 'ДАПОСТОЛА6', meterNo: '111', upAt: 5 }));        // дубль, що вже є
+  assert.equal(dropSwapStale(db), 1);
+  assert.deepEqual(db.houses.map(h => h.meterNo), ['777']);
+});

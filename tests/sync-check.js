@@ -169,6 +169,32 @@ async function syncNow(d) {
     check('заміна: у робітника новий № і показники', swB.no === '20000001' && swB.prev === 0 && swB.prevVoda === 1 && swB.recs === 2, JSON.stringify(swB));
     check('заміна: одиниці й повірка нового — у робітника', swB.unit === 'МВт' && swB.pov === '2026-11-01', swB.unit + ' / ' + swB.pov);
 
+    // ---------- 6а. застаріла картка ДО заміни (з іншого пристрою) не стає другим приладом ----------
+    // на B — дубль, як у реальній ситуації: стара картка Т001/10000001 з показанням
+    const swDupPrep = await B.run(async (a) => {
+      const real = a.db.houses.find(q => q.account === 'Т001');
+      const id = a.db.houses.reduce((m, h) => Math.max(m, h.id), 0) + 1;
+      const stale = Object.assign({}, real, { id, meterNo: '10000001', meterSwaps: [], upAt: 1 });
+      a.db.houses.push(stale);
+      const r = a.db.readings.find(x => x.houseId === real.id && !x.isControl);
+      if (r) r.houseId = id;                                   // історія «прилипла» до дубля
+      a._persist();
+      return { n: a.db.houses.filter(q => q.account === 'Т001').length, stale };
+    });
+    // старий пристрій публікує стару картку на сервер
+    await A.run(async (a, st) => {
+      await a._apiFetch('/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'merge', houses: [Object.assign({}, st, { upAt: 2 })], boilers: [] }) });
+    }, swDupPrep.stale);
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    await B.run(async (a) => { await a.cloudRefreshBase(); await a._waitCloudIdle(15000); });
+    await A.run(async (a) => { await a.cloudRefreshBase(); await a._waitCloudIdle(15000); });
+    const swDupB = await B.run(a => a.db.houses.filter(q => q.account === 'Т001').map(h => h.meterNo + ':' + a._houseReadings(h.id).length));
+    const swDupA = await A.run(a => a.db.houses.filter(q => q.account === 'Т001').map(h => h.meterNo));
+    check('дубль після заміни був на пристрої', swDupPrep.n === 2, String(swDupPrep.n));
+    check('після заміни — одна картка (новий №) і вся історія на ній', swDupB.length === 1 && /^20000001:\d+$/.test(swDupB[0]) && Number(swDupB[0].split(':')[1]) >= 3, JSON.stringify(swDupB));
+    check('стара картка з іншого пристрою не повернулась', swDupA.join() === '20000001', JSON.stringify(swDupA));
+
     // ---------- 7. повірка зі зміною показників → робітнику; скасування ----------
     await A.run(async (a) => {
       const h = a.db.houses.find(q => q.meterNo === '10000002');
@@ -412,6 +438,28 @@ async function syncNow(d) {
     const afterDelA = await A.run(a => a.db.houses.filter(q => q.account === 'ІГНАТЕНКА6').map(h => h.meterNo));
     check('дубль з’явився на обох (як у реальній ситуації)', dup.n === 2 && dupB === 2, dup.n + ' / ' + dupB);
     check('«Видалити прилад» прибрав дубль на обох пристроях, справжній лишився', afterDel.join() === '6666666' && afterDelA.join() === '6666666', JSON.stringify([afterDelA, afterDel]));
+
+    // ---------- 10ї'. зміна № у картці + стара копія з іншого пристрою — без другої картки ----------
+    const ren7 = await A.run(async (a) => {
+      const h = a.db.houses.find(q => q.account === 'Т007');
+      const stale = JSON.parse(JSON.stringify(h));               // як на пристрої, що ще не знає про правку
+      a.tapMeter(h); await new Promise(r => setTimeout(r, 100));
+      a.setState({ mObcZavod: '70000007' }); await new Promise(r => setTimeout(r, 50));
+      a.saveDovidnyk(); await new Promise(r => setTimeout(r, 100));
+      return { stale, no: h.meterNo };
+    });
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    // застарілий пристрій публікує картку зі старим № (і новішою міткою часу)
+    await A.run(async (a, st) => {
+      await a._apiFetch('/base', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'merge', houses: [Object.assign({}, st, { upAt: Date.now() + 1000 })], boilers: [] }) });
+    }, ren7.stale);
+    for (let i = 0; i < 2; i++) { await syncNow(A); await syncNow(B); }
+    await B.run(async (a) => { await a.cloudRefreshBase(); await a._waitCloudIdle(15000); });
+    const ren7B = await B.run(a => a.db.houses.filter(q => q.account === 'Т007').map(h => h.meterNo));
+    const ren7S = await A.run(async (a) => { const r = await a._apiFetch('/base'); const d = await r.json(); return d.houses.filter(h => h.account === 'Т007').map(h => h.meterNo); });
+    check('зміна № у картці: стара копія не стала другим приладом (пристрій і сервер)', ren7.no === '70000007'
+      && ren7B.join() === '70000007' && ren7S.join() === '70000007', JSON.stringify([ren7B, ren7S]));
 
     // ---------- 10й. перенесення показань у попередній період доходить до всіх ----------
     const mv = await A.run(async (a) => {

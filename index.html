@@ -2722,6 +2722,7 @@ class Component extends DCLogic {
         this.db = saved;
         this.setState({ booting: false, hasData: true });
         this._migrateStableKeys();
+        this._dropSwapStale();
         if (this._rebaseAfterOpen()) this._persist();   // показання, внесені до повірки/заміни
       } else {
         this.setState({ booting: false, hasData: false });
@@ -2746,7 +2747,7 @@ class Component extends DCLogic {
   // робітника підхопив оновлення. Міняючи її, ОДНОЧАСНО оновіть APP_VERSION у
   // sw.js — звідти будується ім'я кешу оболонки, тож один bump і показує тост
   // «є оновлення», і скидає старий кеш. Парність перевіряє tests/check-app.js.
-  static get APP_VERSION(){ return '2026.11.27.1'; }
+  static get APP_VERSION(){ return '2026.11.27.2'; }
   // Коли service worker нової версії перебирає контроль (стара вкладка відкрита),
   // показуємо тост із кнопкою перезавантаження — інакше робітник тижнями ходить
   // зі старою оболонкою й ніхто цього не бачить.
@@ -3338,6 +3339,7 @@ class Component extends DCLogic {
       // заміни приладів: злити й привести картки будинків у відповідність
       this._mergeSwaps(data.swaps);
       this._applySwaps();
+      this._dropSwapStale();                            // дубль-картка після заміни
       if (this._rebaseAfterOpen()) this._persist();     // повірка/заміна прийшла пізніше за показання
       if (this._mergeFopMarks(data.fopMarks)) this._saveSettings({ fopMarks: this.state.fopMarks });
       // СЕРВЕР — ЄДИНЕ ДЖЕРЕЛО ПРАВДИ. keys — повний набір ключів показань, що
@@ -3676,6 +3678,7 @@ class Component extends DCLogic {
       if (d.baseAt) this.state.baseAt = Number(d.baseAt);
       this.state.diag = null;
       this._applySwaps();          // заміни/повірки поверх довідника (якщо база старша за них)
+      this._dropSwapStale();       // дубль-картка зі старим № після заміни
       this._persist();
       this._saveSettings({ baseAt: this.state.baseAt || 0 });
       const acts = this.db.houses.filter(h => String(h.act || '').trim()).length;
@@ -5360,6 +5363,8 @@ class Component extends DCLogic {
         // прилад замінили на одному з боків: зіставляємо за № до заміни (не за id —
         // id на різних пристроях можуть збігтися в різних приладів одного особового)
         const sOld = (S.meterSwaps || []).map(w => n(w && w.oldNo)), acc = n(S.account);
+        // серверна картка ще зі СТАРИМ № (заміна йде окремим записом swaps) —
+        // зіставляємо з уже заміненим приладом; заміну потім знову накладе _applySwaps
         L = local.find(h => !used.has(h) && n(h.account) === acc
           && (sOld.includes(n(h.meterNo)) || (h.meterSwaps || []).some(w => n(w && w.oldNo) === n(S.meterNo)))) || null;
       }
@@ -5367,8 +5372,13 @@ class Component extends DCLogic {
         used.add(L);
         // локальна правка новіша за серверну (ще не опублікована) — не затираємо
         if ((Number(L.upAt) || 0) > (Number(S.upAt) || 0)) return;
+        // на сервері картка ще БЕЗ нашої заміни (заміна йде окремим записом swaps):
+        // решту полів беремо, а № і стан після заміни лишаємо свої
+        const sameSw = (a, b) => a && b && a.date === b.date && this._sameMeterNo(a.oldNo, b.oldNo) && this._sameMeterNo(a.newNo, b.newNo);
+        const ahead = (L.meterSwaps || []).some(w => !(S.meterSwaps || []).some(x => sameSw(x, w)));
+        const KEEP = ahead ? new Set(['meterNo', 'meterSwaps', 'prevObc', 'unit', 'obcPovirka', 'prevVoda', 'prevRobota', 'prevProstiy', 'prevVodomir', 'prevKeys']) : null;
         let ch = false;
-        Object.keys(S).forEach(k => { if (k === 'id') return;
+        Object.keys(S).forEach(k => { if (k === 'id' || (KEEP && KEEP.has(k))) return;
           if (JSON.stringify(L[k]) !== JSON.stringify(S[k])) { L[k] = S[k]; ch = true; } });
         if (ch) updated++;
       } else {
@@ -5419,6 +5429,41 @@ class Component extends DCLogic {
     this.setState({ eHouse: '', housesBuilding: null, detailId: null, tab: 'houses', rev: this.state.rev + 1,
       importOpen: true, importName: 'Прилад видалено', importMeta: (h.address || h.code) + (h.meterNo ? ' · № ' + h.meterNo : '') + ' · розійдеться бригаді' });
     this._kickSync();
+  }
+  // Дубль після заміни: прилад зі СТАРИМ № лишився окремою карткою поруч із
+  // замінeним (застаріла копія з іншого пристрою). Показання переносимо на
+  // справжній прилад, дубль прибираємо. Повертає кількість прибраних.
+  _dropSwapStale(){
+    if (!this.db || !Array.isArray(this.db.houses)) return 0;
+    const n = (x) => this._normAddr(x);
+    const pairs = [];
+    this.db.houses.forEach(x => {
+      const no = n(x.meterNo); if (!no) return;
+      const kx = this._houseKey(x);
+      const y = this.db.houses.find(y => y !== x && n(y.account) === n(x.account) && n(y.meterNo) !== no
+        && ((y.meterSwaps || []).some(w => n(w && w.oldNo) === no) || (Array.isArray(y.prevKeys) && y.prevKeys.includes(kx)))
+        && !(x.meterSwaps || []).some(w => n(w && w.newNo) === n(y.meterNo))
+        && !(Array.isArray(x.prevKeys) && x.prevKeys.includes(this._houseKey(y))));
+      if (y && !pairs.some(p => p.x === y)) pairs.push({ x, y });
+    });
+    // двійники після заміни: дві картки з тим самим особовим і НОВИМ № (обидві з
+    // цією заміною) — лишаємо першу, решту зливаємо в неї
+    const seen = new Map();
+    this.db.houses.forEach(x => {
+      if (!(x.meterSwaps || []).length || !n(x.meterNo)) return;
+      const k = n(x.account) + '|' + n(x.meterNo) + '|' + this._meterKind(x);
+      const y = seen.get(k);
+      if (!y) { seen.set(k, x); return; }
+      if (!pairs.some(p => p.x === x || p.x === y)) pairs.push({ x, y });
+    });
+    if (!pairs.length) return 0;
+    pairs.forEach(({ x, y }) => {
+      this.db.readings.forEach(r => { if (String(r.houseId) === String(x.id)) { r.houseId = y.id; if (!r.meterNo) r.meterNo = x.meterNo || ''; } });
+    });
+    const ids = new Set(pairs.map(p => String(p.x.id)));
+    this.db.houses = this.db.houses.filter(h => !ids.has(String(h.id)));
+    this._persist();
+    return pairs.length;
   }
   // до якого приладу перейдуть показання видаленого
   _houseHeir(h){
@@ -6616,6 +6661,9 @@ class Component extends DCLogic {
       const h = findBy(w.oldNo);
       if (!h) return;                                   // вже застосовано або не наш прилад
       if ((h.meterSwaps || []).some(same)) return;
+      // заміну вже має інша картка цього особового — h лише стара копія (дубль):
+      // не робимо з неї другий «новий» прилад, її прибере _dropSwapStale
+      if (this.db.houses.some(y => y !== h && this._sameMeterNo(y.meterNo, w.newNo) && (y.meterSwaps || []).some(same))) return;
       h.meterSwaps = Array.isArray(h.meterSwaps) ? h.meterSwaps : [];
       h.meterSwaps.push({ date: w.date, oldNo: w.oldNo, oldLast: w.oldLast, newNo: w.newNo,
         init: w.init, by: w.by, at: w.at, prevBefore: w.prevBefore, initX: w.initX, beforeX: w.beforeX, newUnit: w.newUnit, newPov: w.newPov });
@@ -6712,6 +6760,7 @@ class Component extends DCLogic {
     }
     this._applyPovRecord(rec, true);
     this._rebaseAfterOpen([h.id]);                      // уже внесені пізніші показання — від «після повірки»
+    this._touchHouse(h);                                // № / дата повірки змінились — на сервер
     const sw = { ...(this.state.swaps || {}) };
     sw[this._povId(h, rec.instDate, rec.povDate)] = rec;
     this.state.swaps = sw;
@@ -6936,6 +6985,10 @@ class Component extends DCLogic {
     this._setPrevX(h, initX);
     h.unit = newUnit;
     if (newPov) h.obcPovirka = newPov;
+    // картка змінилась — автопублікація відправить на сервер новий № разом із
+    // meterSwaps (інакше на сервері лишався старий № і поверх заміни поверталась
+    // стара картка, а застарілі копії з інших пристроїв ставали другим приладом)
+    this._touchHouse(h);
     // бригадний запис заміни — щоб інші пристрої перемкнули прилад у себе
     const sw = { ...(this.state.swaps || {}) };
     sw[this._swapId(h.account, this._meterKind(h), oldNo, date)] = {

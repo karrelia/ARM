@@ -313,6 +313,9 @@ function mergeHouses(db, incoming){
       i = db.houses.findIndex(h => norm(h.account) === norm(inc.account) && olds.includes(norm(h.meterNo)));
       if (i < 0) i = undefined;
     }
+    // ЗАСТАРІЛА копія приладу ДО заміни (з пристрою, що про заміну ще не знає):
+    // на сервері цей № уже замінено — не додаємо як новий прилад (інакше дубль)
+    if (i === undefined && isSwappedOut(db.houses, inc)) return;
     if (i !== undefined) {
       const ex = db.houses[i];
       if ((Number(inc.upAt) || 0) >= (Number(ex.upAt) || 0)) { db.houses[i] = Object.assign({}, inc, { id: ex.id }); byKey.set(houseKey(db.houses[i]), i); updated++; }
@@ -323,6 +326,26 @@ function mergeHouses(db, incoming){
     }
   });
   return { added, updated };
+}
+// Прилад x — стара копія (до заміни) приладу y того самого особового: № x є
+// «старим №» у заміні y, а сам x цієї заміни не має.
+// Те саме після звичайної зміни № у картці: ключ x («особовий|№») є серед
+// попередніх ключів (prevKeys) іншого приладу y, а сам x ключа y не знає.
+function isSwappedOut(houses, x){
+  const no = norm(x && x.meterNo); if (!no) return false;
+  const kx = houseKey(x);
+  return (houses || []).some(y => y !== x && norm(y.account) === norm(x.account) && norm(y.meterNo) !== no
+    && ((Array.isArray(y.meterSwaps) ? y.meterSwaps : []).some(w => norm(w && w.oldNo) === no)
+        || (Array.isArray(y.prevKeys) && y.prevKeys.includes(kx)))
+    && !(Array.isArray(x.meterSwaps) ? x.meterSwaps : []).some(w => norm(w && w.newNo) === norm(y.meterNo))
+    && !(Array.isArray(x.prevKeys) && x.prevKeys.includes(houseKey(y))));
+}
+// прибрати вже створені такі дублі (показання на сервері з приладами не зв'язані)
+function dropSwapStale(db){
+  if (!Array.isArray(db.houses)) return 0;
+  const before = db.houses.length;
+  db.houses = db.houses.filter(x => !isSwappedOut(db.houses, x));
+  return before - db.houses.length;
 }
 // ВИДАЛЕННЯ ПРИЛАДІВ — бригадні тумбстоуни: ключ приладу → час. Прилад, правлений
 // ПІСЛЯ видалення (upAt новіший), лишається. Ключ — як у клієнта (_houseDelKey).
@@ -432,6 +455,7 @@ async function handleApi(req, res, url){
       if (body.baseSig) db.baseSig = body.baseSig;
     } else { db.houses = body.houses; db.boilers = body.boilers || []; db.baseSig = body.baseSig || ''; }
     mergeHouseDels(db, body.houseDels); applyHouseDels(db);
+    dropSwapStale(db);
     // мітка версії ДОВІДНИКА: пристрої бригади бачать її в /sync і самі
     // доливають нові прилади й правки паспорта, не чіпаючи своїх показань
     db.baseAt = Date.now();
@@ -466,6 +490,7 @@ async function handleApi(req, res, url){
     mergePurge(db, body); applyPurge(db);
     // видалені прилади — бригадні
     mergeHouseDels(db, body.houseDels); applyHouseDels(db);
+    if (dropSwapStale(db)) db.baseAt = Date.now();   // дублі після заміни — прибрати в усіх
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!db.deletes || typeof db.deletes !== 'object') db.deletes = {};
     if (body.deletes && typeof body.deletes === 'object') {
@@ -550,4 +575,4 @@ if (require.main === module) {
     console.log('Ключ бригади: ' + brigadeKey());
   });
 }
-module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb, mergePurge, applyPurge, periodOf, mergeHouses, mergeHouseDels, applyHouseDels };
+module.exports = { mergeReadings, mergeContacts, mergeRoutes, mergeStampedMap, mergeAssignments, ensureAsgStamps, keyOf, emptyDb, mergePurge, applyPurge, periodOf, mergeHouses, mergeHouseDels, applyHouseDels, dropSwapStale, isSwappedOut };

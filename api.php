@@ -373,6 +373,30 @@ function apply_purge(&$db) {
 }
 // Зведення ДОВІДНИКА прилад за приладом (автопублікація) — правила як у server.js
 function house_key($h) { return norm_s($h['account'] ?? '') . '|' . norm_s($h['meterNo'] ?? ''); }
+// Прилад x — стара копія (до заміни) приладу y того самого особового (див. server.js isSwappedOut)
+function is_swapped_out($houses, $x, $xi) {
+    $no = norm_s($x['meterNo'] ?? ''); if ($no === '') return false;
+    foreach ($houses as $j => $y) {
+        if ($j === $xi || norm_s($y['account'] ?? '') !== norm_s($x['account'] ?? '') || norm_s($y['meterNo'] ?? '') === $no) continue;
+        $hit = false;
+        foreach ((is_array($y['meterSwaps'] ?? null) ? $y['meterSwaps'] : array()) as $w) { if (norm_s($w['oldNo'] ?? '') === $no) { $hit = true; break; } }
+        // після звичайної зміни № у картці — ключ x серед попередніх ключів y
+        if (!$hit && is_array($y['prevKeys'] ?? null) && in_array(house_key($x), $y['prevKeys'], true)) $hit = true;
+        if (!$hit) continue;
+        $back = false;
+        foreach ((is_array($x['meterSwaps'] ?? null) ? $x['meterSwaps'] : array()) as $w) { if (norm_s($w['newNo'] ?? '') === norm_s($y['meterNo'] ?? '')) { $back = true; break; } }
+        if (!$back && is_array($x['prevKeys'] ?? null) && in_array(house_key($y), $x['prevKeys'], true)) $back = true;
+        if (!$back) return true;
+    }
+    return false;
+}
+function drop_swap_stale(&$db) {
+    if (!isset($db['houses']) || !is_array($db['houses'])) return 0;
+    $keep = array(); $n = 0;
+    foreach ($db['houses'] as $i => $h) { if (is_swapped_out($db['houses'], $h, $i)) { $n++; continue; } $keep[] = $h; }
+    if ($n) $db['houses'] = $keep;
+    return $n;
+}
 function merge_houses(&$db, $incoming) {
     if (!isset($db['houses']) || !is_array($db['houses'])) $db['houses'] = array();
     $byKey = array(); $byId = array(); $maxId = 0;
@@ -395,6 +419,8 @@ function merge_houses(&$db, $incoming) {
                 if (norm_s($h['account'] ?? '') === norm_s($inc['account'] ?? '') && in_array(norm_s($h['meterNo'] ?? ''), $olds, true)) { $i = $j; break; }
             }
         }
+        // застаріла копія приладу ДО заміни — на сервері № уже замінено: не додаємо
+        if ($i === null && is_swapped_out($db['houses'], $inc, -1)) continue;
         if ($i !== null) {
             $ex = $db['houses'][$i];
             if ((float)($inc['upAt'] ?? 0) >= (float)($ex['upAt'] ?? 0)) { $inc['id'] = $ex['id'] ?? $inc['id']; $db['houses'][$i] = $inc; $byKey[house_key($inc)] = $i; }
@@ -480,6 +506,7 @@ if ($path === 'base' && $method === 'POST') {
         $db['baseSig'] = $body['baseSig'] ?? '';
     }
     merge_house_dels($db, $body['houseDels'] ?? null); apply_house_dels($db);
+    drop_swap_stale($db);
     // мітка версії ДОВІДНИКА — пристрої бригади доливають нові прилади під час синхронізації
     $db['baseAt'] = round(microtime(true) * 1000);
     // Базові (архівні/імпортовані) показання — щоб робітник, який завантажить
@@ -518,6 +545,7 @@ if ($path === 'sync' && $method === 'POST') {
     merge_purge($db, $body); apply_purge($db);
     // видалені прилади — бригадні
     merge_house_dels($db, $body['houseDels'] ?? null); apply_house_dels($db);
+    if (drop_swap_stale($db)) $db['baseAt'] = (int)round(microtime(true) * 1000);   // дублі після заміни — прибрати в усіх
     // ТУМБСТОУНИ видалення: злити мітки (новіша перемагає) і прибрати показання
     if (!isset($db['deletes']) || !is_array($db['deletes'])) $db['deletes'] = array();
     if (isset($body['deletes']) && is_array($body['deletes'])) {
